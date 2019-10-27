@@ -78,22 +78,26 @@ curr = data["curr"][0][0]
 vertical_v = data["vu"][0][0].T
 #convert matlab time to utc
 utc = np.asarray(pl.num2date(rtc-366))        
+
+path = "dissipation_rate_adcp_emb217_TC_Flach.npz" #("dissipation_rate_estimation.npz")
         
-npzfile = np.load("dissipation_rate_estimation.npz")
+npzfile = np.load(path) 
 print(npzfile.files)
 depth = npzfile["depth"]
 utc_chunks = npzfile["utc"]
-dissipation_rate = npzfile["dissipation_rate"]
+dissipation_rate_up = npzfile["dissipation_rate_up"]
+dissipation_rate_down = npzfile["dissipation_rate_down"]
+total_dissipation_rate = npzfile["dissipation_total"]
 
 
 #figure 1 for the measurements
 f1, axarr1 = plt.subplots(2, sharex=True, sharey = True)
 
 #figure 2 for the test
-f2, axarr2 = plt.subplots(2, sharex=True, sharey = True)
+f2, axarr2 = plt.subplots(3, sharex=True, sharey = True)
 
 #figure 3 for the test
-f3, axarr3 = plt.subplots(ncols = 2)
+f3, axarr3 = plt.subplots(ncols = 3, sharex=True, sharey = True)
 
 #figure 4 for the test
 #f4, axarr4 = plt.subplots(2, sharex=True, sharey = True)
@@ -108,28 +112,34 @@ vmax = +0.3
 
 #fill figure 1 with data
 img1_1 = axarr1[0].pcolormesh(utc,depth,vertical_v, vmin = -0.0075, vmax = 0.0075, cmap = plt.cm.RdYlBu_r)
-img1_2 = axarr1[1].pcolormesh(utc_chunks,depth, np.log10(dissipation_rate), cmap = plt.cm.RdYlBu_r)
+img1_2 = axarr1[1].pcolormesh(utc_chunks,depth, np.log10(dissipation_rate_up), cmap = plt.cm.RdYlBu_r)
 
 #img2_1 = axarr2[0].pcolormesh(utc_chunks,depth,dissipation_rate, cmap = plt.cm.RdYlBu_r)
 #img2_2 = axarr2[1].pcolormesh(utc_chunks,depth,np.log10(dissipation_rate), cmap = plt.cm.RdYlBu_r)
-img2_1 = axarr2[0].pcolormesh(utc_chunks,depth, np.log10(dissipation_rate), vmin = -23, vmax = -15, cmap = plt.cm.RdYlBu_r)
-img2_2 = axarr2[1].pcolormesh(utc_chunks,depth, np.log10(dissipation_rate), vmin = -15, vmax = -6.5, cmap = plt.cm.RdYlBu_r)
+img2_1 = axarr2[0].pcolormesh(utc_chunks,depth, np.log10(total_dissipation_rate), vmin = -23, vmax = -6.5, cmap = plt.cm.RdYlBu_r)
+img2_2 = axarr2[1].pcolormesh(utc_chunks,depth, np.log10(dissipation_rate_up), vmin = -23, vmax = -6.5, cmap = plt.cm.RdYlBu_r)
+img2_3 = axarr2[2].pcolormesh(utc_chunks,depth, np.log10(dissipation_rate_down), vmin = -23, vmax = -6.5, cmap = plt.cm.RdYlBu_r)
 
-img3_1 = axarr3[0].hist(dissipation_rate.flatten(), bins = 1500)
-img3_2 = axarr3[1].hist(np.log10(dissipation_rate.flatten()), bins = 150)      
+#filter out NaN values
+mask1 = ~np.isnan(total_dissipation_rate.flatten())
+mask2 = ~np.isnan(dissipation_rate_up.flatten())
+mask3 = ~np.isnan(dissipation_rate_down.flatten())
+ 
+img3_1 = axarr3[0].hist(np.log10(total_dissipation_rate.flatten()[mask1]), bins = 150)
+img3_2 = axarr3[1].hist(np.log10(dissipation_rate_up.flatten()[mask2]), bins = 150)  
+img3_3 = axarr3[2].hist(np.log10(dissipation_rate_down.flatten()[mask3]), bins = 150)        
 
 
 #img4_1 = axarr4[0].pcolormesh(utc_chunks,depth, np.log10(dissipation_rate), vmin = -23, vmax = -6.5, cmap = plt.cm.seismic)
 #img4_2 = axarr4[1].pcolormesh(utc_chunks,depth, np.log10(dissipation_rate), vmin = -23, vmax = -6.5, cmap = shiftedColorMap(plt.cm.seismic, midpoint = 1 - 23 / (23 + abs(-6.5))))
 
-1 - vmax / (vmax + abs(vmin))
-plt.cm.seismic
-
+"""
 print(np.nanmean(dissipation_rate.flatten()),np.nanstd(dissipation_rate.flatten()),np.nanmax(dissipation_rate.flatten()),np.nanmin(dissipation_rate.flatten()))
 
 print(np.log10(np.nanmean(dissipation_rate.flatten())),np.log10(np.nanstd(dissipation_rate.flatten())),np.log10(np.nanmax(dissipation_rate.flatten())),np.log10(np.nanmin(dissipation_rate.flatten())))
 
 print(np.nanmean(np.log10(dissipation_rate.flatten())),np.nanstd(np.log10(dissipation_rate.flatten())),np.nanmax(np.log10(dissipation_rate.flatten())),np.nanmin(np.log10(dissipation_rate.flatten())))
+"""
         
 #Preferences of the plots
 
@@ -161,16 +171,28 @@ axarr2[1].invert_yaxis()
 colorbar(img1_1).set_label('velocity [m/s]')
 colorbar(img1_2).set_label('log10(dissipation rate)')
 
-colorbar(img2_1).set_label('dissipation rate')
+colorbar(img2_1).set_label('log10(dissipation rate)')
 colorbar(img2_2).set_label('log10(dissipation rate)')
+colorbar(img2_3).set_label('log10(dissipation rate)')
 
-colorbar(img4_1).set_label('not shifted')
-colorbar(img4_2).set_label('shifted')
+axarr1[0].set_title("EMB217_TC-flach_adcp600 vertical velocity")
+axarr1[1].set_title("dissipation rate (upwards)")
+
+axarr2[0].set_title("emb217 flach dissipation rate (averaged)")
+axarr2[1].set_title("emb217 flach dissipation rate (upwards)")
+axarr2[2].set_title("emb217 flach dissipation rate (down)")
+
+axarr3[0].set_title("distribution dissipation rate (averaged)")
+axarr3[1].set_title("distribution dissipation rate (upwards)")
+axarr3[2].set_title("distribution dissipation rate (downwards)")
+
+#colorbar(img4_1).set_label('not shifted')
+#colorbar(img4_2).set_label('shifted')
 
 f1.set_size_inches(12,7)
 f2.set_size_inches(12,7)
 f3.set_size_inches(12,7)
-f4.set_size_inches(12,7)
+#f4.set_size_inches(12,7)
 
 #Save the plot as png
 #plot1_name = "./pictures/"+"adcp_"+cruisename+"_"+flach_or_tief 

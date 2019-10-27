@@ -100,7 +100,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         #convert matlab time to utc
         utc = np.asarray(pl.num2date(rtc-366))
         
-        
+ 
         axarr1.hist(vertical_v.flatten(), bins = 150)
         print(np.nanstd(vertical_v.flatten()))
         plt.show()

@@ -218,92 +218,115 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         velocity_difference_up = [] #np.zeros((number_of_subarrays,number_of_depth_bins,maximum_distance_r))
         velocity_difference_down = []
         
+        #------------------------------------------------------------------------------------------------------------
+        current_time_index = 
+        current_depth_index = 
+        sub_array = sub_arrays[current_time_index]
+        point_in_time = sub_time_arrays[current_time_index][-1]
         
-        #loop over all subarrays (big time steps)
-        for sub_array in sub_arrays:
+        mean_velocity = np.nanmean(sub_array[current_depth_index,:])
+        summe_up = np.zeros(min(maximum_distance_r,number_of_depth_bins-1-current_depth_index))
+        summe_down = np.zeros(min(maximum_distance_r,current_depth_index-1))
+    
+        #print("Number of small timesteps:",np.shape(sub_array)[1])
+        #loop over the timesteps in a sub array (small timesteps)
+        for i in np.arange(np.shape(sub_array)[1]):
             
-            mean_velocity = np.nanmean(sub_array[current_depth_index,:])
+            upwards = np.zeros(min(maximum_distance_r,number_of_depth_bins-1-current_depth_index))-1
+            downwards = np.zeros(min(maximum_distance_r,current_depth_index-1))-1
+        
+            fluctuation_at_z = sub_array[current_depth_index,i] - mean_velocity
             
-            summe_up = np.zeros(min(maximum_distance_r,number_of_depth_bins-1-current_depth_index))
-            summe_down = np.zeros(min(maximum_distance_r,current_depth_index-1))
-            
-            #loop over the timesteps in a sub array (small timesteps)
-            for i in np.arange(np.shape(sub_array)[1]):
-                
-                upwards = np.zeros(min(maximum_distance_r,number_of_depth_bins-1-current_depth_index))-1
-                downwards = np.zeros(min(maximum_distance_r,current_depth_index-1))-1
-            
-                fluctuation_at_z = sub_array[current_depth_index,i] - mean_velocity
-                
-                #print("upwards shape",np.shape(upwards))
-                       
-                #TODO time average
-                #Loops over the distances r
-            
-                #velocity difference upwards
-                for j in np.arange(0,len(upwards)):
-                    fluctuation_at_z_plus_r = sub_array[current_depth_index+j+1,i] - mean_velocity
-            
-                    upwards[j] = (fluctuation_at_z - fluctuation_at_z_plus_r)**2
-            
-                summe_up += upwards  
-            
-                """
-                if np.all(sub_array == sub_arrays[500]):
-                    print("test")
-                    axarr2[1].plot(np.arange(1,maximum_distance_r),upwards,"--")
-                """
-            
-                #velocity difference upwards
-                for j in np.arange(0,len(downwards)):
-                    fluctuation_at_z_plus_r = sub_array[current_depth_index-j-1,i] - mean_velocity
-            
-                    downwards[j] = (fluctuation_at_z - fluctuation_at_z_plus_r)**2
-            
-                summe_down += downwards
+            #print("upwards shape",np.shape(upwards))
+                   
+            #TODO time average
+            #Loops over the distances r
         
+            #velocity difference upwards
+            for j in np.arange(0,len(upwards)):
+                fluctuation_at_z_plus_r = sub_array[current_depth_index+j+1,i] - mean_velocity
         
+                upwards[j] = (fluctuation_at_z - fluctuation_at_z_plus_r)**2
         
+            summe_up += upwards  
         
+            """
+            if np.all(sub_array == sub_arrays[500]):
+                print("test")
+                axarr2[1].plot(np.arange(1,maximum_distance_r),upwards,"--")
+            """
         
-            structure_function_up = summe_up/np.shape(sub_array)[1]
-            
-            structure_function_down = summe_down/np.shape(sub_array)[1]
+            #velocity difference upwards
+            for j in np.arange(0,len(downwards)):
+                fluctuation_at_z_plus_r = sub_array[current_depth_index-j-1,i] - mean_velocity
         
-            velocity_difference_up.append(structure_function_up)
-            velocity_difference_down.append(structure_function_down)
+                downwards[j] = (fluctuation_at_z - fluctuation_at_z_plus_r)**2
         
+            summe_down += downwards
+            #small timestep loop ends
+    
+        structure_function_up = np.asarray(summe_up/np.shape(sub_array)[1])
         
-        velocity_difference_up = np.asarray(velocity_difference_up)
-        velocity_difference_down = np.asarray(velocity_difference_down)
-        
-        print(":",np.nanmax(vertical_v),np.nanmin(vertical_v))
-        print("max:",(np.nanmax(vertical_v)-np.nanmin(vertical_v))**2,(np.nanmax(vertical_v)-np.nanmin(vertical_v))**2*1e3)
-        
-        print(velocity_difference_up[500,:])
-        
-        print("velocity difference",np.shape(velocity_difference_up))
-        
-        def func(r,N,e):
-            C_v = 2.1 #from Wiles, Rippeth et al. 2006
-            A = C_v**2 * e**(2/3)
-            return N+A*r**(2/3)
-        
-        #array [1,..,12] 
+        structure_function_down = np.asarray(summe_down/np.shape(sub_array)[1])
+    
+        #Dissipation up
+        #array [1,..,12] for a maximum distance of 12
         distance = np.arange(1,min(maximum_distance_r+1,number_of_depth_bins-current_depth_index))
-        print(distance, np.shape(distance))
-        mask = ~np.isnan(velocity_difference_up[500,:])
+         
+        mask = ~np.isnan(structure_function_up)
         adjusted_distance = distance[mask]
-        adjusted_difference = velocity_difference_up[500,:][mask]
-            
-        popt, pcov = curve_fit(func, adjusted_distance, adjusted_difference)
-        print("dissipation:",popt[1])
+        adjusted_difference = structure_function_up[mask]
+        number_of_fitpoints_up = adjusted_difference.size
+        
+        print(structure_function_up)
+        
+        try:    
+            popt, pcov = curve_fit(func, adjusted_distance, adjusted_difference)
+            rate_of_dissipation_up = popt[1]
+        except TypeError:
+            rate_of_dissipation_up = np.nan
+        
+        dissipation_up[current_depth_index,current_time_index] = rate_of_dissipation_up 
+        
+        print("dissipation:",rate_of_dissipation_up)
         print("at depth",depth[current_depth_index])
-        print("at time",sub_time_arrays[500][0])
+        print("at time",sub_time_arrays[current_time_index][0],"\n")
+        
+        #Dissipation down
+        #array [1,..,12] for a maximum distance of 12
+        distance = np.arange(1,min(maximum_distance_r+1,current_depth_index))
+         
+        #print(distance, np.shape(distance))
+        mask = ~np.isnan(structure_function_down)
+        adjusted_distance = distance[mask]
+        adjusted_difference = structure_function_down[mask]
+        number_of_fitpoints_down = adjusted_difference.size
+        
+        print(structure_function_down)
+        
+        try:    
+            popt, pcov = curve_fit(func, adjusted_distance, adjusted_difference)
+            rate_of_dissipation_down = popt[1]
+        except TypeError:
+            rate_of_dissipation_down = np.nan
+        
+        dissipation_down[current_depth_index,current_time_index] = rate_of_dissipation_down 
         
         
-        print(np.shape(velocity_difference_up),np.shape(velocity_difference_down))
-        print(velocity_difference_down)
+        print("dissipation:",rate_of_dissipation_down)
+        print("at depth",depth[current_depth_index])
+        print("at time",sub_time_arrays[current_time_index][0],"\n")
+        
+        #weighted average
+        total_number_of_points = number_of_fitpoints_up + number_of_fitpoints_down
+        if total_number_of_points != 0:
+            dissipation[current_depth_index,current_time_index] = number_of_fitpoints_up/total_number_of_points * rate_of_dissipation_up + number_of_fitpoints_down/total_number_of_points * rate_of_dissipation_down 
+        else:
+            dissipation[current_depth_index,current_time_index] = np.nan
+        
+
+        
+ 
         
         #Plot
         #---------------------------------------------------------------
@@ -314,6 +337,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         #axarr2[1].plot(distance,velocity_difference_up[600,:]*10**3)
         #axarr2[1].plot(distance,velocity_difference_down[600,:]*10**3)
         axarr2[1].plot(distance,velocity_difference_up[500,:])
+        """
          
         #Crosscheck 
         check_array = sub_arrays[500] 

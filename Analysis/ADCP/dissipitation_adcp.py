@@ -61,7 +61,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     f1, axarr1 = plt.subplots(2, sharex=True, sharey = True)
 
     #figure 2 for the test
-    f2, axarr2 = plt.subplots(2, sharex=True)#, sharey = True)
+    f2, axarr2 = plt.subplots(2, sharex=True, sharey = True)
     
     
     for DATAFILENAME in DATAFILENAMES:
@@ -179,7 +179,15 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         
         print("shape:",np.shape(vertical_v))
         sub_arrays = np.array_split(vertical_v,number_of_subarrays,axis = 1)  #creates "almost equal" sub-arrays
-        sub_time_arrays = np.array_split(utc,number_of_subarrays) 
+        sub_time_arrays = np.array_split(utc,number_of_subarrays)
+        
+        #create time axis for the chunks
+        dissipation_time_array = []
+        for sub_time_array in sub_time_arrays:
+            dissipation_time_array.append(sub_time_array[-1])    
+        dissipation_time_array = np.asarray(dissipation_time_array)     
+            
+         
         print("length:",len(sub_arrays))
         
         #for i in np.arange(number_of_depth_bins):
@@ -214,10 +222,12 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         # TODO Assumes a depth bin Size of 1m
         #-----------------------------------------------------------------------
         #current_depth_index = depth.size-15
-        maximum_distance_r = 12        
-        velocity_difference_up = [] #np.zeros((number_of_subarrays,number_of_depth_bins,maximum_distance_r))
-        velocity_difference_down = []
+        maximum_distance_r = 12   #maximum number of meters away from the reference point z  
+
         count = 0
+        dissipation_up = np.full((number_of_depth_bins,number_of_subarrays),np.nan) 
+        dissipation_down = np.full((number_of_depth_bins,number_of_subarrays),np.nan)
+        dissipation = np.full((number_of_depth_bins,number_of_subarrays),np.nan)
         
         def func(r,N,e):
             C_v = 2.1 #from Wiles, Rippeth et al. 2006
@@ -226,16 +236,10 @@ for FOLDERNAME in LIST_OF_FOLDERS:
             
         #loop over all subarrays (big time steps)
         for sub_array in sub_arrays:
-            
-            if count < 100:
-                count+=1
-                print(count)
-                continue
-            
-            velocity_difference_up = [] #np.zeros((number_of_subarrays,number_of_depth_bins,maximum_distance_r))
-            velocity_difference_down = []
+                    
+            #TODO Was machen wenn es zu wenig Datenpunkte sind?
         
-            # loop over the depth bins
+            # loop over the depth bins (small index = deep depth, high index = small depth)
             for current_depth_index in np.arange(2,number_of_depth_bins-4):
                 #print("current_depth_index:",current_depth_index,depth[current_depth_index])
             
@@ -299,38 +303,88 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                 
                 #print("number_of_depth_bins-current_depth_index",number_of_depth_bins-current_depth_index)
                 #print(number_of_depth_bins,current_depth_index)
-                #array [1,..,12] 
+                
+                #TODO 
+                #Dissipation up
+                #array [1,..,12] for a maximum distance of 12
                 distance = np.arange(1,min(maximum_distance_r+1,number_of_depth_bins-current_depth_index))
+                 
                 #print(distance, np.shape(distance))
                 mask = ~np.isnan(structure_function_up)
                 adjusted_distance = distance[mask]
                 adjusted_difference = structure_function_up[mask]
-                    
-                popt, pcov = curve_fit(func, adjusted_distance, adjusted_difference)
-                print("dissipation:",popt[1])
+                number_of_fitpoints_up = adjusted_difference.size
+                
+                print(structure_function_up)
+                
+                try:    
+                    popt, pcov = curve_fit(func, adjusted_distance, adjusted_difference)
+                    rate_of_dissipation_up = popt[1]
+                except TypeError:
+                    rate_of_dissipation_up = np.nan
+                
+                dissipation_up[current_depth_index,count] = rate_of_dissipation_up 
+                
+                print("dissipation:",rate_of_dissipation_up)
                 print("at depth",depth[current_depth_index])
                 print("at time",sub_time_arrays[count][0],"\n")
                 
-            
-            
+                #Dissipation down
+                #array [1,..,12] for a maximum distance of 12
+                distance = np.arange(1,min(maximum_distance_r+1,current_depth_index))
+                 
+                #print(distance, np.shape(distance))
+                mask = ~np.isnan(structure_function_down)
+                adjusted_distance = distance[mask]
+                adjusted_difference = structure_function_down[mask]
+                number_of_fitpoints_down = adjusted_difference.size
+                
+                print(structure_function_down)
+                
+                try:    
+                    popt, pcov = curve_fit(func, adjusted_distance, adjusted_difference)
+                    rate_of_dissipation_down = popt[1]
+                except TypeError:
+                    rate_of_dissipation_down = np.nan
+                
+                dissipation_down[current_depth_index,count] = rate_of_dissipation_down 
+                
+                
+                print("dissipation:",rate_of_dissipation_down)
+                print("at depth",depth[current_depth_index])
+                print("at time",sub_time_arrays[count][0],"\n")
+                
+                #weighted average
+                total_number_of_points = number_of_fitpoints_up + number_of_fitpoints_down
+                if total_number_of_points != 0:
+                    a = number_of_fitpoints_up/total_number_of_points
+                    b = number_of_fitpoints_down/total_number_of_points
+                    
+                    print(a,b,a+b)
+                    
+                    dissipation[current_depth_index,count] =  a * rate_of_dissipation_up + b * rate_of_dissipation_down 
+                else:
+                    dissipation[current_depth_index,count] = np.nan
+                
             #print(velocity_difference_down)
         
             count +=1
         
-        
-        
-        
+        #save the calculated data
+        #np.savez("dissipation_rate_estimation", dissipation_rate = dissipation, utc = dissipation_time_array, depth = depth)
+        np.savez("dissipation_rate_adcp_"+cruisename+"_"+flach_or_tief, dissipation_total = dissipation, dissipation_rate_up = dissipation_up, dissipation_rate_down = dissipation_down, utc = dissipation_time_array, depth = depth)
         
         #Plot
         #---------------------------------------------------------------
-        axarr2[0].plot(distance,velocity_difference_up[500,:]*10**3)
-        axarr2[0].plot(distance,velocity_difference_down[500,:]*10**3)
-        axarr2[0].plot(adjusted_distance, func(adjusted_distance, *popt)*10**3, 'r-',label='fit: N=%5.3f, e=%5.3f' % tuple(popt)) 
+        #axarr2[0].plot(distance,velocity_difference_up[500,:]*10**3)
+        #axarr2[0].plot(distance,velocity_difference_down[500,:]*10**3)
+        #axarr2[0].plot(adjusted_distance, func(adjusted_distance, *popt)*10**3, 'r-',label='fit: N=%5.3f, e=%5.3f' % tuple(popt)) 
         
         #axarr2[1].plot(distance,velocity_difference_up[600,:]*10**3)
         #axarr2[1].plot(distance,velocity_difference_down[600,:]*10**3)
-        axarr2[1].plot(distance,velocity_difference_up[500,:])
-         
+        #axarr2[1].plot(distance,velocity_difference_up[500,:])
+        
+        """ 
         #Crosscheck 
         check_array = sub_arrays[500] 
         z_array = check_array[current_depth_index]
@@ -343,6 +397,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         print("chrosscheck",cross_check == velocity_difference_up[500,6])
         print(velocity_difference_up[500,6])
         print(cross_check)
+        """
                   
         #https://en.wikipedia.org/wiki/Bilinear_interpolation
         #https://stackoverflow.com/questions/32800623/how-to-get-the-fft-of-a-numpy-array-to-work
@@ -359,9 +414,12 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         vmax = +0.3     
 
         #fill figure 1 with data
-        img1_1 = axarr1[0].pcolormesh(utc,depth,west_east, vmin = vmin, vmax = vmax, cmap = plt.cm.RdYlBu_r)
-        img1_2 = axarr1[1].pcolormesh(utc,depth,vertical_v, vmin = -0.0075, vmax = 0.0075, cmap = plt.cm.RdYlBu_r)
-
+        img1_1 = axarr1[0].pcolormesh(utc,depth,vertical_v, vmin = -0.0075, vmax = 0.0075, cmap = plt.cm.RdYlBu_r)
+        img1_2 = axarr1[1].pcolormesh(dissipation_time_array,depth,np.log10(dissipation), cmap = plt.cm.RdYlBu_r)
+    
+        img2_1 = axarr2[0].pcolormesh(dissipation_time_array,depth,np.log10(dissipation_up), cmap = plt.cm.RdYlBu_r)
+        img2_2 = axarr2[1].pcolormesh(dissipation_time_array,depth,np.log10(dissipation_down), cmap = plt.cm.RdYlBu_r)
+        
     
     #Preferences of the plots
 
@@ -374,6 +432,14 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     
     axarr1[1].set_ylim(bottom = bottom_limit)
     axarr1[1].invert_yaxis()
+    
+    axarr2[1].xaxis.set_major_locator(mdates.DayLocator())
+    axarr2[1].xaxis.set_minor_locator(mdates.HourLocator(byhour = [0,6,12,18],interval = 1))
+    axarr2[1].xaxis.set_major_formatter(hfmt)
+    
+    axarr2[1].set_ylim(bottom = bottom_limit)
+    axarr2[1].invert_yaxis()
+    
     
     title_fig1_1 = "adcp "+cruisename+" "+flach_or_tief+" east component"
     title_fig1_2 = "adcp "+cruisename+" "+flach_or_tief+" north component"
@@ -391,6 +457,6 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     #f1.savefig(plot1_name)
     
     
-#plt.show()
+plt.show()
     
     
