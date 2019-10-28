@@ -1,7 +1,5 @@
 #---------------------------------------------------------------------------#
-#TODO Trim data (automatically), especially emb177_tief                     #
-#TODO Umgang mit NaNs                                                       #
-#https://www.sciencedirect.com/science/article/pii/0198014980900461         #
+#Fehler berechnen
 #---------------------------------------------------------------------------#
 
 import pathlib
@@ -58,7 +56,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     #create ouput pictures, which will be filled later in the code
     
     #figure 1 for the measurements
-    f1, axarr1 = plt.subplots(2, sharex=True, sharey = True)
+    f1, axarr1 = plt.subplots(1)
 
     #figure 2 for the test
     f2, axarr2 = plt.subplots(2, sharex=True)#, sharey = True)
@@ -219,8 +217,8 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         velocity_difference_down = []
         
         #------------------------------------------------------------------------------------------------------------
-        current_time_index = 
-        current_depth_index = 
+        current_time_index = 500
+        current_depth_index = 40
         sub_array = sub_arrays[current_time_index]
         point_in_time = sub_time_arrays[current_time_index][-1]
         
@@ -228,7 +226,12 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         summe_up = np.zeros(min(maximum_distance_r,number_of_depth_bins-1-current_depth_index))
         summe_down = np.zeros(min(maximum_distance_r,current_depth_index-1))
     
-        #print("Number of small timesteps:",np.shape(sub_array)[1])
+        def func(r,N,e):
+            C_v = 2.1 #from Wiles, Rippeth et al. 2006
+            A = C_v**2 * e**(2/3)
+            return N+A*r**(2/3)
+            
+            
         #loop over the timesteps in a sub array (small timesteps)
         for i in np.arange(np.shape(sub_array)[1]):
             
@@ -250,12 +253,6 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         
             summe_up += upwards  
         
-            """
-            if np.all(sub_array == sub_arrays[500]):
-                print("test")
-                axarr2[1].plot(np.arange(1,maximum_distance_r),upwards,"--")
-            """
-        
             #velocity difference upwards
             for j in np.arange(0,len(downwards)):
                 fluctuation_at_z_plus_r = sub_array[current_depth_index-j-1,i] - mean_velocity
@@ -263,7 +260,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                 downwards[j] = (fluctuation_at_z - fluctuation_at_z_plus_r)**2
         
             summe_down += downwards
-            #small timestep loop ends
+            
     
         structure_function_up = np.asarray(summe_up/np.shape(sub_array)[1])
         
@@ -271,74 +268,71 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     
         #Dissipation up
         #array [1,..,12] for a maximum distance of 12
-        distance = np.arange(1,min(maximum_distance_r+1,number_of_depth_bins-current_depth_index))
+        distance_up = np.arange(1,min(maximum_distance_r+1,number_of_depth_bins-current_depth_index))
          
         mask = ~np.isnan(structure_function_up)
-        adjusted_distance = distance[mask]
-        adjusted_difference = structure_function_up[mask]
-        number_of_fitpoints_up = adjusted_difference.size
-        
-        print(structure_function_up)
+        adjusted_distance_up = distance_up[mask]
+        adjusted_difference_up = structure_function_up[mask]
+        number_of_fitpoints_up = adjusted_difference_up.size
         
         try:    
-            popt, pcov = curve_fit(func, adjusted_distance, adjusted_difference)
-            rate_of_dissipation_up = popt[1]
+            popt_up, pcov = curve_fit(func, adjusted_distance_up, adjusted_difference_up)
+            rate_of_dissipation_up = popt_up[1]
         except TypeError:
             rate_of_dissipation_up = np.nan
         
-        dissipation_up[current_depth_index,current_time_index] = rate_of_dissipation_up 
         
-        print("dissipation:",rate_of_dissipation_up)
-        print("at depth",depth[current_depth_index])
-        print("at time",sub_time_arrays[current_time_index][0],"\n")
         
         #Dissipation down
         #array [1,..,12] for a maximum distance of 12
-        distance = np.arange(1,min(maximum_distance_r+1,current_depth_index))
+        distance_down = np.arange(1,min(maximum_distance_r+1,current_depth_index))
          
         #print(distance, np.shape(distance))
         mask = ~np.isnan(structure_function_down)
-        adjusted_distance = distance[mask]
-        adjusted_difference = structure_function_down[mask]
-        number_of_fitpoints_down = adjusted_difference.size
+        adjusted_distance_down = distance_down[mask]
+        adjusted_difference_down = structure_function_down[mask]
+        number_of_fitpoints_down = adjusted_difference_down.size
         
-        print(structure_function_down)
         
         try:    
-            popt, pcov = curve_fit(func, adjusted_distance, adjusted_difference)
-            rate_of_dissipation_down = popt[1]
+            popt_down, pcov_down = curve_fit(func, adjusted_distance_down, adjusted_difference_down)
+            rate_of_dissipation_down = popt_down[1]
         except TypeError:
             rate_of_dissipation_down = np.nan
         
-        dissipation_down[current_depth_index,current_time_index] = rate_of_dissipation_down 
-        
-        
-        print("dissipation:",rate_of_dissipation_down)
-        print("at depth",depth[current_depth_index])
-        print("at time",sub_time_arrays[current_time_index][0],"\n")
+
         
         #weighted average
         total_number_of_points = number_of_fitpoints_up + number_of_fitpoints_down
         if total_number_of_points != 0:
-            dissipation[current_depth_index,current_time_index] = number_of_fitpoints_up/total_number_of_points * rate_of_dissipation_up + number_of_fitpoints_down/total_number_of_points * rate_of_dissipation_down 
+            a = number_of_fitpoints_up/total_number_of_points
+            b = number_of_fitpoints_down/total_number_of_points
+            avrg_dissipation = a * rate_of_dissipation_up + b * rate_of_dissipation_down 
         else:
-            dissipation[current_depth_index,current_time_index] = np.nan
+            avrg_dissipation = np.nan
         
 
+        print("dissipation up:",rate_of_dissipation_up)
+        print("dissipation down:",rate_of_dissipation_down)
+        print("averaged dissipation:",avrg_dissipation)
+        print("at depth",depth[current_depth_index])
+        print("at time",sub_time_arrays[current_time_index][0],"\n")
+        
         
  
         
         #Plot
         #---------------------------------------------------------------
-        axarr2[0].plot(distance,velocity_difference_up[500,:]*10**3)
-        axarr2[0].plot(distance,velocity_difference_down[500,:]*10**3)
-        axarr2[0].plot(adjusted_distance, func(adjusted_distance, *popt)*10**3, 'r-',label='fit: N=%5.3f, e=%5.3f' % tuple(popt)) 
+        axarr1.plot(distance_up,structure_function_up,"r")
+        axarr1.plot(distance_down,structure_function_down,"b")
+        axarr1.plot(adjusted_distance_up, func(adjusted_distance_up, *popt_up), 'r--',label='fit: N=%5.3f, e=%5.3f' % tuple(popt_up))
+        axarr1.plot(adjusted_distance_down, func(adjusted_distance_down, *popt_down), 'b--',label='fit: N=%5.3f, e=%5.3f' % tuple(popt_down)) 
         
         #axarr2[1].plot(distance,velocity_difference_up[600,:]*10**3)
         #axarr2[1].plot(distance,velocity_difference_down[600,:]*10**3)
-        axarr2[1].plot(distance,velocity_difference_up[500,:])
-        """
-         
+        #axarr2[1].plot(distance,velocity_difference_up[500,:])
+
+        """ 
         #Crosscheck 
         check_array = sub_arrays[500] 
         z_array = check_array[current_depth_index]
@@ -356,7 +350,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         #https://stackoverflow.com/questions/32800623/how-to-get-the-fft-of-a-numpy-array-to-work
         #https://docs.scipy.org/doc/numpy/reference/generated/numpy.interp.html   
         # Is interpolation necessary? Data is equidistant, so a mean is sufficient?   
-
+        """
 
         #set plot limit to either zero or the minimum depth
         bottom_limit = max(0,min(depth))
@@ -367,14 +361,15 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         vmax = +0.3     
 
         #fill figure 1 with data
-        img1_1 = axarr1[0].pcolormesh(utc,depth,west_east, vmin = vmin, vmax = vmax, cmap = plt.cm.RdYlBu_r)
-        img1_2 = axarr1[1].pcolormesh(utc,depth,vertical_v, vmin = -0.0075, vmax = 0.0075, cmap = plt.cm.RdYlBu_r)
+        #img1_1 = axarr1[0].pcolormesh(utc,depth,vertical_v, vmin = -0.0075, vmax = 0.0075, cmap = plt.cm.RdYlBu_r)
+        #img1_2 = axarr1[1].pcolormesh(utc,depth,vertical_v, vmin = -0.0075, vmax = 0.0075, cmap = plt.cm.RdYlBu_r)
 
     
     #Preferences of the plots
 
     #figure 1
     #set the xticks (dateformat and tick location)
+    """
     hfmt = mdates.DateFormatter('%d %b')
     axarr1[1].xaxis.set_major_locator(mdates.DayLocator())
     axarr1[1].xaxis.set_minor_locator(mdates.HourLocator(byhour = [0,6,12,18],interval = 1))
@@ -382,15 +377,15 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     
     axarr1[1].set_ylim(bottom = bottom_limit)
     axarr1[1].invert_yaxis()
+    """
     
-    title_fig1_1 = "adcp "+cruisename+" "+flach_or_tief+" east component"
+    title_fig1_1 = "adcp "+cruisename+" "+flach_or_tief
     title_fig1_2 = "adcp "+cruisename+" "+flach_or_tief+" north component"
 
-    axarr1[0].set_title(title_fig1_1)
-    axarr1[1].set_title(title_fig1_2)
+    axarr1.set_title(title_fig1_1)
 
-    colorbar(img1_1).set_label('velocity [m/s]')
-    colorbar(img1_2).set_label('velocity [m/s]')
+    #colorbar(img1_1).set_label('velocity [m/s]')
+    #colorbar(img1_2).set_label('velocity [m/s]')
 
     f1.set_size_inches(12,7)
     

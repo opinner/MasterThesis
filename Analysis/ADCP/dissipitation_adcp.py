@@ -304,7 +304,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                 #print("number_of_depth_bins-current_depth_index",number_of_depth_bins-current_depth_index)
                 #print(number_of_depth_bins,current_depth_index)
                 
-                #TODO 
+
                 #Dissipation up
                 #array [1,..,12] for a maximum distance of 12
                 distance = np.arange(1,min(maximum_distance_r+1,number_of_depth_bins-current_depth_index))
