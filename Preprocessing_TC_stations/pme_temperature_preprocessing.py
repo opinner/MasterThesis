@@ -1,8 +1,3 @@
-#################################
-#TODO Temperature measurement   #
-#TODO Dimensionen anpassen      #
-#TODO save data                 #
-#################################
 import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -164,7 +159,8 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     
     #figure 2
     axarr2[0].set_ylabel("temperature [deg C]")
-    axarr2[0].set_xlabel(utc[0].strftime("%Y")) #label the axis with the corresponding year
+    axarr2[1].set_ylabel("temperature [deg C]")
+    axarr2[1].set_xlabel(utc[0].strftime("%Y")) #label the axis with the corresponding year
       
     title_fig2 = "PME "+cruisename+" "+flach_or_tief+" untrimmed data comparison"
     
