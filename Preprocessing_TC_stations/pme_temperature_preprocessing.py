@@ -43,13 +43,12 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     #create ouput pictures, which will be filled later in the code
     
     #figure 1 for the measurements
-    f1, axarr1 = plt.subplots(2, sharex=True)
+    f1, axarr1 = plt.subplots(1)
 
     #figure 2 for the untrimmed data
     f2, axarr2 = plt.subplots(2)
     
-    concentration_from_all_sensors = []
-    saturation_from_all_sensors = []
+    temperature_from_all_sensors = []
     label_list = []
     
     #loop over the files in a specified folder
@@ -79,13 +78,12 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         else:
             temporary_data = np.genfromtxt(datafile_path,skip_header= 9, usecols = (0,3), delimiter = ",", encoding="iso8859_15")
         
-        #temperaure can't be reasonable negative
-        #temporary_data[temporary_data<0] = np.nan
+
         
         fulltime = temporary_data[:,0]
 
 
-        #search for measurement properties in the file
+        #search for measurement properties in the properties file
         for i in np.arange(np.shape(sensor_positions)[0]):
 
             #checks cruisename and sensor ID from the filename with the description in the properties file
@@ -106,31 +104,16 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         print("TEST:",np.arange(0,fulltime.size)[fulltime==stop_time])
         
         trimmed_data =  temporary_data[start_index:stop_index,:]
-        O_concentration = trimmed_data[:,1]
-        O_saturation = trimmed_data[:,2]
+        temperature = trimmed_data[:,1]
+        
+        #temperaure can't be reasonable negative
+        temperature[temperature<0] = np.nan
         
         unix_time = fulltime[start_index:stop_index]
         #time axis of the measurement in coordinated universal time 
         utc = [dt.datetime.utcfromtimestamp(ts) for ts in unix_time]        
         utc = np.asarray(utc)    
         
-        
-        """
-        #calibration through linear stretching of the data
-        if FOLDERNAME in ["/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/PME/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/PME/data"]:
-            #Assumption that during the calibration measurement the lowest 
-            #measurement corresponds to 0 saturationand the highest to 100  
-            max_saturation = np.max(temporary_data[:start_index,2])
-            min_saturation = np.min(temporary_data[:start_index,2])
-            
-            m = 100/(max_saturation-min_saturation) 
-            b = -100*min_saturation/(max_saturation-min_saturation)
-            
-            print("Max/Min",np.max(temporary_data[:start_index,2]),np.min(temporary_data[:start_index,2]))
-            trimmed_data[:,1:2] = trimmed_data[:,1:2] * m + b
-            
-            print("Max/Min",np.max(temporary_data[:start_index,2]),np.min(temporary_data[:start_index,2]))
-        """
             
         print("start",utc[0],start_time, unix_time[0] ==  start_time)
         print("stop",utc[-1],stop_time, unix_time[-1] ==  stop_time)
@@ -139,54 +122,48 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                  
         label = sensor_ID+" bottom + "+str(sensor_depth)+"m"
 
-        concentration_from_all_sensors.append(O_concentration)
-        saturation_from_all_sensors.append(O_saturation)
+        temperature_from_all_sensors.append(temperature)
         label_list.append([sensor_ID,sensor_depth])
 
         #fill plots with data
-        axarr1[0].plot(utc,O_concentration, label = label) #oxygen concentration
-        axarr1[1].plot(utc,O_saturation, label = label) #oxygen saturation
+        axarr1.plot(utc,temperature, label = label) #temperature plot
         
-        
-        axarr2[0].plot(fulltime,temporary_data[:,2], label = label)
+        axarr2[0].plot(fulltime,temporary_data[:,1], label = label)
         axarr2[0].axvline(unix_time[0], c = "k")
         axarr2[0].axvline(unix_time[-1], c= "k")
         
-        axarr2[1].plot(temporary_data[:,2], label = label)
+        axarr2[1].plot(temporary_data[:,1], label = label)
         axarr2[1].axvline(start_index, c = "k")
         axarr2[1].axvline(stop_index, c= "k")
         
     
 
     #save the trimmed data for easier analysis afterwards
-    np.savez("./data/PME_"+cruisename+"_"+flach_or_tief+"_oxygen", concentration = np.asarray(concentration_from_all_sensors), saturation = np.asarray(saturation_from_all_sensors),  label_list = label_list, utc = utc)
+    np.savez("/home/ole/thesis/Preprocessing_TC_stations/PME/data/PME_"+cruisename+"_"+flach_or_tief+"_temperature", temperature = np.asarray(temperature_from_all_sensors),  label_list = label_list, utc = utc)
     
     
     #set the xticks (dateformat and tick location)
     hfmt = mdates.DateFormatter('%d %b')
-    axarr1[1].xaxis.set_major_locator(mdates.DayLocator())
-    axarr1[1].xaxis.set_minor_locator(mdates.HourLocator(byhour = [0,6,12,18],interval = 1))
-    axarr1[1].xaxis.set_major_formatter(hfmt)
+    axarr1.xaxis.set_major_locator(mdates.DayLocator())
+    axarr1.xaxis.set_minor_locator(mdates.HourLocator(byhour = [0,6,12,18],interval = 1))
+    axarr1.xaxis.set_major_formatter(hfmt)
     
-    axarr1[0].set_ylabel("dissolved oxygen [mg/l]")
-    axarr1[1].set_ylabel("dissolved oxygen saturation [%]")
-    axarr1[1].set_xlabel(utc[0].strftime("%Y"))
+    axarr1.set_ylabel("temperature [deg C]")
+    axarr1.set_xlabel(utc[0].strftime("%Y"))
         
-    title_fig1_1 = "PME "+cruisename+" "+flach_or_tief+" dissolved oxygen"
-    title_fig1_2 = "PME "+cruisename+" "+flach_or_tief+" dissolved oxygen saturation"
+    title_fig1 = "PME "+cruisename+" "+flach_or_tief+" temperature"
     
-    axarr1[0].set_title(title_fig1_1)
-    axarr1[1].set_title(title_fig1_2)
-
-    axarr1[0].legend()
-    axarr1[1].legend()
+    
+    axarr1.set_title(title_fig1)
+    axarr1.legend()
+    
     f1.set_size_inches(12,7)
 
-    plot1_name = "./pictures/"+"PME_"+cruisename+"_"+flach_or_tief+" oxygen"
+    plot1_name = "/home/ole/thesis/Preprocessing_TC_stations/PME/pictures/"+"PME_"+cruisename+"_"+flach_or_tief+" temperature"
     f1.savefig(plot1_name)
     
     #figure 2
-    axarr2[0].set_ylabel("dissolved oxygen [mg/l]")
+    axarr2[0].set_ylabel("temperature [deg C]")
     axarr2[0].set_xlabel(utc[0].strftime("%Y")) #label the axis with the corresponding year
       
     title_fig2 = "PME "+cruisename+" "+flach_or_tief+" untrimmed data comparison"
@@ -196,7 +173,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     axarr2[0].legend()
     f2.set_size_inches(12,7)
 
-    plot2_name = "./pictures/"+"PME_"+cruisename+"_"+flach_or_tief+" untrimmed data comparison"
+    plot2_name = "/home/ole/thesis/Preprocessing_TC_stations/PME/pictures/"+"PME_"+cruisename+"_"+flach_or_tief+" untrimmed temperature comparison"
     f2.savefig(plot2_name)
       
 #plt.show()    

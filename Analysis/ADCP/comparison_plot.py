@@ -36,6 +36,7 @@ f1, axarr1 = plt.subplots(nrows = 3, ncols = 2, sharex = "row", sharey=True)
 #figure 2 for TC_Tief
 f2, axarr2 = plt.subplots(nrows = 3, ncols = 2, sharex = "row", sharey=True)
 
+max_time_delta = dt.timedelta(minutes=1) #start value
     
 for FOLDERNAME in LIST_OF_FOLDERS:
     path = pathlib.Path(FOLDERNAME)
@@ -124,10 +125,15 @@ for FOLDERNAME in LIST_OF_FOLDERS:
             
             if cruisename == "emb169":
                 y_position = 0
+                start_flach_2017 = utc[0]
             elif cruisename == "emb177":
                 y_position = 1
+                start_flach_2018 = utc[0]
             elif cruisename == "emb217":
-                y_position = 2    
+                y_position = 2
+                start_flach_2019 = utc[0]
+                
+                max_time_delta = max(max_time_delta,utc[-1]-utc[-0])
             else:
                 print("ERROR: ID der Ausfahrt nicht bestimmbar")
                 
@@ -144,10 +150,13 @@ for FOLDERNAME in LIST_OF_FOLDERS:
             
             if cruisename == "emb169":
                 y_position = 0
+                start_tief_2017 = utc[0]
             elif cruisename == "emb177":
                 y_position = 1
+                start_tief_2018 = utc[0]
             elif cruisename == "emb217":
-                y_position = 2    
+                y_position = 2
+                start_tief_2019 = utc[0]    
             else:
                 print("ERROR: ID der Ausfahrt nicht bestimmbar")
                 
@@ -175,6 +184,7 @@ for row in range(3):
         axarr1[row,column].xaxis.set_major_formatter(hfmt)
 
         axarr1[row,column].set_ylim(bottom = 0, top = 80)
+        print("xlim:",row,column,axarr1[row,column].get_xlim())
         axarr1[row,column].invert_yaxis()
 
 
@@ -182,9 +192,17 @@ for row in range(3):
         axarr2[row,column].xaxis.set_minor_locator(mdates.HourLocator(byhour = [0,6,12,18],interval = 1))
         axarr2[row,column].xaxis.set_major_formatter(hfmt)
 
+        
         axarr2[row,column].set_ylim(bottom = 0, top = 90)
         axarr2[row,column].invert_yaxis()
 
+
+
+
+
+for row in range(3):
+    for column in range(2):
+        print("xlim:",row,column,axarr1[row,column].get_xlim())
 
 axarr1[0,0].set_xlabel("2017")
 axarr1[0,1].set_xlabel("2017")
@@ -231,6 +249,27 @@ f1.savefig(plot1_name)
 plot2_name = "./pictures/"+"ADCP_comparison_tief" 
 f2.savefig(plot2_name)
     
+#preferences of the x-limit
+axarr1[0,0].set_xlim(left = mdates.date2num(start_flach_2017), right = mdates.date2num(start_flach_2017 + max_time_delta))
+axarr1[0,1].set_xlim(left = mdates.date2num(start_flach_2017), right = mdates.date2num(start_flach_2017 + max_time_delta))
+axarr1[1,0].set_xlim(left = mdates.date2num(start_flach_2018), right = mdates.date2num(start_flach_2018 + max_time_delta))
+axarr1[1,1].set_xlim(left = mdates.date2num(start_flach_2018), right = mdates.date2num(start_flach_2018 + max_time_delta))
+axarr1[2,0].set_xlim(left = mdates.date2num(start_flach_2019), right = mdates.date2num(start_flach_2019 + max_time_delta))
+axarr1[2,1].set_xlim(left = mdates.date2num(start_flach_2019), right = mdates.date2num(start_flach_2019 + max_time_delta))
+
+axarr2[0,0].set_xlim(left = mdates.date2num(start_tief_2017), right = mdates.date2num(start_tief_2017 + max_time_delta))
+axarr2[0,1].set_xlim(left = mdates.date2num(start_tief_2017), right = mdates.date2num(start_tief_2017 + max_time_delta))
+axarr2[1,0].set_xlim(left = mdates.date2num(start_tief_2018), right = mdates.date2num(start_tief_2018 + max_time_delta))
+axarr2[1,1].set_xlim(left = mdates.date2num(start_tief_2018), right = mdates.date2num(start_tief_2018 + max_time_delta))
+axarr2[2,0].set_xlim(left = mdates.date2num(start_tief_2019), right = mdates.date2num(start_tief_2019 + max_time_delta))
+axarr2[2,1].set_xlim(left = mdates.date2num(start_tief_2019), right = mdates.date2num(start_tief_2019 + max_time_delta))
+
+#Save the plot as png
+plot1_name = "./pictures/"+"ADCP_comparison_flach_same_scale" 
+f1.savefig(plot1_name)
+
+plot2_name = "./pictures/"+"ADCP_comparison_tief_same_scale" 
+f2.savefig(plot2_name)
     
 plt.show()
     

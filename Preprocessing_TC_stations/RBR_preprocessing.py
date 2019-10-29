@@ -182,7 +182,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     
     f1.set_size_inches(12,7)
 
-    plot1_name = "/home/ole/thesis/Preprocessing_TC_stations/RBR//pictures/"+"RBR_"+cruisename+"_"+flach_or_tief+" temperature"
+    plot1_name = "/home/ole/thesis/Preprocessing_TC_stations/RBR/pictures/"+"RBR_"+cruisename+"_"+flach_or_tief+" temperature"
     f1.savefig(plot1_name)
     
     #figure 2
