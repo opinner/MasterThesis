@@ -11,9 +11,9 @@ import pylab as pl
 import datetime as dt
 import matplotlib.dates as mdates
 
-LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/PME/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/PME/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/PME/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/PME/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/PME/data"]
+#LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/PME/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/PME/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/PME/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/PME/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/PME/data"]
 
-#LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/PME/data"]
+LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/PME/data"]
 
 #File with SensorID, Depth and measurement period information
 sensor_positions_path = "/home/ole/thesis/Preprocessing_TC_stations/PME/pme_properties"
@@ -88,14 +88,16 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         #search for measurement properties in the file
         for i in np.arange(np.shape(sensor_positions)[0]):
 
+            print(str(sensor_positions[i,0][0:6]),str(cruisename),str(sensor_positions[i,1]),str(sensor_ID))
+
             #checks cruisename and sensor ID from the filename with the description in the properties file
             if (str(sensor_positions[i,0][0:6]) == str(cruisename) and str(sensor_positions[i,1]) == str(sensor_ID)):
                 
                 sensor_depth = sensor_positions[i,2]
-                start_time = float(sensor_positions[i,3])
-                stop_time = float(sensor_positions[i,4])
-                #start_time = dt.datetime.strptime(sensor_positions[i,3], "%Y-%m-%d_%X")
-                #stop_time = dt.datetime.strptime(sensor_positions[i,4], "%Y-%m-%d_%X")
+                #start_time = float(sensor_positions[i,3])
+                #stop_time = float(sensor_positions[i,4])
+                start_time = dt.datetime.strptime(sensor_positions[i,3], "%Y-%m-%d_%X")
+                stop_time = dt.datetime.strptime(sensor_positions[i,4], "%Y-%m-%d_%X")
                 start_index = int(sensor_positions[i,5])
                 stop_index = int(sensor_positions[i,6])
                 
@@ -132,8 +134,8 @@ for FOLDERNAME in LIST_OF_FOLDERS:
             print("Max/Min",np.max(temporary_data[:start_index,2]),np.min(temporary_data[:start_index,2]))
         """
             
-        print("start",utc[0],start_time, unix_time[0] ==  start_time)
-        print("stop",utc[-1],stop_time, unix_time[-1] ==  stop_time)
+        print("start",utc[0],start_time, utc[0] ==  start_time)
+        print("stop",utc[-1],stop_time, utc[-1] ==  stop_time)
         
      
                  
@@ -199,4 +201,4 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     plot2_name = "/home/ole/thesis/Preprocessing_TC_stations/PME/pictures/"+"PME_"+cruisename+"_"+flach_or_tief+" untrimmed data comparison"
     f2.savefig(plot2_name)
       
-#plt.show()    
+plt.show()    

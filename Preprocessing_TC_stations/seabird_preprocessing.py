@@ -10,9 +10,9 @@ def SA_from_C(C, t, p, lon, lat):
     SP = gsw.conversions.SP_from_C(C, t, p)
     return gsw.SA_from_SP_Baltic(SP, lon, lat)
     
-#LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/Seabird/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/Seabird/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/Seabird/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/Seabird/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/Seabird/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/seabird/data"]
+LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/Seabird/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/Seabird/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/Seabird/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/Seabird/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/Seabird/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/seabird/data"]
 
-LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/seabird/data"]
+#LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/seabird/data"]
 
 
 #depths of all the sensors, used for labeling in the plots
@@ -162,7 +162,8 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     salinity_from_all_sensors = np.asarray(salinity_from_all_sensors)
     
     #TODO save the data  
-    np.savez("/home/ole/thesis/Preprocessing_TC_stations/Seabird/data/seabird_"+cruisename+"_"+flach_or_tief, temperature = temperature_from_all_sensors, salinity = salinity_from_all_sensors, label_list = label_list, utc = utc)       
+    np.savez("/home/ole/thesis/Preprocessing_TC_stations/Seabird/data/seabird_"+cruisename+"_"+flach_or_tief+"_temperature", temperature = temperature_from_all_sensors, label_list = label_list, utc = utc)       
+    np.savez("/home/ole/thesis/Preprocessing_TC_stations/Seabird/data/seabird_"+cruisename+"_"+flach_or_tief+"_salinity", salinity = salinity_from_all_sensors, label_list = label_list, utc = utc)
         
     #theoretically only the year from the last datafile, but all of them belong to the same measurements
     axarr1[2].set_xlabel(utc[0].strftime("%Y")) 
