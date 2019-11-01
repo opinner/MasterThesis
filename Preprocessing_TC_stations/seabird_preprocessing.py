@@ -12,7 +12,7 @@ def SA_from_C(C, t, p, lon, lat):
     
 #LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/Seabird/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/Seabird/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/Seabird/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/Seabird/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/Seabird/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/seabird/data"]
 
-LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/Seabird/data"]
+LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/seabird/data"]
 
 
 #depths of all the sensors, used for labeling in the plots
@@ -46,10 +46,11 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     f1, axarr1 = plt.subplots(3,sharex = True)
 
     #figure 2 for the check:
-    f2, axarr2 = plt.subplots(2, sharex = True)
+    f2, axarr2 = plt.subplots(2)
     
     #for the save file of the cleaned data
-    data_from_all_sensors = []
+    temperature_from_all_sensors = []
+    salinity_from_all_sensors = []
     label_list = []
     
     for DATAFILENAME in DATAFILENAMES:
@@ -105,11 +106,12 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         utc = full_utc[start_index:stop_index]
 
         
-        print(full_utc[0],full_utc[-1])
-        print(start_time,stop_time)
+        print("full time",full_utc[0],full_utc[-1])
+        print("measurement time",start_time,stop_time)
 
-
-
+        #print("\n\n\n\n\n")
+        #print(full_utc)
+        #print("\n\n\n\n\n")
 
         #unit conversion because of different standards for the conductivity
         if np.nanmean(conductivity) < 3:
@@ -138,28 +140,29 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         label = sensor_ID+" bottom + "+str(sensor_depth)+"m"
         label_list.append([sensor_ID,sensor_depth])
         
-         
+        temperature_from_all_sensors.append(temperature)
+        salinity_from_all_sensors.append(salinity) 
             
         #fill the plots with data
         axarr1[0].plot(utc,temperature, label = label)
         axarr1[1].plot(utc,salinity, label = label)
-        axarr1[1].plot(utc,computed_salinity, "--",label = "calc_"+label)
-        axarr1[2].plot(utc,depth, label = label)
+        axarr1[2].plot(utc,salinity, label = label)
+        axarr1[2].plot(utc,computed_salinity, "--",label = "calc_"+label)
     
-        axarr2[0].plot(full_utc,full_temperature, label = label)
+        axarr2[0].plot(full_utc,full_salinity, label = label)
         axarr2[0].axvline(utc[0], c = "k")
         axarr2[0].axvline(utc[-1], c= "k")
         
-        axarr2[1].plot(full_temperature)
+        axarr2[1].plot(full_salinity)
         axarr2[1].axvline(start_index, c = "k")
         axarr2[1].axvline(stop_index, c= "k")
     
     
-    #data_from_all_sensors = np.asarray(data_from_all_sensors)
-    
+    temperature_from_all_sensors = np.asarray(temperature_from_all_sensors)
+    salinity_from_all_sensors = np.asarray(salinity_from_all_sensors)
     
     #TODO save the data  
-    #np.savez("/home/ole/thesis/Preprocessing_TC_stations/Seabird/data/seabird_"+cruisename+"_"+flach_or_tief+"_temperature", temperature = data_from_all_sensors, label_list = label_list, utc = utc)       
+    np.savez("/home/ole/thesis/Preprocessing_TC_stations/Seabird/data/seabird_"+cruisename+"_"+flach_or_tief, temperature = temperature_from_all_sensors, salinity = salinity_from_all_sensors, label_list = label_list, utc = utc)       
         
     #theoretically only the year from the last datafile, but all of them belong to the same measurements
     axarr1[2].set_xlabel(utc[0].strftime("%Y")) 
@@ -168,10 +171,10 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     axarr1[0].set_ylabel("temperature [C]")
     axarr1[1].set_ylabel("conductivity [mS/cm]")
     axarr1[1].set_ylabel("salinity [SA]")
-    axarr1[2].set_ylabel("depth [m]")
+    axarr1[2].set_ylabel("compuedt salinitz [SA]")
 
-    title_fig1 = "Seabird "+cruisename+" "+flach_or_tief+" temperature"
-    #title_fig1_2 = "Seabird "+cruisename+" "+flach_or_tief+" depth"
+    title_fig1 = "Seabird "+cruisename+" "+flach_or_tief+" temperature and salinity"
+    title_fig1_2 = "Seabird "+cruisename+" "+flach_or_tief+" trimmed data comparison"
     
     axarr1[0].set_title(title_fig1)
 

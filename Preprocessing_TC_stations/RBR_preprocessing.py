@@ -132,6 +132,8 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         
         data_from_all_sensors.append(temperature)
         print(np.shape(data_from_all_sensors))
+        
+        #data is too big to load at once, so I split it here and save the first part (the first 4 data files)
         if FOLDERNAME == "/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/RBR/data" and np.shape(data_from_all_sensors)[-1] >= 4:
             np.savez("/home/ole/thesis/Preprocessing_TC_stations/RBR/data/RBR_"+cruisename+"_"+flach_or_tief+"_temperature_Part1", temperature = data_from_all_sensors, label_list = label_list, utc = utc)
             data_from_all_sensors = []
