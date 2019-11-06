@@ -10,7 +10,7 @@ from numpy.core.defchararray import add
 
 #done = "/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/RBR/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/RBR/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/RBR/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/RBR/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/RBR/data"
 
-LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/RBR/data"]
+LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/RBR/data"]
 
 #TODO ,,,,,]
 

@@ -1,6 +1,4 @@
 #---------------------------------------------------------------------------#
-#TODO Trim data (automatically), especially emb177_tief                     #
-#TODO Umgang mit NaNs                                                       #
 #https://www.sciencedirect.com/science/article/pii/0198014980900461         #
 #---------------------------------------------------------------------------#
 
@@ -264,7 +262,7 @@ axarr2[1,1].set_xlim(left = mdates.date2num(start_tief_2018), right = mdates.dat
 axarr2[2,0].set_xlim(left = mdates.date2num(start_tief_2019), right = mdates.date2num(start_tief_2019 + max_time_delta))
 axarr2[2,1].set_xlim(left = mdates.date2num(start_tief_2019), right = mdates.date2num(start_tief_2019 + max_time_delta))
 
-#Save the plot as png
+#Save the changend plot again as png
 plot1_name = "./pictures/"+"ADCP_comparison_flach_same_scale" 
 f1.savefig(plot1_name)
 
