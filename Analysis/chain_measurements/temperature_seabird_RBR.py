@@ -1,16 +1,3 @@
-#all 3 measurement devices (PME,RBR,Seabird) measured the temperature
-
-######################################################
-#TODO 
-#Read in the type of measurement device from the filename
-#determine the cruise from the filename
-#plot as pcolor 
-# + sorting?
-######################################################
-
-
-
-
 import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -49,10 +36,10 @@ print(DATAFILENAMES)
 #create ouput pictures, which will be filled later in the code
 
 #figure 1 for TC_Flach
-f1, axarr1 = plt.subplots(nrows = 3, ncols = 2, sharey= "col")#, sharex = "row", )
+f1, axarr1 = plt.subplots(nrows = 3, ncols = 2)#, sharey= "col")
 
 #figure 2 for TC_Tief
-f2, axarr2 = plt.subplots(2, sharex = True)
+f2, axarr2 = plt.subplots(3)
 
 max_time_delta = dt.timedelta(minutes=1)
 
@@ -84,33 +71,38 @@ for DATAFILENAME in DATAFILENAMES:
     print("seabird_label_list")
     print(seabird_label_list)
     
-    """
+    #sort the depth array in the case the depth are not increasing
     sorted_depth = np.asarray(sorted(seabird_depth))
     number_of_depth_bins = seabird_depth.size
     
-    plot_edges_depth = np.insert(sorted_depth,0,0) #Prepend a 0 to the beginning (index 0)
+    #Prepend a 0 to the beginning (index 0)
+    #This is needed to plot all the depths later in the pcolormesh plot
+    plot_edges_depth = np.insert(sorted_depth,0,0) 
     
-    print(seabird_label_list)
-    print(np.reshape(seabird_label_list[:,1],(number_of_depth_bins,1)))
+    #print(seabird_label_list)
+    #print(np.reshape(seabird_label_list[:,1],(number_of_depth_bins,1)))
     
     #stack the index to the label_list
     sorting_array = np.hstack((np.reshape(seabird_label_list[:,1],(number_of_depth_bins,1)),np.reshape(np.arange(number_of_depth_bins),(number_of_depth_bins,1)))).astype("float")
     
+    print("shape seabird")
+    print(np.shape(seabird_temperature))#,np.shape(seabird_label_list),np.shape(seabird_utc))
     
-    print(np.shape(seabird_temperature),np.shape(seabird_label_list),np.shape(seabird_utc))
-    
-
+    """
     print("original:")
     for depth_index in range(np.shape(seabird_temperature)[0]):
         print(depth_index,seabird_depth[depth_index],np.nanmean(seabird_temperature[depth_index,:]))
+    """
+    
 
+    
+    #print(sorting_array)
+    #print(sorting_key)
+    
     
     #sort after the first column, eg the depths (sorts automatically the indices)
     #from https://stackoverflow.com/questions/2173797/how-to-sort-2d-array-by-row-in-python
     sorting_key = np.asarray(sorted(sorting_array, key= itemgetter(0)))
-    
-    print(sorting_array)
-    print(sorting_key)
     
     #sort the data with the help of the sorting key
     sorted_temperature = []
@@ -118,172 +110,14 @@ for DATAFILENAME in DATAFILENAMES:
         sorted_temperature.append(seabird_temperature[int(index),:])
     sorted_temperature = np.asarray(sorted_temperature)
     
+    """
     print("sorted")
     for depth_index in range(np.shape(sorted_temperature)[0]):
         print(depth_index,sorted_depth[depth_index],np.nanmean(sorted_temperature[depth_index,:]))
-    """
+ 
         
     print("------------------------------------------------------------")    
-          
-    #load the corresponding PME data
-    #---------------------------------------------------------------------
-    PME_FOLDERNAME = "/home/ole/thesis/Preprocessing_TC_stations/PME/data"
-
-    #File with SensorID, Depth and measurement period information
-    sensor_positions_path = "/home/ole/thesis/Preprocessing_TC_stations/PME/pme_properties"
-    sensor_positions = np.genfromtxt(sensor_positions_path,skip_header= 1, usecols = (0,1,2,3,4,5,6), dtype = "str")
-
-    path = pathlib.Path(FOLDERNAME)
-
-
-    if cruisename == "emb169":
-        PME_FILENAME = "/home/ole/thesis/Preprocessing_TC_stations/PME/data/PME_"+cruisename+"_Peter_TC_"+flach_or_tief+"_temperature.npz"
-    
-    elif cruisename == "emb177":
-        PME_FILENAME = "/home/ole/thesis/Preprocessing_TC_stations/PME/data/PME_"+cruisename+"_"+flach_or_tief+"_temperature.npz"
-    
-    elif cruisename == "emb217":
-        PME_FILENAME = "/home/ole/thesis/Preprocessing_TC_stations/PME/data/PME_"+cruisename+"_TC_"+flach_or_tief+"_temperature.npz"
-            
-    else:    
-        print("cruisename not found")
-        
-    print(PME_FILENAME)
-    PME_data = np.load(PME_FILENAME)
-    #print(PME_data.files)
-    
-    PME_temperature = PME_data["temperature"]
-    PME_label_list = PME_data["label_list"]
-    PME_depth = PME_label_list[:,1].astype("float")
-    PME_utc = PME_data["utc"]
-    
-    print("PME label list")
-    print(PME_label_list)
-    
-    # seabird should be the denser data, therefore seabird gets interpolated
-    assert(PME_utc.size < seabird_utc.size)
-    
-    
-    #print(np.shape(PME_temperature))    
-    #print(PME_utc[0],PME_utc[-1])
-    #print(PME_label_list)
-    
-    
-    #sort the PME Data   
-    sorted_depth = np.asarray(sorted(PME_depth))
-    number_of_depth_bins = PME_depth.size
-    
-    plot_edges_depth = np.insert(sorted_depth,0,0) #Prepend a 0 to the beginning (index 0)
-    
-    #print("PME_label_list")
-    #print(PME_label_list)
-    #print(np.reshape(PME_label_list[:,1],(number_of_depth_bins,1)))
-    
-    #stack the index to the label_list
-    sorting_array = np.hstack((np.reshape(PME_label_list[:,1],(number_of_depth_bins,1)),np.reshape(np.arange(number_of_depth_bins),(number_of_depth_bins,1)))).astype("float")
-    
-    
-    #print(np.shape(PME_temperature),np.shape(PME_label_list),np.shape(PME_utc))
-   
-    """
-    print("original:")
-    for depth_index in range(np.shape(seabird_temperature)[0]):
-        print(depth_index,PME_depth[depth_index],np.nanmean(PME_temperature[depth_index,:]))
-    """
-    
-    #sort after the first column, eg the depths (sorts automatically the indices)
-    #from https://stackoverflow.com/questions/2173797/how-to-sort-2d-array-by-row-in-python
-    sorting_key = np.asarray(sorted(sorting_array, key= itemgetter(0)))
-    
-    #print(sorting_array)
-   # print(sorting_key)
-    
-    #sort the PME temperature data with the help of the sorting key
-    sorted_temperature = []
-    for index in sorting_key[:,1]:
-        sorted_temperature.append(PME_temperature[int(index),:])
-    sorted_temperature = np.asarray(sorted_temperature)
-    
-    """
-    print("sorted")
-    for depth_index in range(np.shape(sorted_temperature)[0]):
-        print(depth_index,sorted_depth[depth_index],np.nanmean(sorted_temperature[depth_index,:]))
     """    
-        
-        
-        
-    
-    #print(PME_utc[0])   
-    #print(dt.datetime.fromtimestamp(dt.datetime.timestamp(PME_utc[0])))
-    
-    #convert datetime objects to timestamps because the interpolation cannot work with datetime objects
-    seabird_interpolation_time = [dt.datetime.timestamp(x) for x in seabird_utc]
-    PME_interpolation_time = [dt.datetime.timestamp(x) for x in PME_utc]
-    #test2 = np.asarray([dt.datetime.fromtimestamp(x) for x in PME_interpolation_time])
-    #print(np.shape(PME_utc),np.shape(PME_interpolation_time))
-    #print(np.all(PME_utc == test2))
-    
-    
-    
-    #interpolate the seabird Data to the PME time axis 
-    # loop through the depths
-    for i in range(seabird_depth.size):
-        current_depth = seabird_depth[i]
-        interpolated_seabird_temperature = np.interp(PME_interpolation_time,seabird_interpolation_time,seabird_temperature[i,:])
-        #print(np.shape(seabird_interpolation_time),np.shape(seabird_temperature[i,:]),np.shape(PME_interpolation_time),np.shape(interpolated_seabird_temperature))
-    
-        if i == 0:
-            axarr2[0].plot(seabird_interpolation_time,seabird_temperature[i,:],"b")
-            axarr2[0].plot(seabird_interpolation_time,seabird_temperature[i,:],"k.")
-            axarr2[0].plot(PME_interpolation_time,interpolated_seabird_temperature,"y")
-            axarr2[0].plot(PME_interpolation_time,interpolated_seabird_temperature,"r.")
-      
-        #print(current_depth)
-        #print("####")
-        #print(sorted_depth)
-        
-        
-           
-        for j in range(sorted_depth.size):
-            
-            if current_depth == sorted_depth[j]:
-                print("###################################")
-                print("Seabird/PME: two datasets for ",current_depth," m")
-                print("###################################")
-                break
-            
-        
-        
-            if current_depth < sorted_depth[j]:
-            
-                sorted_depth = np.insert(sorted_depth,j,current_depth)
-                
-                #print(np.shape(sorted_temperature),np.shape(interpolated_seabird_temperature))
-                
-                sorted_temperature = np.insert(sorted_temperature,j,interpolated_seabird_temperature,axis = 0)
-                break
-                
-            if  sorted_depth[j] ==  sorted_depth[-1]:
-                sorted_depth = np.append(sorted_depth,current_depth)
-                #print(np.shape(sorted_temperature),np.shape(interpolated_seabird_temperature))
-                sorted_temperature = np.append(sorted_temperature,np.asarray([interpolated_seabird_temperature]),axis = 0)
-
-        """
-        print("####")
-        print(sorted_depth)    
-        """
-        #print("Seabird----------------CHECK-----------------------")
-        #print(current_depth,np.mean(interpolated_seabird_temperature),np.mean(seabird_temperature[i,:]))
-        
-        
-    for depth_index in range(np.shape(sorted_temperature)[0]):
-        print(depth_index,sorted_depth[depth_index],np.mean(sorted_temperature[depth_index,:]))
-            
-        
-    #check if sorted depth is still sorted, eg all insertions were correct    
-    assert(np.all(np.diff(sorted_depth) > 0))
-    
-        
     #---------------------------------------------------------------------------------------------------------------------------------
     #load the corresponding RBR data
     RBR_FOLDERNAME = "/home/ole/thesis/Preprocessing_TC_stations/RBR/data"
@@ -319,40 +153,58 @@ for DATAFILENAME in DATAFILENAMES:
     RBR_depth = RBR_label_list[:,1].astype("float")
     RBR_utc = RBR_data["utc"]
     
-    # RBR should be the denser data, therefore RBR gets interpolated
-    assert(PME_utc.size < RBR_utc.size)
+    print("RBR_label_list")
+    print(RBR_label_list)
     
-    print("RBR Label list")
-    print(RBR_label_list)    
+    # RBR should be the denser data, therefore RBR gets interpolated
+    assert(seabird_utc.size < RBR_utc.size)
     
     print("RBR shape")
     print(np.shape(RBR_temperature))      
     
-    RBR_interpolation_time = [dt.datetime.timestamp(x) for x in RBR_utc]
-    #interpolate the RBR Data to the PME time axis 
+    seabird_interpolation_time = np.asarray([dt.datetime.timestamp(x) for x in seabird_utc])
+    RBR_interpolation_time = np.asarray([dt.datetime.timestamp(x) for x in RBR_utc])
+    print("Interpolation from ",np.shape(RBR_interpolation_time)," points to ",np.shape(seabird_interpolation_time)," points")
+    
+    #interpolate the RBR Data to the seabird time axis 
     # loop through the depths
     for i in range(RBR_depth.size):
         current_depth = RBR_depth[i]
-        interpolated_RBR_temperature = np.interp(PME_interpolation_time,RBR_interpolation_time,RBR_temperature[i,:])
-        print(np.shape(RBR_interpolation_time),np.shape(RBR_temperature[i,:]),np.shape(PME_interpolation_time),np.shape(interpolated_RBR_temperature))
+        interpolated_RBR_temperature = np.interp(seabird_interpolation_time,RBR_interpolation_time,RBR_temperature[i,:])
+        #print(np.shape(RBR_interpolation_time),np.shape(RBR_temperature[i,:]),,np.shape(interpolated_RBR_temperature))
     
+    
+        #Plots to compare the original RBR data to the interpolated data
         if i == 0:
-            axarr2[1].plot(RBR_interpolation_time,RBR_temperature[i,:],"b")
-            axarr2[1].plot(RBR_interpolation_time,RBR_temperature[i,:],"k.")
-            axarr2[1].plot(PME_interpolation_time,interpolated_RBR_temperature,"y")
-            axarr2[1].plot(PME_interpolation_time,interpolated_RBR_temperature,"r.")
+            if cruisename == "emb169":
+                plot_number = 0
+            elif cruisename == "emb177":
+                plot_number = 1
+            elif cruisename == "emb217":
+                plot_number = 2
+            else:
+                print("ERROR: ID der Ausfahrt nicht bestimmbar")
+        
+            #plot the orignal data with the points in black, line in blue
+            axarr2[plot_number].plot(RBR_interpolation_time,RBR_temperature[i,:],"k.")
+            axarr2[plot_number].plot(RBR_interpolation_time,RBR_temperature[i,:],"b")
+            
+            #plot the interpolated data with points in red, line in yellow
+            axarr2[plot_number].plot(seabird_interpolation_time,interpolated_RBR_temperature,"r.")
+            axarr2[plot_number].plot(seabird_interpolation_time,interpolated_RBR_temperature,"y")
+
       
         #print(current_depth)
         #print("####")
         #print(sorted_depth)
         
         
-           
+        #insert the interpolated data at the right index   
         for j in range(sorted_depth.size):
             
             if current_depth == sorted_depth[j]:
                 print("###################################")
-                print("RBR/seabird/PME two datasets for ",current_depth," m")
+                print("two datasets for ",current_depth," m")
                 print("###################################")
                 break #basically skips the insertion
             
@@ -376,11 +228,7 @@ for DATAFILENAME in DATAFILENAMES:
         #print("####")
         #print(sorted_depth)    
     
-
-        #print("RBR----------------CHECK-----------------------")
-        #print(current_depth,np.mean(interpolated_RBR_temperature),np.mean(RBR_temperature[i,:]))
-        
-        
+    print("RBR----------------CHECK-----------------------")
     for depth_index in range(np.shape(sorted_temperature)[0]):
         
         print(depth_index,sorted_depth[depth_index],np.mean(sorted_temperature[depth_index,:]))
@@ -396,7 +244,7 @@ for DATAFILENAME in DATAFILENAMES:
     
     #Prepend a 0 to the beginning (index 0)
     plot_edges_depth = np.insert(sorted_depth,0,0) 
-    utc = np.copy(PME_utc)
+    utc = np.copy(seabird_utc)
     
     #sort the data to the right plot position
     if flach_or_tief.lower() == "flach" or flach_or_tief.lower() == "tc-flach":
@@ -460,7 +308,7 @@ for row in range(3):
         axarr1[row,column].xaxis.set_major_formatter(hfmt)
 
         #axarr1[row,column].set_ylim(bottom = 0, top = 80)
-        print("xlim:",row,column,axarr1[row,column].get_xlim())
+        #print("xlim:",row,column,axarr1[row,column].get_xlim())
 
 
 
@@ -496,14 +344,17 @@ title_fig2 = "tief"
 axarr1[0,0].set_title(title_fig1)
 axarr1[0,1].set_title(title_fig2)    
      
-f1.suptitle("temperature from seabird comparison")
-
+f1.suptitle("temperature from RBR/seabird comparison")
+f2.suptitle("comparison original data to interpolated data")
 
 f1.set_size_inches(18,10.5)
-f1.tight_layout()
+f1.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+f2.set_size_inches(18,10.5)
+f2.tight_layout(rect=[0, 0.03, 1, 0.99])
     
 #Save the plot as png
-plot1_name = "./pictures/"+"temperature_comparison" 
+plot1_name = "./pictures/"+"temperature_RBR_seabird_comparison2" 
 f1.savefig(plot1_name)
 
  
@@ -517,7 +368,7 @@ axarr1[2,1].set_xlim(left = mdates.date2num(start_tief_2019), right = mdates.dat
 
 
 #Save the changend plot again as png
-plot1_name = "./pictures/"+"temperature_comparison_same_scale" 
+plot1_name = "./pictures/"+"temperature_RBR_seabird_comparison_same_scale2" 
 f1.savefig(plot1_name)
   
 plt.show()
