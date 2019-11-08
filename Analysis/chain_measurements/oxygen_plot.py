@@ -47,10 +47,10 @@ print(DATAFILENAMES)
 #create ouput pictures, which will be filled later in the code
 
 #figure 1 for TC_Flach
-f1, axarr1 = plt.subplots(nrows = 3, ncols = 2, sharex = "row", sharey= "col")
+f1, axarr1 = plt.subplots(nrows = 3, ncols = 2, sharey= "col")#, sharex = "row", )
 
 #figure 2 for TC_Tief
-f2, axarr2 = plt.subplots(nrows = 3, ncols = 2, sharex = "row", sharey=True)
+#f2, axarr2 = plt.subplots(nrows = 3, ncols = 2, sharex = "row", sharey=True)
 
 max_time_delta = dt.timedelta(minutes=1)
 
@@ -77,61 +77,93 @@ for DATAFILENAME in DATAFILENAMES:
     utc = data["utc"]
    
     sorted_depth = sorted(depth)
-    print(depth)
-    print(sorted_depth)
+    #print(depth)
+    #print(sorted_depth)
     number_of_depth_bins = depth.size
     
+    plot_edges_depth = np.insert(sorted_depth,0,0) #Prepend a 0 to he beginning (index 0)
+    
+    print(label_list)
+    print(np.reshape(label_list[:,1],(number_of_depth_bins,1)))
+    
     #stack the index to the label_list
-    sorting_array = np.hstack((label_list,np.reshape(np.arange(number_of_depth_bins),(number_of_depth_bins,1)).astype("str")))
+    sorting_array = np.hstack((np.reshape(label_list[:,1],(number_of_depth_bins,1)),np.reshape(np.arange(number_of_depth_bins),(number_of_depth_bins,1)))).astype("float")
     
     
     print(np.shape(saturation),np.shape(label_list),np.shape(utc))
    
-
+    """
+    print("original:")
+    for depth_index in range(np.shape(saturation)[0]):
+        print(depth_index,depth[depth_index],np.nanmean(saturation[depth_index,:]))
+    """
     
-    #sort after the second column, eg the depths
+    #sort after the first column, eg the depths (sorts automatically the indices)
     #from https://stackoverflow.com/questions/2173797/how-to-sort-2d-array-by-row-in-python
-    sorting_key = np.asarray(sorted(sorting_array, key=itemgetter(1)))
+    sorting_key = np.asarray(sorted(sorting_array, key= itemgetter(0)))
     
+    print(sorting_array)
+    print(sorting_key)
     
     sorted_saturation = []
-    for index in sorting_key[:,2]:
+    for index in sorting_key[:,1]:
         sorted_saturation.append(saturation[int(index),:])
     sorted_saturation = np.asarray(sorted_saturation)
     
+    """
+    print("sorted")
+    for depth_index in range(np.shape(sorted_saturation)[0]):
+        print(depth_index,sorted_depth[depth_index],np.nanmean(sorted_saturation[depth_index,:]))
+    """
+    
+    #sort the data to the right plot position
     if flach_or_tief.lower() == "flach" or flach_or_tief.lower() == "tc-flach":
         x_position = 0
+        if cruisename == "emb169":
+            y_position = 0
+            start_flach_2017 = utc[0]
+        elif cruisename == "emb177":
+            y_position = 1
+            start_flach_2018 = utc[0]
+        elif cruisename == "emb217":
+            y_position = 2
+            start_flach_2019 = utc[0]
+            
+            #because emb217 had the longest measurement period
+            max_time_delta = max(max_time_delta,utc[-1]-utc[-0])
+        else:
+            print("ERROR: ID der Ausfahrt nicht bestimmbar")
+        
     elif flach_or_tief.lower() == "tief" or flach_or_tief.lower() == "tc-tief":
         x_position = 1
+        if cruisename == "emb169":
+            y_position = 0
+            start_tief_2017 = utc[0]
+        elif cruisename == "emb177":
+            y_position = 1
+            start_tief_2018 = utc[0]
+        elif cruisename == "emb217":
+            y_position = 2
+            start_tief_2019 = utc[0]
+            
+            #because emb217 had the longest measurement period
+            max_time_delta = max(max_time_delta,utc[-1]-utc[-0])
+        else:
+            print("ERROR: ID der Ausfahrt nicht bestimmbar")
+        
     else:
         print(flach_or_tief.lower())
         print("ERROR: Ort (flach_or_tief) nicht feststellbar")    
             
-    if cruisename == "emb169":
-        y_position = 0
-        start_flach_2017 = utc[0]
-    elif cruisename == "emb177":
-        y_position = 1
-        start_flach_2018 = utc[0]
-    elif cruisename == "emb217":
-        y_position = 2
-        start_flach_2019 = utc[0]
-        
-        #because emb217 had the longest measurement period
-        max_time_delta = max(max_time_delta,utc[-1]-utc[-0])
-    else:
-        print("ERROR: ID der Ausfahrt nicht bestimmbar")
+
             
             
     #fill figure 1 with data
-    img1_1 = axarr1[y_position,x_position].pcolormesh(utc,sorted_depth,sorted_saturation, cmap = plt.cm.RdYlBu_r)
-    img1_2 = axarr1[y_position,x_position].pcolormesh(utc,sorted_depth,sorted_saturation, cmap = plt.cm.RdYlBu_r)
-        
-        #colorbar(img1_1).set_label('velocity [m/s]')
-        #colorbar(img1_2).set_label('velocity [m/s]')
-        
-        
-    #plt.pcolormesh(utc,sorted_depth,sorted_saturation)
+    img1_1 = axarr1[y_position,x_position].pcolormesh(utc,plot_edges_depth,sorted_saturation, cmap = plt.cm.RdYlBu_r)
+
+    #add a colorbar to every plot
+    f1.colorbar(img1_1, ax=axarr1[y_position,x_position])
+
 
 
 #Preferences of the plots
@@ -146,25 +178,17 @@ for row in range(3):
         axarr1[row,column].xaxis.set_major_formatter(hfmt)
 
         #axarr1[row,column].set_ylim(bottom = 0, top = 80)
-        print("xlim:",row,column,axarr1[row,column].get_xlim())
-        #axarr1[0,column].invert_yaxis()
-
-
-        axarr2[row,column].xaxis.set_major_locator(mdates.DayLocator())
-        axarr2[row,column].xaxis.set_minor_locator(mdates.HourLocator(byhour = [0,6,12,18],interval = 1))
-        axarr2[row,column].xaxis.set_major_formatter(hfmt)
-
-        
-        #axarr2[row,column].set_ylim(bottom = 0, top = 90)
-        axarr2[row,column].invert_yaxis()
+        #print("xlim:",row,column,axarr1[row,column].get_xlim())
 
 
 
 
 
+"""
 for row in range(3):
     for column in range(2):
         print("xlim:",row,column,axarr1[row,column].get_xlim())
+"""
 
 axarr1[0,0].set_xlabel("2017")
 axarr1[0,1].set_xlabel("2017")
@@ -173,16 +197,11 @@ axarr1[1,1].set_xlabel("2018")
 axarr1[2,0].set_xlabel("2019")        
 axarr1[2,1].set_xlabel("2019")        
 
-axarr2[0,0].set_xlabel("2017")
-axarr2[0,1].set_xlabel("2017")
-axarr2[1,0].set_xlabel("2018")
-axarr2[1,1].set_xlabel("2018")
-axarr2[2,0].set_xlabel("2019")        
-axarr2[2,1].set_xlabel("2019") 
 
-title_fig1 = "west component u"
-title_fig2 = "north component v"
+title_fig1 = "flach"
+title_fig2 = "tief"
 
+"""
 f1.subplots_adjust(right=0.9)
 cbar_ax = f1.add_axes([0.92, 0.15, 0.02, 0.7]) #[left, bottom, width, height] as fraction of figure size
 f1.colorbar(img1_2, cax=cbar_ax).set_label("velocity [m/s]") 
@@ -190,55 +209,38 @@ f1.colorbar(img1_2, cax=cbar_ax).set_label("velocity [m/s]")
 f2.subplots_adjust(right=0.9)
 cbar_ax = f2.add_axes([0.92, 0.15, 0.02, 0.7]) #[left, bottom, width, height] as fraction of figure size
 #f2.colorbar(img2_2, cax=cbar_ax).set_label("velocity [m/s]") 
+"""
         
 axarr1[0,0].set_title(title_fig1)
-axarr1[0,1].set_title(title_fig2)
-
-axarr2[0,0].set_title(title_fig1)
-axarr2[0,1].set_title(title_fig2)
+axarr1[0,1].set_title(title_fig2)    
      
-f1.suptitle("ADCP Comparison Flach")
-f2.suptitle("ADCP Comparison Tief")
+f1.suptitle("Oxygen saturation comparison")
 
 
 f1.set_size_inches(18,10.5)
-f2.set_size_inches(18,10.5)
+f1.tight_layout()
     
 #Save the plot as png
-plot1_name = "./pictures/"+"ADCP_comparison_flach" 
-#f1.savefig(plot1_name)
-
-plot2_name = "./pictures/"+"ADCP_comparison_tief" 
-#f2.savefig(plot2_name)
-
-"""    
-#preferences of the x-limit
-axarr1[0,0].set_xlim(left = mdates.date2num(start_flach_2017), right = mdates.date2num(start_flach_2017 + max_time_delta))
-axarr1[0,1].set_xlim(left = mdates.date2num(start_flach_2017), right = mdates.date2num(start_flach_2017 + max_time_delta))
-axarr1[1,0].set_xlim(left = mdates.date2num(start_flach_2018), right = mdates.date2num(start_flach_2018 + max_time_delta))
-axarr1[1,1].set_xlim(left = mdates.date2num(start_flach_2018), right = mdates.date2num(start_flach_2018 + max_time_delta))
-axarr1[2,0].set_xlim(left = mdates.date2num(start_flach_2019), right = mdates.date2num(start_flach_2019 + max_time_delta))
-axarr1[2,1].set_xlim(left = mdates.date2num(start_flach_2019), right = mdates.date2num(start_flach_2019 + max_time_delta))
-
-axarr2[0,0].set_xlim(left = mdates.date2num(start_tief_2017), right = mdates.date2num(start_tief_2017 + max_time_delta))
-axarr2[0,1].set_xlim(left = mdates.date2num(start_tief_2017), right = mdates.date2num(start_tief_2017 + max_time_delta))
-axarr2[1,0].set_xlim(left = mdates.date2num(start_tief_2018), right = mdates.date2num(start_tief_2018 + max_time_delta))
-axarr2[1,1].set_xlim(left = mdates.date2num(start_tief_2018), right = mdates.date2num(start_tief_2018 + max_time_delta))
-axarr2[2,0].set_xlim(left = mdates.date2num(start_tief_2019), right = mdates.date2num(start_tief_2019 + max_time_delta))
-axarr2[2,1].set_xlim(left = mdates.date2num(start_tief_2019), right = mdates.date2num(start_tief_2019 + max_time_delta))
-
-#Save the changend plot again as png
-plot1_name = "./pictures/"+"ADCP_comparison_flach_same_scale" 
+plot1_name = "./pictures/"+"oxygen_comparison" 
 f1.savefig(plot1_name)
 
-plot2_name = "./pictures/"+"ADCP_comparison_tief_same_scale" 
-f2.savefig(plot2_name)
-"""    
+ 
+#preferences of the x-limit
+axarr1[0,0].set_xlim(left = mdates.date2num(start_flach_2017), right = mdates.date2num(start_flach_2017 + max_time_delta))
+axarr1[0,1].set_xlim(left = mdates.date2num(start_tief_2017), right = mdates.date2num(start_tief_2017 + max_time_delta))
+axarr1[1,0].set_xlim(left = mdates.date2num(start_flach_2018), right = mdates.date2num(start_flach_2018 + max_time_delta))
+axarr1[1,1].set_xlim(left = mdates.date2num(start_tief_2018), right = mdates.date2num(start_tief_2018 + max_time_delta))
+axarr1[2,0].set_xlim(left = mdates.date2num(start_flach_2019), right = mdates.date2num(start_flach_2019 + max_time_delta))
+axarr1[2,1].set_xlim(left = mdates.date2num(start_tief_2019), right = mdates.date2num(start_tief_2019 + max_time_delta))
+
+
+#Save the changend plot again as png
+plot1_name = "./pictures/"+"oxygen_comparison_same_scale" 
+f1.savefig(plot1_name)
+  
 plt.show()
     
-    
-        
-plt.show()    
+       
     
     
     

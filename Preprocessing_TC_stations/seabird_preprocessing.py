@@ -12,7 +12,7 @@ def SA_from_C(C, t, p, lon, lat):
     
 #LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/Seabird/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/Seabird/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/Seabird/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/Seabird/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/Seabird/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/seabird/data"]
 
-LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/seabird/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/seabird/data"]
+LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/Seabird/data"]
 
 
 #depths of all the sensors, used for labeling in the plots
@@ -64,7 +64,11 @@ for FOLDERNAME in LIST_OF_FOLDERS:
             print("--------------------------------------\nfile:")
         print(datafile_path[25:])
         
-        temporary_data = np.genfromtxt(datafile_path, comments = "%", usecols = (0,1,2,3,4,5,6,7,8,9), encoding="iso8859_15")
+        if (datafile_path == "/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/Seabird/data/emb177_TC-tief_SC1614.txt"):
+            print("emb177_TC-tief_SC1614.txt is skipped, because its length doesn't fit to the other data")
+            continue  
+        else:   
+            temporary_data = np.genfromtxt(datafile_path, comments = "%", usecols = (0,1,2,3,4,5,6,7,8,9), encoding="iso8859_15")
         
         
         #search for measurement properties in the file
@@ -196,7 +200,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     axarr2[0].set_ylabel("temperature")
     axarr2[0].set_xlabel(utc[0].strftime("%Y")) #label the axis with the corresponding year
       
-    title_fig2 = "PME "+cruisename+" "+flach_or_tief+" untrimmed data comparison"
+    title_fig2 = "Seabird "+cruisename+" "+flach_or_tief+" untrimmed data comparison"
     
     axarr2[0].set_title(title_fig2)
 

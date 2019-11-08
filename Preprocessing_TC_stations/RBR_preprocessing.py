@@ -8,11 +8,15 @@ import datetime as dt
 import matplotlib.dates as mdates
 from numpy.core.defchararray import add
 
-#done = "/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/RBR/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/RBR/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/RBR/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/RBR/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/RBR/data"
 
-LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/RBR/data"]
+#done "/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/RBR/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/RBR/data"]#"/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/RBR/data"]#,
 
-#TODO ,,,,,]
+
+
+#LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/RBR/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/RBR/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/RBR/data"]
+
+LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/RBR/data"]
+
 
 #depths of all the sensors, used for labeling in the plots
 sensor_positions_path = "/home/ole/thesis/Preprocessing_TC_stations/RBR/RBR_properties"
@@ -67,8 +71,6 @@ for FOLDERNAME in LIST_OF_FOLDERS:
             
 
             temporary_data = np.genfromtxt(datafile_path,skip_header= skip_header, usecols = (0,1,2), encoding="iso8859_15", dtype= "str")
-            #TODO
-            #load PME temperature data
 
         else:
             print("--------------------------------------\nfile:")
@@ -133,11 +135,12 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         data_from_all_sensors.append(temperature)
         print(np.shape(data_from_all_sensors))
         
+
         #data is too big to load at once, so I split it here and save the first part (the first 4 data files)
-        if FOLDERNAME == "/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/RBR/data" and np.shape(data_from_all_sensors)[-1] >= 4:
-            np.savez("/home/ole/thesis/Preprocessing_TC_stations/RBR/data/RBR_"+cruisename+"_"+flach_or_tief+"_temperature_Part1", temperature = data_from_all_sensors, label_list = label_list, utc = utc)
+        if FOLDERNAME == "/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/RBR/data" and np.shape(data_from_all_sensors)[0] >= 4:
+            np.savez("/home/ole/thesis/Preprocessing_TC_stations/RBR/data/RBR_"+cruisename+"_"+flach_or_tief+"_Part1_temperature", temperature = data_from_all_sensors, label_list = label_list, utc = utc)
             data_from_all_sensors = []
-         
+
             
         #fill the plots with data
         axarr1.plot(utc,temperature, label = label)
@@ -155,14 +158,17 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     #save the trimmed data for easier analysis afterwards
     #TODO Better compressing or not?
     
-    
-      
+    #np.savez("/home/ole/thesis/Preprocessing_TC_stations/RBR/data/RBR_"+cruisename+"_"+flach_or_tief+"_temperature", temperature = data_from_all_sensors, label_list = label_list, utc = utc) 
+ 
     if FOLDERNAME == "/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/RBR/data":
-        np.savez("/home/ole/thesis/Preprocessing_TC_stations/RBR/data/RBR_"+cruisename+"_"+flach_or_tief+"_temperature_Part2", temperature = data_from_all_sensors, label_list = label_list, utc = utc)
+        np.savez("/home/ole/thesis/Preprocessing_TC_stations/RBR/data/RBR_"+cruisename+"_"+flach_or_tief+"_Part2_temperature", temperature = data_from_all_sensors, label_list = label_list, utc = utc)
             
             
     else:
         np.savez("/home/ole/thesis/Preprocessing_TC_stations/RBR/data/RBR_"+cruisename+"_"+flach_or_tief+"_temperature", temperature = data_from_all_sensors, label_list = label_list, utc = utc)       
+
+     
+
         
     #axarr1[1].invert_yaxis()
     #axarr1[0].set_xlim(deploy_time,recovery_time)
@@ -191,14 +197,14 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     axarr2[0].set_ylabel("temperature")
     axarr2[0].set_xlabel(utc[0].strftime("%Y")) #label the axis with the corresponding year
       
-    title_fig2 = "PME "+cruisename+" "+flach_or_tief+" untrimmed data comparison"
+    title_fig2 = "RBR "+cruisename+" "+flach_or_tief+" untrimmed data comparison"
     
     axarr2[0].set_title(title_fig2)
 
     axarr2[0].legend()
     f2.set_size_inches(12,7)
 
-    plot2_name = "/home/ole/thesis/Preprocessing_TC_stations/RBR/pictures/"+"PME_"+cruisename+"_"+flach_or_tief+" untrimmed data comparison"
+    plot2_name = "/home/ole/thesis/Preprocessing_TC_stations/RBR/pictures/"+"RBR_"+cruisename+"_"+flach_or_tief+" untrimmed data comparison"
     f2.savefig(plot2_name)
 
-plt.show()          
+#plt.show()          
