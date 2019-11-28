@@ -23,15 +23,22 @@ def shape_preserving_diff(array,axis):
     new_array = np.concatenate((nan_array,concatenated_array),axis = axis)
     
     return new_array
+
+def get_viscosity(T);
+#% T is temperature in degC; vis in m2/s
+#% vis=(1.792747-(.05126103*T)+(0.0005918645*T*T))*1e-6;
+#% Ilker
+    return (1.792747-(0.05126103*T)+(0.0005918645*T*T))*1e-6
     
 #Constants
 rho_0 = 1000 #kg/m³
 g = 9.81 #m/s² #could be replace by gsw.grav(lat,p)
 
 
-for number in range(1,11):
+for number in range(10,17):
 
-    FILENAME = "/home/ole/Thesis/emb217_mss_data/TR1-"+str(number)+".mat"
+    #FILENAME = "/home/ole/share-windows/emb217_mss_data/TR1-"+str(number)+".mat"
+    FILENAME = "/home/ole/share-windows/emb177_mss_data/TS1_"+str(number)+".mat"
 
     #define the pictures
     f1, axarr1 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
@@ -61,8 +68,8 @@ for number in range(1,11):
 
     pressure = CTD_substructure["P"][0]
     oxygen = CTD_substructure["O2"][0]
-    absolute_salinity = CTD_substructure["SA"][0] #is this unit sufficient
-    consv_temperature = CTD_substructure["CT"][0] #TODO better use conservative temperature?
+    absolute_salinity = CTD_substructure["SA"][0] 
+    consv_temperature = CTD_substructure["CT"][0] 
     alpha = CTD_substructure["ALPHA"][0]
     beta = CTD_substructure["BETA"][0]
 
@@ -162,10 +169,12 @@ for number in range(1,11):
 
     BN_freq_squared_grid_check = g*((1/(pressure_grid)*(shape_preserving_diff(density_grid_check,axis = 1))) + g/(gsw.sound_speed(salinity_grid,consv_temperature_grid,pressure_grid)**2))
 
-    BN_freq_squared_grid_gsw, dump = gsw.Nsquared(salinity_grid,consv_temperature_grid,pressure_grid, lat = np.mean(lat), axis = 1)
+    BN_freq_squared_grid_gsw, midpoint_pressure_grid = gsw.Nsquared(salinity_grid,consv_temperature_grid,pressure_grid, lat = np.mean(lat), axis = 1)
     nan_array = np.nan*np.ones((np.shape(BN_freq_squared_grid_gsw)[0],1))
     BN_freq_squared_grid_gsw = np.concatenate((nan_array,BN_freq_squared_grid_gsw),axis = 1)
         
+    
+    print("pre",np.shape(salinity_grid),"post",np.shape(BN_freq_squared_grid_gsw))
         
     difference_grid = BN_freq_squared_grid-BN_freq_squared_grid_gsw
 
@@ -234,7 +243,7 @@ for number in range(1,11):
     axarr4[0].invert_yaxis()   
     
     f1.tight_layout()
-    f1.savefig("./pictures/TR1-"+str(number))
+    f1.savefig("./pictures/emb177/emb177_TS1-"+str(number))
 
 #plt.show()
 
