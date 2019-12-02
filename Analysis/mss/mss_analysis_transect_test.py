@@ -181,12 +181,25 @@ for i in range(number_of_transects):
     
 
 density_grid = gsw.rho(salinity_grid,consv_temperature_grid,pressure_grid)
-#density_grid_check = (1 - alpha_grid * (consv_temperature_grid) + beta_grid * (salinity_grid))*rho_0
-#difference = density_grid-density_grid_check
+density_grid_check = (1 - alpha_grid * (consv_temperature_grid) + beta_grid * (salinity_grid))*rho_0
+difference = density_grid-density_grid_check
 
 
 #creates pressure grid, where every column is equal to interp_pressure
 pressure_grid = np.reshape(interp_pressure,(1,-1))*np.ones((np.shape(pressure)[-1],min_size))
+
+#TODO WHat is the best way to calculate the discrete derivation? King used centered scheme
+#discrete derivation of the density in respect to pressure
+drho_dp = shape_preserving_diff(density_grid,axis = 1)/shape_preserving_diff(pressure_grid,axis = 1)
+
+print(np.shape(drho_dp))
+
+BN_freq_squared_grid = g/rho_0 * drho_dp
+
+#why does this give bad results????
+#BN_freq_squared_grid_check = (g**2)*(shape_preserving_diff(density_grid_check,axis = 1) - 1/(gsw.sound_speed(salinity_grid,consv_temperature_grid,pressure_grid)**2))
+
+BN_freq_squared_grid_check = g*((1/(pressure_grid)*(shape_preserving_diff(density_grid_check,axis = 1))) + g/(gsw.sound_speed(salinity_grid,consv_temperature_grid,pressure_grid)**2))
 
 #calculate N^2 with the gsw toolbox 
 BN_freq_squared_grid_gsw, midpoint_pressure_grid = gsw.Nsquared(salinity_grid,consv_temperature_grid,pressure_grid, lat = np.mean(lat), axis = 1)
@@ -198,28 +211,65 @@ mid_point_pressure = np.mean(midpoint_pressure_grid, axis = 0)
 print(np.mean(np.std(midpoint_pressure_grid, axis = 0)))
 assert(np.all(np.std(midpoint_pressure_grid, axis = 0) <10**(-10)))
 
+#nan_array = np.nan*np.ones((np.shape(BN_freq_squared_grid_gsw)[0],1))
+#BN_freq_squared_grid_gsw = np.concatenate((nan_array,BN_freq_squared_grid_gsw),axis = 1)
+#difference_grid = BN_freq_squared_grid-BN_freq_squared_grid_gsw
+
+#TODO
+BN_freq_squared_cleaned_grid = np.copy(BN_freq_squared_grid)
+BN_freq_squared_cleaned_grid_check = np.copy(BN_freq_squared_grid_check)
+
+#replace all negative values with 0 (is that good?) to compute the frequency
+BN_freq_squared_cleaned_grid[BN_freq_squared_grid < 0] = np.nan #replace all negative values with 0 (is that good?)
+BN_freq_squared_cleaned_grid_check[BN_freq_squared_grid_check < 0]
+#draw the square root
+BN_freq_cleaned_grid = np.sqrt(BN_freq_squared_cleaned_grid)
+BN_freq_cleaned_grid_check = np.sqrt(BN_freq_squared_cleaned_grid_check)
+
+
+
+"""
+print("CHECK")
+print(mid_point_pressure[0:10])
+print(interp_coarse_pressure[0:10])
+print(interp_pressure[0:10])
+
+print(np.shape(interp_coarse_pressure))
+"""
 #interpolate the temperature and  to the eps pressure grid
 coarse_consv_temperature_grid = np.zeros(np.shape(eps_grid)) #TODO DO I need the in-situ temperature here?
 coarse_N_squared_grid = np.zeros(np.shape(eps_grid))
 coarse_density_grid = np.copy(coarse_N_squared_grid)
+coarse_density_grid_check = np.copy(coarse_N_squared_grid)
 
 for i in range(number_of_transects):
+    #print(np.shape(mid_point_pressure),np.shape(interp_pressure),np.shape(interp_coarse_pressure))
      
     #midpoint grid to coarse grid 
     coarse_N_squared_grid[i] = np.interp(interp_coarse_pressure,mid_point_pressure,BN_freq_squared_grid_gsw[i].flatten(), left = np.nan, right = np.nan)
      
     #fine grid to coarse grid
     coarse_consv_temperature_grid[i] = np.interp(interp_coarse_pressure,interp_pressure,consv_temperature_grid[i].flatten(), left = np.nan, right = np.nan)
+    
     coarse_density_grid[i] = np.interp(interp_coarse_pressure,interp_pressure,density_grid[i].flatten(), left = np.nan, right = np.nan)
+    coarse_density_grid_check[i] = np.interp(interp_coarse_pressure,interp_pressure,density_grid_check[i].flatten(), left = np.nan, right = np.nan)
 
-coarse_viscosity_T_grid = get_viscosity(coarse_consv_temperature_grid)
+coarse_viscosity_grid = get_viscosity(coarse_consv_temperature_grid)
 
-coarse_viscosity_TS_grid = wiki_viscosity(coarse_consv_temperature_grid)/coarse_density_grid
-
+coarse_viscosity_grid_check = wiki_viscosity(coarse_consv_temperature_grid)/coarse_density_grid
+coarse_viscosity_grid_check2 = wiki_viscosity(coarse_consv_temperature_grid)/coarse_density_grid_check
 
 #all used grids should be defined on the coarse pressure grid
-Reynolds_bouyancy_grid = eps_grid/(coarse_viscosity_T_grid*coarse_N_squared_grid) #from Maffioli 2014
-Reynolds_bouyancy_TS_grid = eps_grid/(coarse_viscosity_TS_grid*coarse_N_squared_grid)
+Reynolds_bouyancy_grid = eps_grid/(coarse_viscosity_grid*coarse_N_squared_grid) #from Maffioli 2014
+Reynolds_bouyancy_grid2 = eps_grid/(coarse_viscosity_grid_check*coarse_N_squared_grid)
+Reynolds_bouyancy_grid3 = eps_grid/(coarse_viscosity_grid_check2*coarse_N_squared_grid)
+
+transect_index = 30
+#for i in range(interp_coarse_pressure.size):
+    #print(interp_coarse_pressure[i],"\t\t",eps_grid[transect_index,i],"\t\t",coarse_viscosity_grid[transect_index,i],"\t\t",coarse_N_squared_grid[transect_index,i],"\t\t",Reynolds_bouyancy_grid[transect_index,i],"\t\t")
+
+print("Test:",np.nanmedian(eps_grid),np.nanmedian(coarse_viscosity_grid),np.nanmedian(coarse_N_squared_grid))
+print("RB grid:",np.nanmax(Reynolds_bouyancy_grid),np.nanmin(Reynolds_bouyancy_grid),np.nanmedian(Reynolds_bouyancy_grid))
 
 print(np.max(interp_pressure),np.min(interp_pressure))
 
@@ -231,14 +281,16 @@ img4_1 = axarr4[1].plot(salinity_grid[transect_index,:],interp_pressure)
 img4_2 = axarr4[2].plot(consv_temperature_grid[transect_index,:],interp_pressure)
 img4_2b = axarr4[2].plot(coarse_consv_temperature_grid[transect_index,:],interp_coarse_pressure)
 
-img4_3 = axarr4[3].plot(BN_freq_squared_grid_gsw[transect_index,:],mid_point_pressure, label = "fine grid")
-img4_3b = axarr4[3].plot(coarse_N_squared_grid[transect_index,:],interp_coarse_pressure, label = "coarse grid")
+img4_3 = axarr4[3].plot(BN_freq_squared_grid_gsw[transect_index,:],mid_point_pressure)
+img4_3b = axarr4[3].plot(coarse_N_squared_grid[transect_index,:],interp_coarse_pressure)
 
-img4_4 = axarr4[4].plot(coarse_viscosity_T_grid[transect_index,:]*10**6,interp_coarse_pressure,label = "Ilker")
-img4_4b = axarr4[4].plot(coarse_viscosity_TS_grid[transect_index,:]*10**6,interp_coarse_pressure,"--",label = "Wikipedia")
+img4_4 = axarr4[4].plot(coarse_viscosity_grid[transect_index,:]*10**6,interp_coarse_pressure)
+img4_4b = axarr4[4].plot(coarse_viscosity_grid_check[transect_index,:]*10**6,interp_coarse_pressure,"--")
+img4_4c = axarr4[4].plot(coarse_viscosity_grid_check2[transect_index,:]*10**6,interp_coarse_pressure,":")
 img4_5 = axarr4[5].plot(np.log10(eps_grid[transect_index,:]),interp_coarse_pressure)
-img4_6 = axarr4[6].plot(Reynolds_bouyancy_grid[transect_index,:],interp_coarse_pressure,label = "Ilker")
-img4_6b = axarr4[6].plot(Reynolds_bouyancy_TS_grid[transect_index,:],interp_coarse_pressure,"--",label = "Wikipedia")
+img4_6 = axarr4[6].plot(Reynolds_bouyancy_grid[transect_index,:],interp_coarse_pressure)
+img4_6b = axarr4[6].plot(Reynolds_bouyancy_grid2[transect_index,:],interp_coarse_pressure,"--")
+img4_6c = axarr4[6].plot(Reynolds_bouyancy_grid3[transect_index,:],interp_coarse_pressure,":")
 
 axarr4[0].set_xlabel("oxygen")
 axarr4[0].set_ylabel("pressure [dbar]")
@@ -248,9 +300,6 @@ axarr4[3].set_xlabel("N^2")
 axarr4[4].set_xlabel("viscosity / 10^(-6)")
 axarr4[5].set_xlabel("log10(eps)")
 axarr4[6].set_xlabel("Reynolds_bouyancy")
-axarr4[3].legend()
-axarr4[4].legend()
-axarr4[6].legend()
 
 axarr4[6].set_xlim([-15,100])
 
@@ -266,9 +315,12 @@ axarr4[6].set_title("Calculation Re_b")
 
 img3_0 = axarr3[0].pcolormesh(distance,interp_coarse_pressure,Reynolds_bouyancy_grid.T, vmin = -10, vmax = 1000)
 img3_1 = axarr3[1].hist(np.log10(eps_grid.flatten()),bins = 300)
-img3_1 = axarr3[1].hist(np.log10(coarse_viscosity_TS_grid.flatten()),bins = 300)
+img3_1 = axarr3[1].hist(np.log10(coarse_viscosity_grid.flatten()),bins = 300)
 img3_1 = axarr3[1].hist(np.log10(coarse_N_squared_grid.flatten()),bins = 300)
-img3_2 = axarr3[2].hist(np.log10(Reynolds_bouyancy_grid.flatten()),bins = 300) 
+img3_2 = axarr3[2].hist(np.log10(Reynolds_bouyancy_grid.flatten()),bins = 300)
+
+#img3_2b = axarr3[1].hist(BN_freq_squared_grid_gsw.flatten(),bins = 300) 
+ 
  
 #Plot the data   
 img1_0 = axarr1[0].pcolormesh(distance,interp_pressure,oxygen_grid.T)
@@ -284,6 +336,17 @@ img2_3 = axarr2[3].pcolormesh(distance,interp_coarse_pressure,Reynolds_bouyancy_
 axarr1[3].set_xlabel("distance [km]")
 axarr2[3].set_xlabel("distance [km]")
 
+"""
+img2_0 = axarr2[0].pcolormesh(distance,interp_pressure,salinity_grid.T)
+img2_1 = axarr2[1].pcolormesh(distance,interp_pressure,consv_temperature_grid.T)
+img2_2 = axarr2[2].pcolormesh(distance,interp_pressure,alpha_grid.T)
+img2_3 = axarr2[3].pcolormesh(distance,interp_pressure,beta_grid.T)
+
+
+    pcolormesh(distance,interp_pressure,density_grid.T)
+    pcolormesh(distance,interp_pressure,BN_freq_squared_grid_gsw.T,vmin = 0, vmax = 0.015)
+    pcolormesh(distance,interp_coarse_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
+"""    
     
     
 f1.set_size_inches(18,10.5)
