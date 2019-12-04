@@ -16,8 +16,9 @@ def colorbar(mappable):
 
         
 
-#FILENAME = "/home/ole/share-windows/emb217_mss_data/TR1-1.mat"
-FILENAME = "/home/ole/share-windows/emb177_mss_data/TS1_1.mat"
+FILENAME = "/home/ole/share-windows/emb217_mss_data/TR1-1.mat"
+#FILENAME = "/home/ole/share-windows/emb177_mss_data/TS1_1.mat"
+#FILENAME = "/home/ole/share-windows/emb169_mss_data/MSS055/matlab/TS11.mat"
 
 #define the pictures
 f1, axarr1 = plt.subplots(nrows = 2, ncols = 1, sharex = True, sharey = True)
@@ -33,11 +34,11 @@ MIX_substructure = data["MIX"]
 CTD_substructure = data["CTD"]
 BOT_substructure = data["BOT"]
 
-print("\nSTA",STA_substructure.dtype)
-print("\nDATA",DATA_substructure.dtype)
-print("\nCTD",CTD_substructure.dtype)
-print("\nMIX",MIX_substructure.dtype)
-print("\nBOT",BOT_substructure.dtype)
+print("\nSTA\n",STA_substructure.dtype)
+print("\nDATA\n",DATA_substructure.dtype)
+print("\nCTD\n",CTD_substructure.dtype)
+print("\nMIX\n",MIX_substructure.dtype)
+print("\nBOT\n",BOT_substructure.dtype)
 
 lat = STA_substructure["LAT"][0]
 lon = STA_substructure["LON"][0]
@@ -46,7 +47,8 @@ oxygen_ctd_pressure = CTD_substructure["P"][0]
 oxygen_ctd = CTD_substructure["O2"][0]
 
 oxygen_data_pressure = DATA_substructure["P"][0]
-oxygen_data = DATA_substructure["O2"][0]
+oxygen_data = DATA_substructure["rawO2"][0]
+#oxygen_data = DATA_substructure["O2"][0]
 
 number_of_transects = np.shape(oxygen_ctd_pressure)[-1]
 
