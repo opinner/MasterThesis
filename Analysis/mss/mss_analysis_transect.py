@@ -198,7 +198,7 @@ mid_point_pressure = np.mean(midpoint_pressure_grid, axis = 0)
 print(np.mean(np.std(midpoint_pressure_grid, axis = 0)))
 assert(np.all(np.std(midpoint_pressure_grid, axis = 0) <10**(-10)))
 
-#interpolate the temperature and  to the eps pressure grid
+#interpolate the temperature and to the eps pressure grid
 coarse_consv_temperature_grid = np.zeros(np.shape(eps_grid)) #TODO DO I need the in-situ temperature here?
 coarse_N_squared_grid = np.zeros(np.shape(eps_grid))
 coarse_density_grid = np.copy(coarse_N_squared_grid)

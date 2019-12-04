@@ -29,22 +29,28 @@ def get_viscosity(T):
     #% vis=(1.792747-(.05126103*T)+(0.0005918645*T*T))*1e-6;
     #% Ilker
     return (1.792747-(0.05126103*T)+(0.0005918645*T*T))*1e-6
+
+def wiki_viscosity(T):
+    A = 29.39*1e-3
+    B = 507.88 
+    C = 149.3
+    
+    return A * np.exp(B/(T-C))
     
 #Constants
 rho_0 = 1000 #kg/m³
 g = 9.81 #m/s² #could be replace by gsw.grav(lat,p)
 
 
-for number in range(11,14):
+for number in range(1,11):
 
     #FILENAME = "/home/ole/share-windows/emb217_mss_data/TR1-"+str(number)+".mat"
     #FILENAME = "/home/ole/share-windows/emb177_mss_data/TS1_"+str(number)+".mat"
-    FILENAME = "/home/ole/share-windows/emb169_mss_data/MSS055/matlab/TS"+str(number)+".mat"
+    #FILENAME = "/home/ole/share-windows/emb169_mss_data/MSS055/matlab/TS"+str(number)+".mat"
 
     #define the pictures
     f1, axarr1 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
     f2, axarr2 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
-    f3, axarr3 = plt.subplots(nrows = 3, ncols = 1)
     f4, axarr4 = plt.subplots(nrows = 1, ncols = 7, sharey = True)#, sharex = True, 
 
     print("Filename:",sio.whosmat(FILENAME))
@@ -203,6 +209,65 @@ for number in range(11,14):
     BN_freq_cleaned_grid_check = np.sqrt(BN_freq_squared_cleaned_grid_check)
     """
 
+    #interpolate the temperature and to the eps pressure grid
+    coarse_consv_temperature_grid = np.zeros(np.shape(eps_grid)) #TODO DO I need the in-situ temperature here?
+    coarse_N_squared_grid = np.zeros(np.shape(eps_grid))
+    coarse_density_grid = np.copy(coarse_N_squared_grid)
+
+    for i in range(number_of_transects):
+         
+        #midpoint grid to coarse grid 
+        coarse_N_squared_grid[i] = np.interp(interp_coarse_pressure,mid_point_pressure,BN_freq_squared_grid_gsw[i].flatten(), left = np.nan, right = np.nan)
+         
+        #fine grid to coarse grid
+        coarse_consv_temperature_grid[i] = np.interp(interp_coarse_pressure,interp_pressure,consv_temperature_grid[i].flatten(), left = np.nan, right = np.nan)
+        coarse_density_grid[i] = np.interp(interp_coarse_pressure,interp_pressure,density_grid[i].flatten(), left = np.nan, right = np.nan)
+
+    coarse_viscosity_T_grid = get_viscosity(coarse_consv_temperature_grid)
+
+    coarse_viscosity_TS_grid = wiki_viscosity(coarse_consv_temperature_grid)/coarse_density_grid
+
+
+    #all used grids should be defined on the coarse pressure grid
+    Reynolds_bouyancy_grid = eps_grid/(coarse_viscosity_T_grid*coarse_N_squared_grid) #from Maffioli 2014
+    Reynolds_bouyancy_TS_grid = eps_grid/(coarse_viscosity_TS_grid*coarse_N_squared_grid)
+
+    print(np.max(interp_pressure),np.min(interp_pressure))
+
+    #Plotting
+    transect_index = -5
+    img4_0 = axarr4[0].plot(oxygen_grid[transect_index,:],interp_pressure,"g", label = "fine grid")
+    img4_1 = axarr4[1].plot(salinity_grid[transect_index,:],interp_pressure,"g", label = "fine grid")
+
+    img4_2 = axarr4[2].plot(consv_temperature_grid[transect_index,:],interp_pressure,"g", label = "fine grid")
+    img4_2b = axarr4[2].plot(coarse_consv_temperature_grid[transect_index,:],interp_coarse_pressure, label = "coarse grid")
+
+    img4_3 = axarr4[3].plot(BN_freq_squared_grid_gsw[transect_index,:],mid_point_pressure, "r", label = "midpoint grid")
+    img4_3b = axarr4[3].plot(coarse_N_squared_grid[transect_index,:],interp_coarse_pressure, label = "coarse grid")
+
+    img4_4 = axarr4[4].plot(coarse_viscosity_T_grid[transect_index,:]*10**6,interp_coarse_pressure,label = "Ilker coarse grid")
+    img4_4b = axarr4[4].plot(coarse_viscosity_TS_grid[transect_index,:]*10**6,interp_coarse_pressure,"--",label = "Wikipedia coarse grid")
+    img4_5 = axarr4[5].plot(np.log10(eps_grid[transect_index,:]),interp_coarse_pressure, label = "coarse grid")
+    img4_6 = axarr4[6].plot(Reynolds_bouyancy_grid[transect_index,:],interp_coarse_pressure,label = "Ilker coarse grid")
+    img4_6b = axarr4[6].plot(Reynolds_bouyancy_TS_grid[transect_index,:],interp_coarse_pressure,"--",label = "Wikipedia coarse grid")
+
+    axarr4[0].set_xlabel("oxygen")
+    axarr4[0].set_ylabel("pressure [dbar]")
+    axarr4[1].set_xlabel("SA")
+    axarr4[2].set_xlabel("CT")
+    axarr4[3].set_xlabel("N^2")
+    axarr4[4].set_xlabel("viscosity / 10^(-6)")
+    axarr4[5].set_xlabel("log10(eps)")
+    axarr4[6].set_xlabel("Reynolds_bouyancy")
+    axarr4[0].legend()
+    axarr4[1].legend()
+    axarr4[2].legend()
+    axarr4[3].legend()
+    axarr4[5].legend()
+    axarr4[4].legend()
+    axarr4[6].legend()
+
+    """
     #interpolate the temperature and  to the eps pressure grid
     coarse_consv_temperature_grid = np.zeros(np.shape(eps_grid)) #TODO DO I need the in-situ temperature here?
     coarse_N_squared_grid = np.zeros(np.shape(eps_grid))
@@ -250,7 +315,8 @@ for number in range(11,14):
     axarr4[4].set_xlabel("viscosity / 10^(-6)")
     axarr4[5].set_xlabel("log10(eps)")
     axarr4[6].set_xlabel("Reynolds_bouyancy")
-
+    """
+    
     axarr4[6].set_xlim([-500,500])
 
     axarr4[0].set_title("Measurement 02")
@@ -291,40 +357,50 @@ for number in range(11,14):
         
     f1.set_size_inches(18,10.5)
     f2.set_size_inches(18,10.5)
-    f3.set_size_inches(18,10.5)
     f4.set_size_inches(18,10.5)
 
     colorbar(img1_0).set_label("Oxygen [??]") 
     colorbar(img1_1).set_label("salinity [SA]") 
     colorbar(img1_2).set_label("consv_temperature [C]")
-    colorbar(img1_3).set_label("log10(dissipation) [??]")
+    colorbar(img1_3).set_label(r"log10(dissipation) $[m^2 s^{-3}]$")
 
     colorbar(img2_0).set_label(r"density [kg/$m^3$]")
     colorbar(img2_1).set_label(r"$N^2$ $[1/s^2]$")
     colorbar(img2_2).set_label(r"log10($\epsilon$) [??]")  
     colorbar(img2_3).set_label(r"$Re_b$")
 
-    colorbar(img3_0)
-
-
 
     axarr1[0].invert_yaxis()
     axarr2[0].invert_yaxis()
-    axarr3[0].invert_yaxis() 
     axarr4[0].invert_yaxis() 
 
-    f1.suptitle("emb169 TS"+str(number)+" Measurements")
-    f2.suptitle("emb169 TS"+str(number)+" Calculations")
+    #f1.suptitle("emb169 TS"+str(number)+" Measurements")
+    #f2.suptitle("emb169 TS"+str(number)+" Calculations")
+
+    #f1.suptitle("emb177 TS"+str(number)+" Measurements")
+    #f2.suptitle("emb177 TS"+str(number)+" Calculations")
+    
+    f1.suptitle("emb217 TS"+str(number)+" Measurements")
+    f2.suptitle("emb217 TS"+str(number)+" Calculations")
+    
 
     f1.tight_layout() 
     f2.tight_layout() 
-    f4.tight_layout()  
-    #plt.show()    
+    f4.tight_layout()      
     
-    f1.savefig("./pictures/emb169/emb169_TS-"+str(number)+" measurements")
-    f2.savefig("./pictures/emb169/emb169_TS-"+str(number)+" calculations")
-    f4.savefig("./pictures/emb169/emb169_TS-"+str(number)+" profiles")
+    #f1.savefig("./pictures/emb169/emb169_TS-"+str(number)+" measurements")
+    #f2.savefig("./pictures/emb169/emb169_TS-"+str(number)+" calculations")
+    #f4.savefig("./pictures/emb169/emb169_TS-"+str(number)+" profiles")
 
+    #f1.savefig("./pictures/emb177/emb177_TS-"+str(number)+" measurements")
+    #f2.savefig("./pictures/emb177/emb177_TS-"+str(number)+" calculations")
+    #f4.savefig("./pictures/emb177/emb177_TS-"+str(number)+" profiles")
+    
+    f1.savefig("./pictures/testemb217/emb217_TR-"+str(number)+" measurements")
+    f2.savefig("./pictures/testemb217/emb217_TR-"+str(number)+" calculations")
+    f4.savefig("./pictures/testemb217/emb217_TR-"+str(number)+" profiles")
+
+    plt.close(fig = "all")
 #plt.show()
 
 
