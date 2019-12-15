@@ -42,17 +42,18 @@ rho_0 = 1000 #kg/m³
 g = 9.81 #m/s² #could be replace by gsw.grav(lat,p)
 
 
-for number in range(1,11):
+for number in range(11,13):
 
     #FILENAME = "/home/ole/share-windows/emb217_mss_data/TR1-"+str(number)+".mat"
     #FILENAME = "/home/ole/share-windows/emb177_mss_data/TS1_"+str(number)+".mat"
-    #FILENAME = "/home/ole/share-windows/emb169_mss_data/MSS055/matlab/TS"+str(number)+".mat"
+    FILENAME = "/home/ole/share-windows/emb169_mss_data/MSS055/matlab/TS"+str(number)+".mat"
 
     #define the pictures
     f1, axarr1 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
     f2, axarr2 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
     f4, axarr4 = plt.subplots(nrows = 1, ncols = 7, sharey = True)#, sharex = True, 
 
+    
     print("Filename:",sio.whosmat(FILENAME))
 
     data = sio.loadmat(FILENAME)
@@ -233,6 +234,7 @@ for number in range(1,11):
     Reynolds_bouyancy_TS_grid = eps_grid/(coarse_viscosity_TS_grid*coarse_N_squared_grid)
 
     print(np.max(interp_pressure),np.min(interp_pressure))
+    
 
     #Plotting
     transect_index = -5
@@ -328,11 +330,14 @@ for number in range(1,11):
     axarr4[6].set_title("Calculation Re_b")
      
      
-    #Plot the data   
+    #Plot the data  
+    #distance_plot = np.append(distance,[distance[-1]-distance[-2]]
+     
     img1_0 = axarr1[0].pcolormesh(distance,interp_pressure,oxygen_grid.T)
     img1_1 = axarr1[1].pcolormesh(distance,interp_pressure,salinity_grid.T)
     img1_2 = axarr1[2].pcolormesh(distance,interp_pressure,consv_temperature_grid.T)
     img1_3 = axarr1[3].pcolormesh(distance,interp_coarse_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
+
 
     img2_0 = axarr2[0].pcolormesh(distance,interp_pressure,density_grid.T)
     img2_1 = axarr2[1].pcolormesh(distance,interp_pressure,BN_freq_squared_grid_gsw.T,vmin = 0, vmax = 0.015)
@@ -374,31 +379,31 @@ for number in range(1,11):
     axarr2[0].invert_yaxis()
     axarr4[0].invert_yaxis() 
 
-    #f1.suptitle("emb169 TS"+str(number)+" Measurements")
-    #f2.suptitle("emb169 TS"+str(number)+" Calculations")
+    f1.suptitle("emb169 TS"+str(number)+" Measurements")
+    f2.suptitle("emb169 TS"+str(number)+" Calculations")
 
     #f1.suptitle("emb177 TS"+str(number)+" Measurements")
     #f2.suptitle("emb177 TS"+str(number)+" Calculations")
     
-    f1.suptitle("emb217 TS"+str(number)+" Measurements")
-    f2.suptitle("emb217 TS"+str(number)+" Calculations")
+    #f1.suptitle("emb217 TS"+str(number)+" Measurements")
+    #f2.suptitle("emb217 TS"+str(number)+" Calculations")
     
 
     f1.tight_layout() 
     f2.tight_layout() 
     f4.tight_layout()      
     
-    #f1.savefig("./pictures/emb169/emb169_TS-"+str(number)+" measurements")
-    #f2.savefig("./pictures/emb169/emb169_TS-"+str(number)+" calculations")
-    #f4.savefig("./pictures/emb169/emb169_TS-"+str(number)+" profiles")
+    f1.savefig("./pictures/emb169/emb169_TS-"+str(number)+" measurements")
+    f2.savefig("./pictures/emb169/emb169_TS-"+str(number)+" calculations")
+    f4.savefig("./pictures/emb169/emb169_TS-"+str(number)+" profiles")
 
     #f1.savefig("./pictures/emb177/emb177_TS-"+str(number)+" measurements")
     #f2.savefig("./pictures/emb177/emb177_TS-"+str(number)+" calculations")
     #f4.savefig("./pictures/emb177/emb177_TS-"+str(number)+" profiles")
     
-    f1.savefig("./pictures/testemb217/emb217_TR-"+str(number)+" measurements")
-    f2.savefig("./pictures/testemb217/emb217_TR-"+str(number)+" calculations")
-    f4.savefig("./pictures/testemb217/emb217_TR-"+str(number)+" profiles")
+    #f1.savefig("./pictures/testemb217/emb217_TR-"+str(number)+" measurements")
+    #f2.savefig("./pictures/testemb217/emb217_TR-"+str(number)+" calculations")
+    #f4.savefig("./pictures/testemb217/emb217_TR-"+str(number)+" profiles")
 
     plt.close(fig = "all")
 #plt.show()

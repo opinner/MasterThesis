@@ -41,14 +41,15 @@ def wiki_viscosity(T):
 rho_0 = 1000 #kg/m³
 g = 9.81 #m/s² #could be replace by gsw.grav(lat,p)
 
-FILENAME = "/home/ole/share-windows/emb217_mss_data/TR1-1.mat"
+FILENAME = "/home/ole/share-windows/emb217_mss_data/TR1-8.mat"
 
 #define the pictures
 f1, axarr1 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
 f2, axarr2 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
 f3, axarr3 = plt.subplots(nrows = 3, ncols = 1)
 f4, axarr4 = plt.subplots(nrows = 1, ncols = 7, sharey = True)#, sharex = True, 
-
+f5, axarr5 = plt.subplots(2)
+    
 print("Filename:",sio.whosmat(FILENAME))
 
 data = sio.loadmat(FILENAME)
@@ -81,6 +82,9 @@ beta = CTD_substructure["BETA"][0]
 eps = MIX_substructure["eps"][0]
 eps_pressure = MIX_substructure["P"][0]
 
+
+    
+
 """
 print("lat",np.shape(lat))
 
@@ -109,6 +113,29 @@ lon = np.asarray(longitude)
 
 print("lat",max(lat),min(lat))
 print("lon",max(lon),min(lon))
+
+
+if (FILENAME == "/home/ole/share-windows/emb217_mss_data/TR1-8.mat"):
+    lat = np.delete(lat,np.s_[33:47])
+    lon = np.delete(lon,np.s_[33:47])
+    distance = np.delete(distance,np.s_[33:47])
+    
+    pressure = np.delete(pressure,np.s_[33:47],axis=0)
+    oxygen = np.delete(oxygen,np.s_[33:47],axis=0)
+    absolute_salinity =  np.delete(absolute_salinity,np.s_[33:47],axis=0)
+    consv_temperature = np.delete(consv_temperature,np.s_[33:47],axis=0)
+    alpha = np.delete(alpha,np.s_[33:47],axis=0)
+    beta = np.delete(beta,np.s_[33:47],axis=0)
+    
+    
+    eps = np.delete(eps,np.s_[33:47],axis=0)
+    eps_pressure = np.delete(eps_pressure,np.s_[33:47],axis=0)
+    
+    number_of_transects = np.shape(pressure)[-1]
+
+
+assert(np.all(np.diff(distance)>0))
+
 #initial values 
 min_pressure = 10
 max_pressure = 60
@@ -222,9 +249,44 @@ Reynolds_bouyancy_grid = eps_grid/(coarse_viscosity_T_grid*coarse_N_squared_grid
 Reynolds_bouyancy_TS_grid = eps_grid/(coarse_viscosity_TS_grid*coarse_N_squared_grid)
 
 print(np.max(interp_pressure),np.min(interp_pressure))
+bathymetrie = np.zeros(number_of_transects)-99 #fill value (or error value) of -99
+list_of_bathymetrie_indices = np.zeros(number_of_transects)
+#search for bottom currents
+for i in range(number_of_transects):
 
+    #returns the pressure of the last nan value in a cointinous row starting from high pressure (TODO:is it better to use the last index with data?)
+    nan_index =  -np.argmax(np.flip(~np.isnan(salinity_grid[i,:])))
+    
+    #TODO: Convert the negative indices to psitive ones?
+    list_of_bathymetrie_indices[i] = nan_index 
+    bathymetrie[i] = interp_pressure[nan_index]
+    
+    if not np.isnan(salinity_grid[i,-1]): #if there are no NAN values towards the bottom
+        list_of_bathymetrie_indices[i] = len(interp_pressure)-1
+        bathymetrie[i] = interp_pressure[-1]
+    
+    #print("bathymetrie check\n")
+    #print(interp_pressure[nan_index-1],salinity_grid[i,nan_index-1])
+    #print(interp_pressure[nan_index],salinity_grid[i,nan_index])
+    #print(interp_pressure[nan_index+1],salinity_grid[i,nan_index+1])
+    #while interp_coarse_pressure[j]
+    #if 
+
+plotmesh_distance = np.append(distance,2*distance[-1]-distance[-2])
+    
+print(bathymetrie)    
+axarr5[0].plot(distance,bathymetrie)
+axarr5[0].invert_yaxis()
+axarr5[1].plot(lon)    
+    
+    
+axarr1[0].plot(distance,bathymetrie)
+    
 #Plotting
-transect_index = 30
+transect_index = -1
+print("Profile at Longitude",lon[transect_index])
+#print(lon)
+#print(np.all(np.diff(lon)>0))
 img4_0 = axarr4[0].plot(oxygen_grid[transect_index,:],interp_pressure)
 img4_1 = axarr4[1].plot(salinity_grid[transect_index,:],interp_pressure)
 
@@ -264,22 +326,22 @@ axarr4[6].set_title("Calculation Re_b")
 
 
 
-img3_0 = axarr3[0].pcolormesh(distance,interp_coarse_pressure,Reynolds_bouyancy_grid.T, vmin = -10, vmax = 1000)
+img3_0 = axarr3[0].pcolormesh(lon,interp_coarse_pressure,Reynolds_bouyancy_grid.T, vmin = -10, vmax = 1000)
 img3_1 = axarr3[1].hist(np.log10(eps_grid.flatten()),bins = 300)
 img3_1 = axarr3[1].hist(np.log10(coarse_viscosity_TS_grid.flatten()),bins = 300)
 img3_1 = axarr3[1].hist(np.log10(coarse_N_squared_grid.flatten()),bins = 300)
 img3_2 = axarr3[2].hist(np.log10(Reynolds_bouyancy_grid.flatten()),bins = 300) 
  
 #Plot the data   
-img1_0 = axarr1[0].pcolormesh(distance,interp_pressure,oxygen_grid.T)
-img1_1 = axarr1[1].pcolormesh(distance,interp_pressure,salinity_grid.T)
-img1_2 = axarr1[2].pcolormesh(distance,interp_pressure,consv_temperature_grid.T)
-img1_3 = axarr1[3].pcolormesh(distance,interp_coarse_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
+img1_0 = axarr1[0].pcolormesh(plotmesh_distance,interp_pressure,oxygen_grid.T)
+img1_1 = axarr1[1].pcolormesh(plotmesh_distance,interp_pressure,salinity_grid.T)
+img1_2 = axarr1[2].pcolormesh(plotmesh_distance,interp_pressure,consv_temperature_grid.T)
+img1_3 = axarr1[3].pcolormesh(plotmesh_distance,interp_coarse_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
 
-img2_0 = axarr2[0].pcolormesh(distance,interp_pressure,density_grid.T)
-img2_1 = axarr2[1].pcolormesh(distance,interp_pressure,BN_freq_squared_grid_gsw.T,vmin = 0, vmax = 0.015)
-img2_2 = axarr2[2].pcolormesh(distance,interp_coarse_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
-img2_3 = axarr2[3].pcolormesh(distance,interp_coarse_pressure,Reynolds_bouyancy_grid.T, vmin = -5, vmax = 100)
+img2_0 = axarr2[0].pcolormesh(plotmesh_distance,interp_pressure,density_grid.T)
+img2_1 = axarr2[1].pcolormesh(plotmesh_distance,interp_pressure,BN_freq_squared_grid_gsw.T,vmin = 0, vmax = 0.015)
+img2_2 = axarr2[2].pcolormesh(plotmesh_distance,interp_coarse_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
+img2_3 = axarr2[3].pcolormesh(plotmesh_distance,interp_coarse_pressure,Reynolds_bouyancy_grid.T, vmin = -5, vmax = 100)
 
 axarr1[3].set_xlabel("distance [km]")
 axarr2[3].set_xlabel("distance [km]")
