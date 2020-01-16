@@ -54,38 +54,44 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         date = STA_substructure["date"][0]
  
-        #print(date[0][0])
-        #print(date[-1][0])
-        
+        if (datafile_path == "/home/ole/share-windows/emb217_mss_data/TR1-8.mat"):
+            date = np.delete(date,np.s_[33:47])
+    
+        if cruisename == "emb169" and  DATAFILENAME[:-4] == "TS118":
+            date = date[:21]
+            
+        if cruisename == "emb169" and  DATAFILENAME[:-4] == "TRR109":
+            date = date[:-1]
+                
         start_time = dt.datetime.strptime(date[0][0],"%d-%b-%Y %X")
         stop_time = dt.datetime.strptime(date[-1][0],"%d-%b-%Y %X")
         
-        print(cruisename)
-        print(DATAFILENAME)
-        print(start_time)
-        print(stop_time)
+        print(cruisename,DATAFILENAME[:-4], start_time, stop_time)
         
+        #if DATAFILENAME[:-4] in ["TS118","TS119"]:
+        #    for i in range(date.size):
+        #        print(DATAFILENAME[:-4],dt.datetime.strptime(date[i][0],"%d-%b-%Y %X"))
         
         if cruisename == "emb169":
             emb169_mss_start.append(start_time)
             emb169_mss_stop.append(stop_time)
-            emb169_transsect_list.append(DATAFILENAME)
+            emb169_transsect_list.append(DATAFILENAME[:-4])
             
         if cruisename == "emb177":
             emb177_mss_start.append(start_time)
             emb177_mss_stop.append(stop_time)
-            emb177_transsect_list.append(DATAFILENAME)
+            emb177_transsect_list.append(DATAFILENAME[:-4])
             
         if cruisename == "emb217":
             emb217_mss_start.append(start_time)
             emb217_mss_stop.append(stop_time)
-            emb217_transsect_list.append(DATAFILENAME)
+            emb217_transsect_list.append(DATAFILENAME[:-4])
             
 #TODO: Test if names lists are unique
+assert(len(emb169_transsect_list) == len(set(emb169_transsect_list)))
+assert(len(emb177_transsect_list) == len(set(emb177_transsect_list)))
+assert(len(emb217_transsect_list) == len(set(emb217_transsect_list)))
 
-print(emb169_mss_start)
-print(emb177_mss_start)
-print(emb217_mss_start)
             
 np.savez("./emb169_mss_timestamps",emb169_mss_start = emb169_mss_start,  emb169_mss_stop = emb169_mss_stop, emb169_transsect_list = emb169_transsect_list)
 np.savez("./emb177_mss_timestamps",emb177_mss_start = emb177_mss_start,  emb177_mss_stop = emb177_mss_stop, emb177_transsect_list = emb177_transsect_list)            

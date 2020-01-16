@@ -24,7 +24,7 @@ def colorbar(mappable):
 
 
 
-LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/adcp/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/adcp/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/adcp/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/adcp/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/ADCP600/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/ADCP1200/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/adcp/data"]
+LIST_OF_FOLDERS = ["/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_flach/adcp/data","/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_tief/adcp/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-flach/adcp/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-tief/adcp/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/ADCP600/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/ADCP1200/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Tief/adcp/data"]
 
 
 #create ouput pictures, which will be filled later in the code
@@ -35,6 +35,11 @@ f1, axarr1 = plt.subplots(nrows = 3, ncols = 2, sharex = "row", sharey=True)
 f2, axarr2 = plt.subplots(nrows = 3, ncols = 2, sharex = "row", sharey=True)
 
 max_time_delta = dt.timedelta(minutes=1) #start value
+
+
+cmap = plt.get_cmap('seismic')
+cmap.set_bad(color = 'lightgrey')#, alpha = 0.5)
+
     
 for FOLDERNAME in LIST_OF_FOLDERS:
     path = pathlib.Path(FOLDERNAME)
@@ -81,13 +86,13 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         
         
         #exceptional trim for the recovery process
-        if FOLDERNAME == "/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/adcp/data":
+        if FOLDERNAME == "/home/ole/windows/all_data/emb177/deployments/moorings/TC-tief/adcp/data":
             curr = curr[0:5488]
             rtc = rtc[0:5488]
             vertical_v = vertical_v[0:5488]
             
             
-        if FOLDERNAME == "/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/adcp/data":
+        if FOLDERNAME == "/home/ole/windows/all_data/emb177/deployments/moorings/TC-flach/adcp/data":
             curr = curr[0:12775]
             rtc = rtc[0:12775]
             vertical_v = vertical_v[0:12775]
@@ -137,8 +142,8 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                 
                 
             #fill figure 1 with data
-            img1_1 = axarr1[y_position,0].pcolormesh(utc,depth,west_east, vmin = vmin, vmax = vmax, cmap = plt.cm.RdYlBu_r)
-            img1_2 = axarr1[y_position,1].pcolormesh(utc,depth,north_south, vmin = vmin, vmax = vmax, cmap = plt.cm.RdYlBu_r)
+            img1_1 = axarr1[y_position,0].pcolormesh(utc,depth,west_east, vmin = vmin, vmax = vmax, cmap = cmap)
+            img1_2 = axarr1[y_position,1].pcolormesh(utc,depth,north_south, vmin = vmin, vmax = vmax, cmap = cmap)
             
             #colorbar(img1_1).set_label('velocity [m/s]')
             #colorbar(img1_2).set_label('velocity [m/s]')
@@ -160,8 +165,8 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                 
             #fill figure 2 with data
             #fill figure 1 with data
-            img2_1 = axarr2[y_position,0].pcolormesh(utc,depth,west_east, vmin = vmin, vmax = vmax, cmap = plt.cm.RdYlBu_r)
-            img2_2 = axarr2[y_position,1].pcolormesh(utc,depth,north_south, vmin = vmin, vmax = vmax, cmap = plt.cm.RdYlBu_r)
+            img2_1 = axarr2[y_position,0].pcolormesh(utc,depth,west_east, vmin = vmin, vmax = vmax, cmap = cmap)
+            img2_2 = axarr2[y_position,1].pcolormesh(utc,depth,north_south, vmin = vmin, vmax = vmax, cmap = cmap)
         
             #colorbar(img2_1).set_label('velocity [m/s]')
             #colorbar(img2_2).set_label('velocity [m/s]')
@@ -194,7 +199,8 @@ for row in range(3):
         axarr2[row,column].set_ylim(bottom = 0, top = 90)
         axarr2[row,column].invert_yaxis()
 
-
+        axarr1[row,column].set_facecolor('lightgrey')
+        axarr2[row,column].set_facecolor('lightgrey')
 
 
 
@@ -241,10 +247,10 @@ f1.set_size_inches(18,10.5)
 f2.set_size_inches(18,10.5)
     
 #Save the plot as png
-plot1_name = "./pictures/"+"ADCP_comparison_flach" 
+plot1_name = "./pictures/"+"ADCP_comparison_flach2" 
 f1.savefig(plot1_name)
 
-plot2_name = "./pictures/"+"ADCP_comparison_tief" 
+plot2_name = "./pictures/"+"ADCP_comparison_tief2" 
 f2.savefig(plot2_name)
     
 #preferences of the x-limit
@@ -263,10 +269,10 @@ axarr2[2,0].set_xlim(left = mdates.date2num(start_tief_2019), right = mdates.dat
 axarr2[2,1].set_xlim(left = mdates.date2num(start_tief_2019), right = mdates.date2num(start_tief_2019 + max_time_delta))
 
 #Save the changend plot again as png
-plot1_name = "./pictures/"+"ADCP_comparison_flach_same_scale" 
+plot1_name = "/home/ole/Thesis/Analysis/ADCP/pictures/"+"ADCP_comparison_flach_same_scale2" 
 f1.savefig(plot1_name)
 
-plot2_name = "./pictures/"+"ADCP_comparison_tief_same_scale" 
+plot2_name = "/home/ole/Thesis/Analysis/ADCP/pictures/"+"ADCP_comparison_tief_same_scale2" 
 f2.savefig(plot2_name)
     
 plt.show()

@@ -41,13 +41,14 @@ def wiki_viscosity(T):
 rho_0 = 1000 #kg/m³
 g = 9.81 #m/s² #could be replace by gsw.grav(lat,p)
 
-FILENAME = "/home/ole/share-windows/emb217_mss_data/TR1-8.mat"
+FILENAME = "/home/ole/share-windows/emb217_mss_data/TR1-4.mat"
+
 
 #define the pictures
 f1, axarr1 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
 f2, axarr2 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
 f3, axarr3 = plt.subplots(nrows = 3, ncols = 1)
-f4, axarr4 = plt.subplots(nrows = 1, ncols = 7, sharey = True)#, sharex = True, 
+f4, axarr4 = plt.subplots(nrows = 1, ncols = 8, sharey = True)#, sharex = True, 
 f5, axarr5 = plt.subplots(2)
     
 print("Filename:",sio.whosmat(FILENAME))
@@ -114,7 +115,7 @@ lon = np.asarray(longitude)
 print("lat",max(lat),min(lat))
 print("lon",max(lon),min(lon))
 
-
+#remove data from a file, with overlapping positional points
 if (FILENAME == "/home/ole/share-windows/emb217_mss_data/TR1-8.mat"):
     lat = np.delete(lat,np.s_[33:47])
     lon = np.delete(lon,np.s_[33:47])
@@ -133,7 +134,62 @@ if (FILENAME == "/home/ole/share-windows/emb217_mss_data/TR1-8.mat"):
     
     number_of_transects = np.shape(pressure)[-1]
 
+#remove excess data that already belongs to TS119
+if cruisename == "emb169" and  DATAFILENAME[:-4] == "TS118":
+    lat = lat[:21]
+    lon = lon[:21]
+    distance = distance[:21]
+    
+    pressure = pressure[:21]
+    oxygen = oxygen[:21]
+    absolute_salinity =  absolute_salinity[:21]
+    consv_temperature = consv_temperature[:21]
+    alpha = alpha[:21]
+    beta = beta[:21]
+    
+    
+    eps = eps[:21]
+    eps_pressure = eps_pressure[:21]
+    number_of_transects = np.shape(pressure)[-1]
 
+#removes the last data point, that dont seem to belong to the transect
+if cruisename == "emb169" and  DATAFILENAME[:-4] == "TRR109":
+    lat = lat[:-1]
+    lon = lon[:-1]
+    distance = distance[:-1]
+    
+    pressure = pressure[:-1]
+    oxygen = oxygen[:-1]
+    absolute_salinity =  absolute_salinity[:-1]
+    consv_temperature = consv_temperature[:-1]
+    alpha = alpha[:-1]
+    beta = beta[:-1]
+    
+    
+    eps = eps[:-1]
+    eps_pressure = eps_pressure[:-1]
+    number_of_transects = np.shape(pressure)[-1]
+            
+                        
+if cruisename == "emb169" and  DATAFILENAME[:-4] == "TRR109":
+    lat = lat[:-1]
+    lon = lon[:-1]
+    distance = distance[:-1]
+    
+    pressure = pressure[:-1]
+    oxygen = oxygen[:-1]
+    absolute_salinity =  absolute_salinity[:-1]
+    consv_temperature = consv_temperature[:-1]
+    alpha = alpha[:-1]
+    beta = beta[:-1]
+    
+    
+    eps = eps[:-1]
+    eps_pressure = eps_pressure[:-1]
+    number_of_transects = np.shape(pressure)[-1]
+
+            
+#test if distance is monotonically increasing
 assert(np.all(np.diff(distance)>0))
 
 #initial values 
@@ -211,19 +267,15 @@ density_grid = gsw.rho(salinity_grid,consv_temperature_grid,pressure_grid)
 #density_grid_check = (1 - alpha_grid * (consv_temperature_grid) + beta_grid * (salinity_grid))*rho_0
 #difference = density_grid-density_grid_check
 
-
-#creates pressure grid, where every column is equal to interp_pressure
-pressure_grid = np.reshape(interp_pressure,(1,-1))*np.ones((np.shape(pressure)[-1],min_size))
-
 #calculate N^2 with the gsw toolbox 
-BN_freq_squared_grid_gsw, midpoint_pressure_grid = gsw.Nsquared(salinity_grid,consv_temperature_grid,pressure_grid, lat = np.mean(lat), axis = 1)
+BV_freq_squared_grid_gsw, midpoint_pressure_grid = gsw.Nsquared(salinity_grid,consv_temperature_grid,pressure_grid, lat = np.mean(lat), axis = 1)
 
-print("pre",np.shape(salinity_grid),"post",np.shape(BN_freq_squared_grid_gsw))
+print("pre",np.shape(salinity_grid),"post",np.shape(BV_freq_squared_grid_gsw))
 print(np.shape(midpoint_pressure_grid))
 
 mid_point_pressure = np.mean(midpoint_pressure_grid, axis = 0)
 print(np.mean(np.std(midpoint_pressure_grid, axis = 0)))
-assert(np.all(np.std(midpoint_pressure_grid, axis = 0) <10**(-10)))
+assert(np.all(np.std(midpoint_pressure_grid, axis = 0) <10**(-10))) #midpoints should be every time the same
 
 #interpolate the temperature and to the eps pressure grid
 coarse_consv_temperature_grid = np.zeros(np.shape(eps_grid)) #TODO DO I need the in-situ temperature here?
@@ -233,7 +285,7 @@ coarse_density_grid = np.copy(coarse_N_squared_grid)
 for i in range(number_of_transects):
      
     #midpoint grid to coarse grid 
-    coarse_N_squared_grid[i] = np.interp(interp_coarse_pressure,mid_point_pressure,BN_freq_squared_grid_gsw[i].flatten(), left = np.nan, right = np.nan)
+    coarse_N_squared_grid[i] = np.interp(interp_coarse_pressure,mid_point_pressure,BV_freq_squared_grid_gsw[i].flatten(), left = np.nan, right = np.nan)
      
     #fine grid to coarse grid
     coarse_consv_temperature_grid[i] = np.interp(interp_coarse_pressure,interp_pressure,consv_temperature_grid[i].flatten(), left = np.nan, right = np.nan)
@@ -249,51 +301,108 @@ Reynolds_bouyancy_grid = eps_grid/(coarse_viscosity_T_grid*coarse_N_squared_grid
 Reynolds_bouyancy_TS_grid = eps_grid/(coarse_viscosity_TS_grid*coarse_N_squared_grid)
 
 print(np.max(interp_pressure),np.min(interp_pressure))
+
+#search for bottom currents
 bathymetrie = np.zeros(number_of_transects)-99 #fill value (or error value) of -99
 list_of_bathymetrie_indices = np.zeros(number_of_transects)
-#search for bottom currents
+
+halocline = np.zeros(number_of_transects)-99 #fill value (or error value) of -99
+list_of_halocline_indices = np.zeros(number_of_transects)
+
+BBL = np.zeros(number_of_transects)-99 #fill value (or error value) of -99
+list_of_BBL_indices = np.zeros(number_of_transects)
+
+BBL_range = np.zeros(number_of_transects)-99 #fill value (or error value) of -99
+list_of_BBL_range_indices = np.zeros(number_of_transects)
+
 for i in range(number_of_transects):
 
-    #returns the pressure of the last nan value in a cointinous row starting from high pressure (TODO:is it better to use the last index with data?)
-    nan_index =  -np.argmax(np.flip(~np.isnan(salinity_grid[i,:])))
+    #------------------search for bathymetrie values starts from below:-------------------------------
+
+    #returns the pressure of the last nan value in a continuous row starting from high pressure (TODO:is it better to use the last index with data?)
+    nan_index =  -np.argmax(np.flip(~np.isnan(salinity_grid[i,:]))) #at the moment the index is negative
+    nan_index = density_grid[i,:].size + nan_index #now defined as positive index
     
-    #TODO: Convert the negative indices to psitive ones?
+   
+    if nan_index == density_grid[i,:].size:
+        if not np.isnan(salinity_grid[i,-1]): #if there are no NAN values towards the bottom
+            nan_index = len(interp_pressure)-1
+            
     list_of_bathymetrie_indices[i] = nan_index 
     bathymetrie[i] = interp_pressure[nan_index]
     
-    if not np.isnan(salinity_grid[i,-1]): #if there are no NAN values towards the bottom
-        list_of_bathymetrie_indices[i] = len(interp_pressure)-1
-        bathymetrie[i] = interp_pressure[-1]
-    
+    print(nan_index)
     #print("bathymetrie check\n")
     #print(interp_pressure[nan_index-1],salinity_grid[i,nan_index-1])
     #print(interp_pressure[nan_index],salinity_grid[i,nan_index])
     #print(interp_pressure[nan_index+1],salinity_grid[i,nan_index+1])
     #while interp_coarse_pressure[j]
     #if 
-
-plotmesh_distance = np.append(distance,2*distance[-1]-distance[-2])
+  
+    #TODO
+    #------------------search for halocline values starts from above:-------------------------------
     
-print(bathymetrie)    
+
+
+    #------------------search for BBL values starts from below:-------------------------------  
+    
+    #index of bottom plus 15m 
+    print("Surface",interp_pressure[0],"Bottom",bathymetrie[i])
+    BBL_boundary_index = np.argmax(interp_pressure >= (bathymetrie[i]-15))
+    assert(interp_pressure[BBL_boundary_index]<bathymetrie[i]) #tests if the point 15m above the ground is really above
+    #COMMENT
+    #print("Max BBL layer",interp_pressure[BBL_boundary_index],bathymetrie[i], density_grid[i,:].size + nan_index)
+    #print(np.shape(density_grid[i,BBL_boundary_index:density_grid[i,:].size + nan_index]))
+    #get the index (and from that the pressure) where the density difference is bigger than 0.01
+    #BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:density_grid[i,:].size + nan_index])>0.01))
+    
+    #get the index (and from that the pressure) where the density difference is at maximum (in the lowermost 15 m)
+    assert(nan_index>=0)
+    BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
+    
+    #check if the maximum is at the edge of the intervall or if the maximum is too small
+    if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index-1]) < 0.02):
+        BBL_index = nan_index #equivalent to a BBL thickness of 0
+    
+    print(BBL_index,nan_index)
+    print("density",interp_pressure[BBL_index])
+    print(bathymetrie[i])
+   
+    list_of_BBL_indices[i] = BBL_index 
+    BBL[i] = interp_pressure[BBL_index]
+    
+    list_of_BBL_range_indices[i] = BBL_boundary_index 
+    BBL_range[i] = interp_pressure[BBL_boundary_index]
+
+#append the last distance plus the last difference (for plotting all the n profiles we need a distance array of size n+1 
+plotmesh_distance = np.append(distance,2*distance[-1]-distance[-2])
+       
 axarr5[0].plot(distance,bathymetrie)
 axarr5[0].invert_yaxis()
 axarr5[1].plot(lon)    
     
-    
+#draw the calculated layers in the plot    
 axarr1[0].plot(distance,bathymetrie)
+axarr1[0].plot(distance,BBL)
     
 #Plotting
-transect_index = -1
+transect_index = -5
 print("Profile at Longitude",lon[transect_index])
 #print(lon)
 #print(np.all(np.diff(lon)>0))
 img4_0 = axarr4[0].plot(oxygen_grid[transect_index,:],interp_pressure)
+img4_0b = axarr4[0].plot(0,BBL[transect_index],"Dr")
+img4_0c = axarr4[0].plot(0,bathymetrie[transect_index],"Dg")
+img4_0d = axarr4[0].plot(0,BBL_range[transect_index],"ok")
+print("Bottom",bathymetrie[transect_index],"BBL",BBL[transect_index],"max BBL",interp_pressure[transect_index],)
+
+
 img4_1 = axarr4[1].plot(salinity_grid[transect_index,:],interp_pressure)
 
 img4_2 = axarr4[2].plot(consv_temperature_grid[transect_index,:],interp_pressure)
 img4_2b = axarr4[2].plot(coarse_consv_temperature_grid[transect_index,:],interp_coarse_pressure)
 
-img4_3 = axarr4[3].plot(BN_freq_squared_grid_gsw[transect_index,:],mid_point_pressure, label = "fine grid")
+img4_3 = axarr4[3].plot(BV_freq_squared_grid_gsw[transect_index,:],mid_point_pressure, label = "fine grid")
 img4_3b = axarr4[3].plot(coarse_N_squared_grid[transect_index,:],interp_coarse_pressure, label = "coarse grid")
 
 img4_4 = axarr4[4].plot(coarse_viscosity_T_grid[transect_index,:]*10**6,interp_coarse_pressure,label = "Ilker")
@@ -301,6 +410,9 @@ img4_4b = axarr4[4].plot(coarse_viscosity_TS_grid[transect_index,:]*10**6,interp
 img4_5 = axarr4[5].plot(np.log10(eps_grid[transect_index,:]),interp_coarse_pressure)
 img4_6 = axarr4[6].plot(Reynolds_bouyancy_grid[transect_index,:],interp_coarse_pressure,label = "Ilker")
 img4_6b = axarr4[6].plot(Reynolds_bouyancy_TS_grid[transect_index,:],interp_coarse_pressure,"--",label = "Wikipedia")
+
+img4_7 = axarr4[7].plot(np.diff(density_grid[transect_index,:]),mid_point_pressure)
+#img4_7b = axarr4[7].plot(BV_freq_squared_grid_gsw[transect_index,BBL_boundary_index:density_grid[transect_index,:].size + nan_index],mid_point_pressure[BBL_boundary_index:density_grid[transect_index,:].size + nan_index])
 
 axarr4[0].set_xlabel("oxygen")
 axarr4[0].set_ylabel("pressure [dbar]")
@@ -339,7 +451,7 @@ img1_2 = axarr1[2].pcolormesh(plotmesh_distance,interp_pressure,consv_temperatur
 img1_3 = axarr1[3].pcolormesh(plotmesh_distance,interp_coarse_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
 
 img2_0 = axarr2[0].pcolormesh(plotmesh_distance,interp_pressure,density_grid.T)
-img2_1 = axarr2[1].pcolormesh(plotmesh_distance,interp_pressure,BN_freq_squared_grid_gsw.T,vmin = 0, vmax = 0.015)
+img2_1 = axarr2[1].pcolormesh(plotmesh_distance,interp_pressure,BV_freq_squared_grid_gsw.T,vmin = 0, vmax = 0.015)
 img2_2 = axarr2[2].pcolormesh(plotmesh_distance,interp_coarse_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
 img2_3 = axarr2[3].pcolormesh(plotmesh_distance,interp_coarse_pressure,Reynolds_bouyancy_grid.T, vmin = -5, vmax = 100)
 

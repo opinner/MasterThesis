@@ -356,6 +356,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         #print(np.max(interp_pressure),np.min(interp_pressure))
         
+        
+        
+        list_of_profiles
 
         #Plotting
         transect_index = -5

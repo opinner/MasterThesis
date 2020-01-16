@@ -55,6 +55,8 @@ number_of_transects = np.shape(oxygen_ctd_pressure)[-1]
 latitude = []
 longitude = []
 
+#calculate the distance from the starting point
+#change lat and lon to an easier format
 distance = np.zeros(number_of_transects)
 origin = (float(lat[0][0][0]),float(lon[0][0][0])) #lots of brackets to get a number, not an array (workaround)
 for i in range(number_of_transects):

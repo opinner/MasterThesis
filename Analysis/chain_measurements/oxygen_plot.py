@@ -159,7 +159,7 @@ for DATAFILENAME in DATAFILENAMES:
             
             
     #fill figure 1 with data
-    img1_1 = axarr1[y_position,x_position].pcolormesh(utc,plot_edges_depth,sorted_saturation, cmap = plt.cm.RdYlBu_r)
+    img1_1 = axarr1[y_position,x_position].pcolormesh(utc,plot_edges_depth,sorted_saturation, cmap = plt.cm.RdYlBu_r, vmin = 0, vmax=50)
 
     #add a colorbar to every plot
     f1.colorbar(img1_1, ax=axarr1[y_position,x_position])
