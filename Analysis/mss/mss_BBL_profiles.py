@@ -62,9 +62,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
 
         #define the pictures
-        f1, axarr1 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
-        f2, axarr2 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
-        f4, axarr4 = plt.subplots(nrows = 1, ncols = 7, sharey = True)#, sharex = True, 
+        f1, axarr1 = plt.subplots(nrows = 2, ncols = 1, sharex = True, sharey = True)
+        f2, axarr2 = plt.subplots(nrows = 1, ncols = 10, sharey = True)
+        #f4, axarr4 = plt.subplots(nrows = 1, ncols = 7, sharey = True)#, sharex = True, 
 
         print(cruisename+"_"+DATAFILENAME[:-4])
         #print("Filename:",sio.whosmat(FILENAME))
@@ -334,8 +334,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
             #------------------search for BBL values starts from below:-------------------------------  
             
-            #index of bottom plus 15m 
-            BBL_boundary_index = np.argmax(interp_pressure >= (bathymetrie[i]-15))
+            #index of bottom plus 15m
+            height_above_ground = 10 
+            BBL_boundary_index = np.argmax(interp_pressure >= (bathymetrie[i]-height_above_ground))
             assert(interp_pressure[BBL_boundary_index]<bathymetrie[i]) #tests if the point 15m above the ground is really above
 
             
@@ -343,7 +344,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
             
             #check if the maximum is at the edge of the intervall or if the maximum is too small
-            if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index-1]) < 0.02):
+            minimal_density_difference = 0.02
+            if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index-1]) < minimal_density_difference):
                 BBL_index = nan_index #equivalent to a BBL thickness of 0
            
             list_of_BBL_indices[i] = BBL_index 
@@ -355,12 +357,57 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
 
         #print(np.max(interp_pressure),np.min(interp_pressure))
+        BBL_thickness = bathymetrie - BBL
+        
+        #searches for the index of the profile with the biggest BBL thickness
+        index_of_maximum_thickness = np.argmax(BBL_thickness)
         
         
-        
-        list_of_profiles
+        first_profile = index_of_maximum_thickness-2
+        last_profile = index_of_maximum_thickness + 2
+
+        if (last_profile >= (number_of_transects-1)):
+            print("test1")
+            last_profile = number_of_transects - 1 
+            first_profile = last_profile-4
+            index_of_maximum_thickness = first_profile+2
+
+        if (first_profile < 0):
+            print("test2")
+            first_profile = 0
+            last_profile = 4 
+            index_of_maximum_thickness = 2
+
 
         #Plotting
+        count = 0
+        for transect_index in range(first_profile,last_profile+1): #in total 5 profiles
+        
+            print(transect_index,index_of_maximum_thickness,number_of_transects)
+            img2_0 = axarr2[count].plot(density_grid[transect_index,int(list_of_BBL_range_indices[transect_index])-5:],interp_pressure[int(list_of_BBL_range_indices[transect_index])-5:],"g", label = "fine grid")
+            
+            #TODO plot oxygen on a second axis
+            #img4_0 = axarr4[count].plot(oxygen_grid[transect_index,:],interp_pressure,"g", label = "fine grid")
+            
+        
+            img2_0b = axarr2[count].plot(np.nanmean(density_grid[transect_index,int(list_of_BBL_range_indices[transect_index])-5:]),BBL[transect_index],"Dr")
+            img2_0c = axarr2[count].plot(np.nanmean(density_grid[transect_index,int(list_of_BBL_range_indices[transect_index])-5:]),bathymetrie[transect_index],"Dg")
+            img2_0d = axarr2[count].plot(np.nanmean(density_grid[transect_index,int(list_of_BBL_range_indices[transect_index])-5:]),BBL_range[transect_index],"ok")
+        
+            axarr2[count].set_xlabel("density")
+        
+        
+            img2_0 = axarr2[count+1].plot(np.diff(density_grid[transect_index,int(list_of_BBL_range_indices[transect_index])-5:]),mid_point_pressure[int(list_of_BBL_range_indices[transect_index])-5:])
+        
+
+            img2_1b = axarr2[count+1].plot(np.nanmean(np.diff(density_grid[transect_index,int(list_of_BBL_range_indices[transect_index])-5:])),bathymetrie[transect_index],"Dg")
+            img2_1c = axarr2[count+1].plot(np.nanmean(np.diff(density_grid[transect_index,int(list_of_BBL_range_indices[transect_index])-5:])),BBL_range[transect_index],"ok")
+            img2_1d = axarr2[count+1].plot(np.nanmean(np.diff(density_grid[transect_index,int(list_of_BBL_range_indices[transect_index])-5:])),BBL[transect_index],"Dr")
+        
+            count+=2
+        
+        
+        """
         transect_index = -5
         img4_0 = axarr4[0].plot(oxygen_grid[transect_index,:],interp_pressure,"g", label = "fine grid")
         img4_1 = axarr4[1].plot(salinity_grid[transect_index,:],interp_pressure,"g", label = "fine grid")
@@ -392,7 +439,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         axarr4[5].legend()
         axarr4[4].legend()
         axarr4[6].legend()
-
+        """
         """
         #interpolate the temperature and  to the eps pressure grid
         coarse_consv_temperature_grid = np.zeros(np.shape(eps_grid)) #TODO DO I need the in-situ temperature here?
@@ -418,40 +465,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         print(np.max(interp_pressure),np.min(interp_pressure))
 
-        #Plotting
-        transect_index = -5
-        img4_0 = axarr4[0].plot(oxygen_grid[transect_index,:],interp_pressure,"g")
-        img4_1 = axarr4[1].plot(salinity_grid[transect_index,:],interp_pressure,"g")
-
-        img4_2 = axarr4[2].plot(consv_temperature_grid[transect_index,:],interp_pressure,"g")
-        img4_2b = axarr4[2].plot(coarse_consv_temperature_grid[transect_index,:],interp_coarse_pressure)
-
-        img4_3 = axarr4[3].plot(BN_freq_squared_grid_gsw[transect_index,:],mid_point_pressure,"r")
-        img4_3b = axarr4[3].plot(coarse_N_squared_grid[transect_index,:],interp_coarse_pressure)
-
-        img4_4 = axarr4[4].plot(coarse_viscosity_grid[transect_index,:]*10**6,interp_coarse_pressure)
-        img4_5 = axarr4[5].plot(np.log10(eps_grid[transect_index,:]),interp_coarse_pressure)
-        img4_6 = axarr4[6].plot(Reynolds_bouyancy_grid[transect_index,:],interp_coarse_pressure)
-
-        axarr4[0].set_xlabel("oxygen")
-        axarr4[0].set_ylabel("pressure [dbar]")
-        axarr4[1].set_xlabel("SA")
-        axarr4[2].set_xlabel("CT")
-        axarr4[3].set_xlabel("N^2")
-        axarr4[4].set_xlabel("viscosity / 10^(-6)")
-        axarr4[5].set_xlabel("log10(eps)")
-        axarr4[6].set_xlabel("Reynolds_bouyancy")
-        """
         
-        axarr4[6].set_xlim([-500,500])
-
-        axarr4[0].set_title("Measurement 02")
-        axarr4[1].set_title("Measurement SA")
-        axarr4[2].set_title("Measurement CT")
-        axarr4[3].set_title("Calculation N^2")
-        axarr4[4].set_title("Calculation nu")
-        axarr4[5].set_title("Measurement eps")
-        axarr4[6].set_title("Calculation Re_b")
+        """
          
          
         #Plot the data  
@@ -462,77 +477,48 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         cmap.set_bad(color = 'lightgrey')
  
         img1_0 = axarr1[0].pcolormesh(plotmesh_distance,interp_pressure,oxygen_grid.T,cmap = cmap)
-        img1_1 = axarr1[1].pcolormesh(plotmesh_distance,interp_pressure,salinity_grid.T,cmap = cmap)
-        img1_2 = axarr1[2].pcolormesh(plotmesh_distance,interp_pressure,consv_temperature_grid.T,cmap = cmap)
-        img1_3 = axarr1[3].pcolormesh(plotmesh_distance,interp_coarse_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10,cmap = cmap)
+        img1_1 = axarr1[1].pcolormesh(plotmesh_distance,interp_pressure,density_grid.T,cmap = cmap)
 
-
-        img2_0 = axarr2[0].pcolormesh(plotmesh_distance,interp_pressure,density_grid.T,cmap = cmap)
-        img2_1 = axarr2[1].pcolormesh(plotmesh_distance,interp_pressure,BN_freq_squared_grid_gsw.T,vmin = 0, vmax = 0.015,cmap = cmap)
-        img2_2 = axarr2[2].pcolormesh(plotmesh_distance,interp_coarse_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10,cmap = cmap)
-        img2_3 = axarr2[3].pcolormesh(plotmesh_distance,interp_coarse_pressure,Reynolds_bouyancy_grid.T, vmin = -5, vmax = 100,cmap = cmap)
         
         
         #draw the calculated layers in the plot    
         axarr1[0].plot(distance,bathymetrie)
         axarr1[0].plot(distance,BBL)
            
-        axarr2[0].plot(distance,bathymetrie)
-        axarr2[0].plot(distance,BBL)
+        axarr1[1].plot(distance,bathymetrie)
+        axarr1[1].plot(distance,BBL)
 
-
-        axarr1[3].set_xlabel("distance [km]")
-        axarr2[3].set_xlabel("distance [km]")
-
-        """
-        img2_0 = axarr2[0].pcolormesh(distance,interp_pressure,salinity_grid.T)
-        img2_1 = axarr2[1].pcolormesh(distance,interp_pressure,consv_temperature_grid.T)
-        img2_2 = axarr2[2].pcolormesh(distance,interp_pressure,alpha_grid.T)
-        img2_3 = axarr2[3].pcolormesh(distance,interp_pressure,beta_grid.T)
-
-
-            pcolormesh(distance,interp_pressure,density_grid.T)
-            pcolormesh(distance,interp_pressure,BN_freq_squared_grid_gsw.T,vmin = 0, vmax = 0.015)
-            pcolormesh(distance,interp_coarse_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
-        """    
+        
+        axarr1[0].plot(distance[first_profile:last_profile+1],-1*np.ones(5),"rD")
+        axarr1[1].plot(distance[first_profile:last_profile+1],-1*np.ones(5),"rD")
+        
             
             
         f1.set_size_inches(18,10.5)
         f2.set_size_inches(18,10.5)
-        f4.set_size_inches(18,10.5)
 
-        colorbar(img1_0).set_label("Oxygen [??]") 
-        colorbar(img1_1).set_label("salinity [SA]") 
-        colorbar(img1_2).set_label("consv_temperature [C]")
-        colorbar(img1_3).set_label(r"log10(dissipation) $[m^2 s^{-3}]$")
+        colorbar(img1_0).set_label(r"density [kg/$m^3$]")
+        colorbar(img1_1).set_label(r"oxygen $[%]$")
 
-        colorbar(img2_0).set_label(r"density [kg/$m^3$]")
-        colorbar(img2_1).set_label(r"$N^2$ $[1/s^2]$")
-        colorbar(img2_2).set_label(r"log10($\epsilon$) [??]")  
-        colorbar(img2_3).set_label(r"$Re_b$")
 
-        for i in range(4):
-            if cruisename == "emb169":
-                axarr1[i].set_ylim((0,160))           
-                axarr2[i].set_ylim((0,160))
+        for i in range(2):
+            if cruisename == "emb169":        
+                axarr1[i].set_ylim((0,160))
                 assert(np.min(interp_pressure)>0)
                 assert(np.max(interp_pressure)<160)
                  
             if cruisename == "emb177":
-                axarr1[i].set_ylim((0,135))           
-                axarr2[i].set_ylim((0,135))   
+                axarr1[i].set_ylim((0,135))            
                 assert(np.min(interp_pressure)>0)
                 assert(np.max(interp_pressure)<135)
                                 
             if cruisename == "emb217":
                 if DATAFILENAME[:4] == "S106":
                     axarr1[i].set_ylim((0,90))           
-                    axarr2[i].set_ylim((0,90)) 
                     assert(np.min(interp_pressure)>0)
                     assert(np.max(interp_pressure)<90)                    
                 else:
                     axarr1[i].set_ylim((0,160))           
-                    axarr2[i].set_ylim((0,160))
                     assert(np.min(interp_pressure)>0)
                     assert(np.max(interp_pressure)<160)                       
 
@@ -540,21 +526,19 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         axarr1[0].invert_yaxis()
         axarr2[0].invert_yaxis()
-        axarr4[0].invert_yaxis() 
 
-        f1.suptitle(cruisename+" "+DATAFILENAME[:-4]+" Measurements")
-        f2.suptitle(cruisename+" "+DATAFILENAME[:-4]+" Calculations")
+        f1.suptitle(cruisename+" "+DATAFILENAME[:-4]+" transect")
+        f2.suptitle(cruisename+" "+DATAFILENAME[:-4]+ " centered around index "+str(index_of_maximum_thickness))
+
         
 
         f1.tight_layout() 
-        f2.tight_layout() 
-        f4.tight_layout()      
+        f2.tight_layout()     
         
-        f1.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_Measurements")
-        f2.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_calculations")
-        f4.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_profiles")
+        f1.savefig("./BBL_profiles/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_transect")
+        f2.savefig("./BBL_profiles/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_profiles")
 
         plt.close(fig = "all")
-    #plt.show()
+plt.show()
 
 

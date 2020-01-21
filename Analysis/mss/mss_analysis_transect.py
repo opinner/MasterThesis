@@ -348,7 +348,8 @@ for i in range(number_of_transects):
     
     #index of bottom plus 15m 
     print("Surface",interp_pressure[0],"Bottom",bathymetrie[i])
-    BBL_boundary_index = np.argmax(interp_pressure >= (bathymetrie[i]-15))
+    height_above_ground = 10
+    BBL_boundary_index = np.argmax(interp_pressure >= (bathymetrie[i]-height_above_ground))
     assert(interp_pressure[BBL_boundary_index]<bathymetrie[i]) #tests if the point 15m above the ground is really above
     #COMMENT
     #print("Max BBL layer",interp_pressure[BBL_boundary_index],bathymetrie[i], density_grid[i,:].size + nan_index)
@@ -361,11 +362,12 @@ for i in range(number_of_transects):
     BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
     
     #check if the maximum is at the edge of the intervall or if the maximum is too small
-    if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index-1]) < 0.02):
+    minimal_density_difference = 0.02
+    if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index-1]) < minimal_density_difference):
         BBL_index = nan_index #equivalent to a BBL thickness of 0
     
     print(BBL_index,nan_index)
-    print("density",interp_pressure[BBL_index])
+    print("BBL",interp_pressure[BBL_index])
     print(bathymetrie[i])
    
     list_of_BBL_indices[i] = BBL_index 
