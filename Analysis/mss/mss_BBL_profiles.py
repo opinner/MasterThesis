@@ -1,3 +1,8 @@
+#---------------------------------------------------------------------#
+#Plots 5 succesive profiles with markers were the BBL was determined
+#additionally shows where on the transect these 5 profiles lay
+#---------------------------------------------------------------------#
+
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
@@ -535,8 +540,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         f1.tight_layout() 
         f2.tight_layout()     
         
-        f1.savefig("./BBL_profiles/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_transect")
-        f2.savefig("./BBL_profiles/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_profiles")
+        f1.savefig("./BBL_profiles/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_transect", dpi=450)
+        f2.savefig("./BBL_profiles/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_profiles", dpi=450)
 
         plt.close(fig = "all")
 plt.show()
