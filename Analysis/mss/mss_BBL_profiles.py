@@ -1,6 +1,7 @@
 #---------------------------------------------------------------------#
-#Plots 5 succesive profiles with markers were the BBL was determined
+#Plots 5 succesive profiles with markers where the BBL was determined
 #additionally shows where on the transect these 5 profiles lay
+#TODO add new grid
 #---------------------------------------------------------------------#
 
 import numpy as np
