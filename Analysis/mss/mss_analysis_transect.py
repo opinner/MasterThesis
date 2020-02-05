@@ -74,8 +74,8 @@ pressure = CTD_substructure["P"][0]
 oxygen = CTD_substructure["O2"][0]
 absolute_salinity = CTD_substructure["SA"][0] #is this unit sufficient
 consv_temperature = CTD_substructure["CT"][0] #TODO better use conservative temperature?
-#alpha = CTD_substructure["ALPHA"][0]
-#beta = CTD_substructure["BETA"][0]
+alpha = CTD_substructure["ALPHA"][0]
+beta = CTD_substructure["BETA"][0]
 
 #print("alpha",np.shape(alpha),np.shape(alpha[0]))
 
@@ -198,12 +198,6 @@ min_pressure = 10
 max_pressure = 60
 max_size = 1000
 min_size = 3000
-
-#eps profile has a coarser resolution
-#min_eps_pressure = 10
-#max_eps_pressure = 60
-#max_eps_size = 100
-#min_eps_size = 400
 
 #select the start and end point for the
 for i in range(number_of_profiles):
@@ -463,7 +457,7 @@ img4_2 = axarr4[2].plot(consv_temperature_grid[transect_index,:],interp_pressure
 img4_2b = axarr4[2].plot(eps_consv_temperature_grid[transect_index,:],eps_pressure)
 
 #img4_3 = axarr4[3].plot(BV_freq_squared_grid_gsw[transect_index,:],mid_point_pressure, label = "fine grid")
-img4_3b = axarr4[3].plot(eps_N_squared[transect_index,:],eps_pressure, label = "eps grid")
+img4_3b = axarr4[3].plot(np.log10(eps_N_squared[transect_index,:]),eps_pressure, label = "eps grid")
 
 img4_4 = axarr4[4].plot(eps_viscosity_grid[transect_index,:]*10**6,eps_pressure,label = "Ilker")
 img4_4b = axarr4[4].plot(eps_wiki_viscosity_grid[transect_index,:]*10**6,eps_pressure,"--",label = "Wikipedia")
