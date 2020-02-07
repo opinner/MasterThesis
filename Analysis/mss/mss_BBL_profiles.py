@@ -38,7 +38,7 @@ rho_0 = 1000 #kg/m³
 g = 9.81 #m/s² #could be replace by gsw.grav(lat,p)
 
 #contains the MSS Data
-LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb217_mss_data","/home/ole/share-windows/emb177_mss_data/","/home/ole/share-windows/emb169_mss_data/MSS055/matlab/","/home/ole/share-windows/emb169_mss_data/MSS038/matlab/"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb217_mss_data"]#,"/home/ole/share-windows/emb177_mss_data/","/home/ole/share-windows/emb169_mss_data/MSS055/matlab/","/home/ole/share-windows/emb169_mss_data/MSS038/matlab/"]
 
  
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
@@ -65,7 +65,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         if DATAFILENAME == "TS11_TODL_merged.mat":
             continue
-            
+          
+        if DATAFILENAME[:2] !=  "TR":
+            continue
 
         #define the pictures
         f1, axarr1 = plt.subplots(nrows = 2, ncols = 1, sharex = True, sharey = True)
@@ -103,14 +105,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         eps = MIX_substructure["eps"][0]
         eps_pressure = MIX_substructure["P"][0]
 
-        number_of_transects = np.shape(pressure)[-1]
+        number_of_profiles = np.shape(pressure)[-1]
 
         latitude = []
         longitude = []
 
-        distance = np.zeros(number_of_transects)
+        distance = np.zeros(number_of_profiles)
         origin = (float(lat[0][0][0]),float(lon[0][0][0])) #lots of brackets to get a number, not an array (workaround)
-        for i in range(number_of_transects):
+        for i in range(number_of_profiles):
             current_point = (float(lat[i][0][0]),float(lon[i][0][0]))
             latitude.append(float(lat[i][0][0]))
             longitude.append(float(lon[i][0][0]))
@@ -119,6 +121,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         lat = np.asarray(latitude)
         lon = np.asarray(longitude)
 
+#Data Cleaning
+#-----------------------------------------------------------------------------------------------------------------   
         #remove data from a file, with overlapping positional points
         if (datafile_path == "/home/ole/share-windows/emb217_mss_data/TR1-8.mat"):
             lat = np.delete(lat,np.s_[33:47])
@@ -136,7 +140,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             eps = np.delete(eps,np.s_[33:47],axis=0)
             eps_pressure = np.delete(eps_pressure,np.s_[33:47],axis=0)
             
-            number_of_transects = np.shape(pressure)[-1]
+            number_of_profiles = np.shape(pressure)[-1]
        
        
         if cruisename == "emb169" and  DATAFILENAME[:-4] == "TS118":
@@ -154,7 +158,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
             eps = eps[:21]
             eps_pressure = eps_pressure[:21]
-            number_of_transects = np.shape(pressure)[-1]
+            number_of_profiles = np.shape(pressure)[-1]
         
         #removes the last data point, that dont seem to belong to the transect
         if cruisename == "emb169" and  DATAFILENAME[:-4] == "TRR109":
@@ -172,8 +176,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
             eps = eps[:-1]
             eps_pressure = eps_pressure[:-1]
-            number_of_transects = np.shape(pressure)[-1]
+            number_of_profiles = np.shape(pressure)[-1]
     
+    
+#-----------------------------------------------------------------------------------------------------------------    
     
         #test if distance is monotonically increasing
         try:
@@ -190,14 +196,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         max_size = 1000
         min_size = 3000
 
-        #eps profile has a coarser resolution
-        min_eps_pressure = 10
-        max_eps_pressure = 60
-        max_eps_size = 100
-        min_eps_size = 400
-
         #select the start and end point for the
-        for i in range(number_of_transects):
+        for i in range(number_of_profiles):
             if np.nanmin(pressure[i]) < min_pressure:
                 min_pressure = np.nanmin(pressure[i])
             if np.nanmax(pressure[i]) > max_pressure:
@@ -207,125 +207,142 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             if pressure[i].size < min_size:
                 min_size = pressure[i].size  
 
-            if np.nanmin(eps_pressure[i]) < min_eps_pressure:
-                min_eps_pressure = np.nanmin(eps_pressure[i])
-            if np.nanmax(eps_pressure[i]) > max_eps_pressure:
-                max_eps_pressure = np.nanmax(eps_pressure[i])
-            if eps_pressure[i].size > max_eps_size:
-                max_eps_size = eps_pressure[i].size       
-            if eps_pressure[i].size < min_eps_size:
-                min_eps_size = eps_pressure[i].size  
 
         #print("High resolution",min_pressure,max_pressure,min_size,max_size)
-        #print("Coarse resolution",min_eps_pressure,max_eps_pressure,min_eps_size,max_eps_size)
 
         #check if that worked correctly
         assert(max_size>= min_size)
-        assert(max_eps_size>= min_eps_size)
 
 
-            
+        #creates a pressure axis between the maximum and minimum pressure    
         interp_pressure = np.linspace(min_pressure,max_pressure,min_size)
-        #print("max_pressure",max_pressure)
-
 
         #creates pressure grid, where every column is equal to interp_pressure
         pressure_grid = np.reshape(interp_pressure,(1,-1))*np.ones((np.shape(pressure)[-1],min_size))
 
-        interp_coarse_pressure = np.linspace(min_eps_pressure,max_eps_pressure,min_eps_size)
-
-
-        #create grids with distance on x and depth on y-axis
+        #create grids that changes in distance on x and in depth on y-axis
         oxygen_grid = np.zeros((np.shape(pressure)[-1],min_size))
         salinity_grid = np.copy(oxygen_grid)
         consv_temperature_grid = np.copy(oxygen_grid)
         alpha_grid = np.copy(consv_temperature_grid)
         beta_grid = np.copy(salinity_grid)
 
+        #check if the pressure points for every eps profile are the same
+        for i in range(number_of_profiles):  
+            assert(np.all(eps_pressure[i].flatten() == eps_pressure[0].flatten()))
+        #if yes the pressure can be a 1D array instead of a 2D array    
+        eps_pressure = eps_pressure[0].flatten()
+            
         #averaged of approx 5 depth bins (???)
-        eps_grid = np.zeros((np.shape(pressure)[-1],min_eps_size))
+        eps_grid = np.zeros((number_of_profiles,eps_pressure.size))
+
+        #needed for the interpolation of S and T to the same grid as the eps
+        eps_salinity_grid = np.ones((np.shape(eps_grid)))
+        eps_consv_temperature_grid = np.ones(np.shape(eps_grid))
+
+        #vector times matrix multiplication to get a 2D array, where every column is equal to eps_pressure
+        eps_pressure_grid = np.reshape(eps_pressure,(1,-1))*np.ones(np.shape(eps_grid))
+
+        #create a pressure axis where every point is shifted by half the distance to the next one
+        shifted_pressure = eps_pressure + np.mean(np.diff(eps_pressure))/2
+
+        #prepend a point at the beginning to be a point longer than the pressure axis we want from the Nsquared function
+        shifted_pressure = np.append(eps_pressure[0]-np.mean(np.diff(eps_pressure))/2, shifted_pressure)
+
+        #from that create a grid, where we have just n-times the pressure axis with n the number of profiles 
+        shifted_pressure_grid = np.reshape(shifted_pressure,(1,-1))*np.ones((number_of_profiles,shifted_pressure.size))
+        shifted_salinity_grid = np.ones((np.shape(shifted_pressure_grid)))
+        shifted_consv_temperature_grid = np.ones((np.shape(shifted_pressure_grid)))
 
 
-        for i in range(number_of_transects): 
-            #print(np.shape(oxygen_grid),np.shape(interp_pressure),np.shape(pressure[i]),np.shape(oxygen[i]),np.shape(eps[i].flatten()))
+
+
+        for i in range(number_of_profiles): 
+            #interpolation to a common fine grid
             oxygen_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),oxygen[i].flatten(), left = np.nan, right = np.nan)
             salinity_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
             consv_temperature_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
             alpha_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),alpha[i].flatten(), left = np.nan, right = np.nan)
             beta_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),beta[i].flatten(), left = np.nan, right = np.nan)
+                
+            #interpolation to a shifted grid for the Nsquared function
+            shifted_salinity_grid[i] = np.interp(shifted_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
+            shifted_consv_temperature_grid[i] = np.interp(shifted_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
             
-            eps_grid[i] = np.interp(interp_coarse_pressure,eps_pressure[i].flatten(),eps[i].flatten(), left = np.nan, right = np.nan)
+            #just changes the format of eps slightly
+            assert(eps[i].flatten().size == eps_pressure.size)
+            eps_grid[i] = eps[i].flatten()
+
+            #interpolate S and T to the same grid as eps
+            eps_salinity_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
+            eps_consv_temperature_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
             
-        #calculating the density using teh gsw toolbox
+        #fine density grid
         density_grid = gsw.rho(salinity_grid,consv_temperature_grid,pressure_grid)
 
-        #creates pressure grid, where every column is equal to interp_pressure
-        pressure_grid = np.reshape(interp_pressure,(1,-1))*np.ones((np.shape(pressure)[-1],min_size))
+        #density grid on the same points as the eps grid
+        eps_density_grid = gsw.rho(eps_salinity_grid,eps_consv_temperature_grid,eps_pressure_grid)
 
-        #calculate N^2 with the gsw toolbox 
-        BN_freq_squared_grid_gsw, midpoint_pressure_grid = gsw.Nsquared(salinity_grid,consv_temperature_grid,pressure_grid, lat = np.mean(lat), axis = 1)
+        #TODO compare with density_grid?
+        density_grid_check = (1 - alpha_grid * (consv_temperature_grid) + beta_grid * (salinity_grid))*rho_0
+        difference = density_grid-density_grid_check
 
-        #create 1D-array of the midpoint pressure values
-        mid_point_pressure = np.mean(midpoint_pressure_grid, axis = 0)
-        #print(np.mean(np.std(midpoint_pressure_grid, axis = 0)))
-        assert(np.all(np.std(midpoint_pressure_grid, axis = 0) <10**(-10)))
+        #TODO calculate N^2 with the gsw toolbox 
+        #BV_freq_squared_grid_gsw, midpoint_pressure_grid = gsw.Nsquared(salinity_grid,consv_temperature_grid,pressure_grid, lat = np.mean(lat), axis = 1)
+
+        #calculate N^2 with the gsw toolbox, by using teh shifted grid we should get a N^2 grid that is defined at teh same points as eps_grid
+        eps_N_squared_grid, crosscheck_pressure_grid = gsw.Nsquared(shifted_salinity_grid,shifted_consv_temperature_grid,shifted_pressure_grid, lat = np.mean(lat), axis = 1)
+        crosscheck_pressure = np.mean(crosscheck_pressure_grid, axis = 0)
+
+        #test if we really calculated N^2 for the same points as the dissipation measurement
+        assert(np.all(crosscheck_pressure == eps_pressure))
+
+
 
         """
-        BN_freq_squared_cleaned_grid = np.copy(BN_freq_squared_grid)
-        BN_freq_squared_cleaned_grid_check = np.copy(BN_freq_squared_grid_check)
+        print("------------------TEST--------------------------")
+        print("eps_pressure\n",np.shape(eps_pressure))
 
-        #replace all negative values with 0 (is that good?) to compute the frequency
-        BN_freq_squared_cleaned_grid[BN_freq_squared_grid < 0] = np.nan #replace all negative values with 0 (is that good?)
-        BN_freq_squared_cleaned_grid_check[BN_freq_squared_grid_check < 0]
-        #draw the square root
-        BN_freq_cleaned_grid = np.sqrt(BN_freq_squared_cleaned_grid)
-        BN_freq_cleaned_grid_check = np.sqrt(BN_freq_squared_cleaned_grid_check)
+        print("shifted_pressure\n",np.shape(shifted_pressure))
+        print("crosscheck_pressure\n",np.shape(crosscheck_pressure))
         """
 
-        #interpolate the temperature and to the eps pressure grid
-        coarse_consv_temperature_grid = np.zeros(np.shape(eps_grid)) #TODO DO I need the in-situ temperature here?
-        coarse_N_squared_grid = np.zeros(np.shape(eps_grid))
-        coarse_density_grid = np.copy(coarse_N_squared_grid)
+        #calculate the viscosity (2 different formula)
+        eps_wiki_viscosity_grid = wiki_viscosity(eps_consv_temperature_grid)/eps_density_grid
+        eps_viscosity_grid = get_viscosity(eps_consv_temperature_grid)
 
-        for i in range(number_of_transects):
-             
-            #midpoint grid to coarse grid 
-            coarse_N_squared_grid[i] = np.interp(interp_coarse_pressure,mid_point_pressure,BN_freq_squared_grid_gsw[i].flatten(), left = np.nan, right = np.nan)
-             
-            #fine grid to coarse grid
-            coarse_consv_temperature_grid[i] = np.interp(interp_coarse_pressure,interp_pressure,consv_temperature_grid[i].flatten(), left = np.nan, right = np.nan)
-            coarse_density_grid[i] = np.interp(interp_coarse_pressure,interp_pressure,density_grid[i].flatten(), left = np.nan, right = np.nan)
+        #calculate the Reynolds bouyancy number defined on eps_pressure
+        eps_Reynolds_bouyancy_grid = eps_grid/(eps_viscosity_grid*eps_N_squared_grid)
+        eps_wiki_Reynolds_bouyancy_grid = eps_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
 
-        coarse_viscosity_T_grid = get_viscosity(coarse_consv_temperature_grid)
+        #TODO delete?
+        #np.testing.assert_equal(eps_grid,shifted_eps_grid)
+        #assert(np.all(interp_coarse_pressure == eps_pressure))
 
-        coarse_viscosity_TS_grid = wiki_viscosity(coarse_consv_temperature_grid)/coarse_density_grid
-
-
-        #all used grids should be defined on the coarse pressure grid
-        Reynolds_bouyancy_grid = eps_grid/(coarse_viscosity_T_grid*coarse_N_squared_grid) #from Maffioli 2014
-        Reynolds_bouyancy_TS_grid = eps_grid/(coarse_viscosity_TS_grid*coarse_N_squared_grid)
 
         #search for bottom currents
-        bathymetrie = np.zeros(number_of_transects)-99 #fill value (or error value) of -99
-        list_of_bathymetrie_indices = np.zeros(number_of_transects)
+        ###########################################################################################################################################################
+        bathymetrie = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
+        list_of_bathymetrie_indices = np.zeros(number_of_profiles)
 
-        halocline = np.zeros(number_of_transects)-99 #fill value (or error value) of -99
-        list_of_halocline_indices = np.zeros(number_of_transects)
+        halocline = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
+        list_of_halocline_indices = np.zeros(number_of_profiles)
 
-        BBL = np.zeros(number_of_transects)-99 #fill value (or error value) of -99
-        list_of_BBL_indices = np.zeros(number_of_transects)
+        BBL = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
+        list_of_BBL_indices = np.zeros(number_of_profiles)
 
-        BBL_range = np.zeros(number_of_transects)-99 #fill value (or error value) of -99
-        list_of_BBL_range_indices = np.zeros(number_of_transects)
+        BBL_range = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
+        list_of_BBL_range_indices = np.zeros(number_of_profiles)
 
-        for i in range(number_of_transects):
+        for i in range(number_of_profiles):
 
             #------------------search for bathymetrie values starts from below:-------------------------------
+            #search is done in the fine grid
 
             #returns the pressure of the last nan value in a continuous row starting from high pressure (TODO:is it better to use the last index with data?)
             nan_index =  -np.argmax(np.flip(~np.isnan(salinity_grid[i,:]))) #at the moment the index is negative
             nan_index = density_grid[i,:].size + nan_index #now defined as positive index
-            assert(nan_index>=0)
+            
            
             if nan_index == density_grid[i,:].size:
                 if not np.isnan(salinity_grid[i,-1]): #if there are no NAN values towards the bottom
@@ -333,32 +350,53 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     
             list_of_bathymetrie_indices[i] = nan_index 
             bathymetrie[i] = interp_pressure[nan_index]
-         
+            
+            #print(nan_index)
+            #print("bathymetrie check\n")
+            #print(interp_pressure[nan_index-1],salinity_grid[i,nan_index-1])
+            #print(interp_pressure[nan_index],salinity_grid[i,nan_index])
+            #print(interp_pressure[nan_index+1],salinity_grid[i,nan_index+1])
+            #while interp_coarse_pressure[j]
+            #if 
+          
+            #TODO
             #------------------search for halocline values starts from above:-------------------------------
-            #to be added TODO
+            
 
 
             #------------------search for BBL values starts from below:-------------------------------  
             
-            #index of bottom plus 15m
-            height_above_ground = 10 
+            #index of maximal distance bottom plus 15m 
+            height_above_ground = 10
             BBL_boundary_index = np.argmax(interp_pressure >= (bathymetrie[i]-height_above_ground))
             assert(interp_pressure[BBL_boundary_index]<bathymetrie[i]) #tests if the point 15m above the ground is really above
-
+            
+            #TODO get the index (and from that the pressure) where the density difference is bigger than 0.01
+            #BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:density_grid[i,:].size + nan_index])>0.01))
             
             #get the index (and from that the pressure) where the density difference is at maximum (in the lowermost 15 m)
+            assert(nan_index>=0)
             BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
             
             #check if the maximum is at the edge of the intervall or if the maximum is too small
             minimal_density_difference = 0.02
             if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index-1]) < minimal_density_difference):
                 BBL_index = nan_index #equivalent to a BBL thickness of 0
+            
+            #print(BBL_index,nan_index)
+            #print("BBL",interp_pressure[BBL_index])
+            #print(bathymetrie[i])
            
             list_of_BBL_indices[i] = BBL_index 
             BBL[i] = interp_pressure[BBL_index]
             
             list_of_BBL_range_indices[i] = BBL_boundary_index 
             BBL_range[i] = interp_pressure[BBL_boundary_index]
+
+
+
+
+        ##########################################################################################################################################################   
 
 
 
@@ -372,14 +410,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         first_profile = index_of_maximum_thickness-2
         last_profile = index_of_maximum_thickness + 2
 
-        if (last_profile >= (number_of_transects-1)):
-            print("test1")
-            last_profile = number_of_transects - 1 
+
+        #handels edge cases, if the choosen profile is to near to the start or end of the transect
+        if (last_profile >= (number_of_profiles-1)):
+            last_profile = number_of_profiles - 1 
             first_profile = last_profile-4
             index_of_maximum_thickness = first_profile+2
 
         if (first_profile < 0):
-            print("test2")
             first_profile = 0
             last_profile = 4 
             index_of_maximum_thickness = 2
@@ -389,7 +427,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         count = 0
         for transect_index in range(first_profile,last_profile+1): #in total 5 profiles
         
-            print(transect_index,index_of_maximum_thickness,number_of_transects)
+            #print(transect_index,index_of_maximum_thickness,number_of_profiles)
             img2_0 = axarr2[count].plot(density_grid[transect_index,int(list_of_BBL_range_indices[transect_index])-5:],interp_pressure[int(list_of_BBL_range_indices[transect_index])-5:],"g", label = "fine grid")
             
             #TODO plot oxygen on a second axis
@@ -403,7 +441,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             axarr2[count].set_xlabel("density")
         
         
-            img2_0 = axarr2[count+1].plot(np.diff(density_grid[transect_index,int(list_of_BBL_range_indices[transect_index])-5:]),mid_point_pressure[int(list_of_BBL_range_indices[transect_index])-5:])
+            img2_0 = axarr2[count+1].plot(np.diff(density_grid[transect_index,int(list_of_BBL_range_indices[transect_index])-5:]),interp_pressure[int(list_of_BBL_range_indices[transect_index])+1-5:])
         
 
             img2_1b = axarr2[count+1].plot(np.nanmean(np.diff(density_grid[transect_index,int(list_of_BBL_range_indices[transect_index])-5:])),bathymetrie[transect_index],"Dg")
@@ -451,7 +489,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         coarse_consv_temperature_grid = np.zeros(np.shape(eps_grid)) #TODO DO I need the in-situ temperature here?
         coarse_N_squared_grid = np.zeros(np.shape(eps_grid))
 
-        for i in range(number_of_transects):
+        for i in range(number_of_profiles):
             #print(np.shape(mid_point_pressure),np.shape(interp_pressure),np.shape(interp_coarse_pressure))
              
             #midpoint grid to coarse grid 
@@ -495,8 +533,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         axarr1[1].plot(distance,BBL)
 
         
-        axarr1[0].plot(distance[first_profile:last_profile+1],-1*np.ones(5),"rD")
-        axarr1[1].plot(distance[first_profile:last_profile+1],-1*np.ones(5),"rD")
+        axarr1[0].plot(distance[first_profile:last_profile+1],10*np.ones(5),"rD")
+        axarr1[1].plot(distance[first_profile:last_profile+1],10*np.ones(5),"rD")
         
             
             

@@ -36,7 +36,7 @@ rho_0 = 1000 #kg/m³
 g = 9.81 #m/s² #could be replace by gsw.grav(lat,p)
 
 #contains the MSS Data
-LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb217_mss_data","/home/ole/share-windows/emb177_mss_data/","/home/ole/share-windows/emb169_mss_data/MSS055/matlab/","/home/ole/share-windows/emb169_mss_data/MSS038/matlab/"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb217_mss_data","/home/ole/share-windows/emb177_mss_data/","/ home/ole/share-windows/emb169_mss_data/MSS055/matlab/","/home/ole/share-windows/emb169_mss_data/MSS038/matlab/"]
 
  
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
@@ -121,10 +121,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
 #Data Cleaning
 #-----------------------------------------------------------------------------------------------------------------
-        #here are still loops in the data TODO
-        if cruisename == "emb217" and  DATAFILENAME[:-4] == "S106-1":
-            continue
-        
+       
         
         #remove data from a file, with overlapping positional points
         if (datafile_path == "/home/ole/share-windows/emb217_mss_data/TR1-8.mat"):
@@ -183,7 +180,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 #-----------------------------------------------------------------------------------------------------------------    
     
         #test if distance is monotonically increasing
-        assert(np.all(np.diff(distance)>0))
+        try:
+            assert(np.all(np.diff(distance)>0))
+        except AssertionError:  
+            print("##########################################")
+            print(cruisename,DATAFILENAME[:-4],"is skipped!")
+            print("##########################################")
+            continue #jump to the next datafile
 
         #initial values 
         min_pressure = 10
@@ -292,6 +295,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #test if we really calculated N^2 for the same points as the dissipation measurement
         assert(np.all(crosscheck_pressure == eps_pressure))
 
+
+
         """
         print("------------------TEST--------------------------")
         print("eps_pressure\n",np.shape(eps_pressure))
@@ -316,6 +321,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
 
         #search for bottom currents
+        ###########################################################################################################################################################
         bathymetrie = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
         list_of_bathymetrie_indices = np.zeros(number_of_profiles)
 
@@ -390,7 +396,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
 
 
-        ##########################################################################################################################################################        
+        ##########################################################################################################################################################   
+        
+        
+             
         ##########################################################################################################################################################
         #Plotting
 

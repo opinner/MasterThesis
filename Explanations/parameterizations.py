@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-def BB(Reb):
+#basic version
+def basic_BB(Reb):
     Pr = 700
 
     if Reb < 0.18:
@@ -14,7 +14,17 @@ def BB(Reb):
     else:
         return 2*Reb**(-0.5)
 
-def Skif(Reb):
+#vectorized version (acts on every element of an array)
+def BB(Reb):
+    """
+    vectorized version of the Osborn(1980) turbulence parametrizaion
+    """
+    vBB = np.vectorize(basic_BB,otypes=[float])
+    return vBB(Reb)
+
+
+
+def basic_Skif(Reb):
     if Reb < 7:
         return 0
         
@@ -23,23 +33,39 @@ def Skif(Reb):
         
     else:
         return 2*Reb**(-0.5)
+
+#vectorized version (acts on every element of an array)
+def Skif(Reb):
+    """
+    vectorized version of the Shih(2005) turbulence parametrizaion
+    """
+
+    vSkif = np.vectorize(basic_Skif, otypes=[float]) 
+    return vSkif(Reb)
+     
         
-def Osborn(Reb):
+def basic_Osborn(Reb):
     return 0.2
         
-vBB = np.vectorize(BB,otypes=[float])     
-vSkif = np.vectorize(Skif, otypes=[float]) 
-vOsborn = np.vectorize(Osborn, otypes=[float]) 
+#vectorized version (acts on every element of an array)
+def Osborn(Reb):
+    """
+    vectorized version of the Osborn(1980) turbulence parametrizaion
+    """
+    vOsborn = np.vectorize(basic_Osborn, otypes=[float])    
+    return vOsborn(Reb)
+
 
  
 Reb = np.linspace(0,1000,1000)
 
+#bigger linewidths
 linewidth = 4
 
-plt.plot(Reb,vOsborn(Reb), linewidth=linewidth, label = "Osborn")
-plt.plot(Reb,vBB(Reb), linewidth=linewidth, label = "BB")
-plt.plot(Reb,vSkif(Reb), "--", linewidth=linewidth ,label = "Skif")
+plt.plot(Reb,Osborn(Reb), linewidth=linewidth, label = "Osborn")
+plt.plot(Reb,BB(Reb), linewidth=linewidth, label = "BB")
+plt.plot(Reb,Skif(Reb), "--", linewidth=linewidth ,label = "Skif")
 
 
 plt.legend()
-plt.show()     
+plt.show()      
