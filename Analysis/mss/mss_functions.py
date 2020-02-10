@@ -1,14 +1,17 @@
 #######################################################################
 #functions
-# 
+#TODO better documentation
 #######################################################################
    
    
    
    
 def load_clean_and_interpolate_data(datafile_path):  
-
-
+    import scipy.io as sio
+    import geopy.distance as geo
+    import numpy as np
+    import gsw 
+    
     splitted_path = datafile_path.split("/")
     cruisename = splitted_path[4][0:6]
     DATAFILENAME = splitted_path[-1]
@@ -46,7 +49,7 @@ def load_clean_and_interpolate_data(datafile_path):
     eps_pressure = MIX_substructure["P"][0]
 
     number_of_profiles = np.shape(pressure)[-1]
-    print("number_of_profiles",number_of_profiles)
+    #print("number_of_profiles",number_of_profiles)
 
     latitude = []
     longitude = []
@@ -130,7 +133,8 @@ def load_clean_and_interpolate_data(datafile_path):
         print("##########################################")
         print(cruisename,DATAFILENAME[:-4],"is skipped!")
         print("##########################################")
-        continue #jump to the next datafile
+        return 0
+        #continue #jump to the next datafile
 
     #initial values 
     min_pressure = 10
@@ -150,7 +154,7 @@ def load_clean_and_interpolate_data(datafile_path):
             min_size = pressure[i].size  
 
 
-    print("High resolution",min_pressure,max_pressure,min_size,max_size)
+    #print("High resolution",min_pressure,max_pressure,min_size,max_size)
 
     #check if that worked correctly
     assert(max_size>= min_size)
@@ -226,8 +230,8 @@ def load_clean_and_interpolate_data(datafile_path):
     eps_density_grid = gsw.rho(eps_salinity_grid,eps_consv_temperature_grid,eps_pressure_grid)
 
     #TODO compare with density_grid?
-    density_grid_check = (1 - alpha_grid * (consv_temperature_grid) + beta_grid * (salinity_grid))*rho_0
-    difference = density_grid-density_grid_check
+    #density_grid_check = (1 - alpha_grid * (consv_temperature_grid) + beta_grid * (salinity_grid))*rho_0
+    #difference = density_grid-density_grid_check
 
     #TODO calculate N^2 with the gsw toolbox 
     #BV_freq_squared_grid_gsw, midpoint_pressure_grid = gsw.Nsquared(salinity_grid,consv_temperature_grid,pressure_grid, lat = np.mean(lat), axis = 1)
@@ -240,7 +244,7 @@ def load_clean_and_interpolate_data(datafile_path):
     assert(np.all(crosscheck_pressure == eps_pressure))
       
       
-    return #TODO What do I want to return?
+    return [[number_of_profiles,lat,lon,distance],[interp_pressure,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid],[eps_pressure,eps_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid]]
         
         
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -256,9 +260,11 @@ def load_clean_and_interpolate_data(datafile_path):
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-def find_bottom_and_bottom_currents():
+def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02):
+    import numpy as np
+
     """
-    prozedural function    
+    procedural function    
     
     searches for the highermost nanvalues as the ground
     calculates the position of the bottom boundary layer    
@@ -283,24 +289,17 @@ def find_bottom_and_bottom_currents():
         #search is done in the fine grid
 
         #returns the pressure of the last nan value in a continuous row starting from high pressure (TODO:is it better to use the last index with data?)
-        nan_index =  -np.argmax(np.flip(~np.isnan(salinity_grid[i,:]))) #at the moment the index is negative
+        nan_index =  -np.argmax(np.flip(~np.isnan(density_grid[i,:]))) #at the moment the index is negative
         nan_index = density_grid[i,:].size + nan_index #now defined as positive index
         
        
         if nan_index == density_grid[i,:].size:
-            if not np.isnan(salinity_grid[i,-1]): #if there are no NAN values towards the bottom
+            if not np.isnan(density_grid[i,-1]): #if there are no NAN values towards the bottom
                 nan_index = len(interp_pressure)-1
                 
         list_of_bathymetrie_indices[i] = nan_index 
         bathymetrie[i] = interp_pressure[nan_index]
         
-        #print(nan_index)
-        #print("bathymetrie check\n")
-        #print(interp_pressure[nan_index-1],salinity_grid[i,nan_index-1])
-        #print(interp_pressure[nan_index],salinity_grid[i,nan_index])
-        #print(interp_pressure[nan_index+1],salinity_grid[i,nan_index+1])
-        #while interp_coarse_pressure[j]
-        #if 
       
         #TODO
         #------------------search for halocline values starts from above:-------------------------------
@@ -310,7 +309,7 @@ def find_bottom_and_bottom_currents():
         #------------------search for BBL values starts from below:-------------------------------  
         
         #index of maximal distance bottom plus 15m 
-        height_above_ground = 10
+        
         BBL_boundary_index = np.argmax(interp_pressure >= (bathymetrie[i]-height_above_ground))
         assert(interp_pressure[BBL_boundary_index]<bathymetrie[i]) #tests if the point 15m above the ground is really above
         
@@ -322,7 +321,6 @@ def find_bottom_and_bottom_currents():
         BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
         
         #check if the maximum is at the edge of the intervall or if the maximum is too small
-        minimal_density_difference = 0.02
         if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index-1]) < minimal_density_difference):
             BBL_index = nan_index #equivalent to a BBL thickness of 0
         
@@ -337,9 +335,10 @@ def find_bottom_and_bottom_currents():
         BBL_range[i] = interp_pressure[BBL_boundary_index]
         
         
-    return
+    return [[bathymetrie,list_of_bathymetrie_indices],[BBL,list_of_BBL_indices],[BBL_range,list_of_BBL_range_indices]]
 
 
+
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -353,6 +352,33 @@ def find_bottom_and_bottom_currents():
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+def get_viscosity(T):
+    #% T is temperature in degC; vis in m2/s
+    #% vis=(1.792747-(.05126103*T)+(0.0005918645*T*T))*1e-6;
+    #% Ilker
+    return (1.792747-(0.05126103*T)+(0.0005918645*T*T))*1e-6
+
+def wiki_viscosity(T):
+    A = 29.39*1e-3
+    B = 507.88 
+    C = 149.3
+    
+    return A * np.exp(B/(T-C))
+    
+    
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #TURBULENCE PARAMETRIZATIONS
 
 
