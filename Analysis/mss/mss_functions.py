@@ -407,12 +407,19 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
 
 
 def get_viscosity(T):
+    """
+    Viscosity function I got from Peter (probable source: Ilker)
+    """
     #% T is temperature in degC; vis in m2/s
     #% vis=(1.792747-(.05126103*T)+(0.0005918645*T*T))*1e-6;
     #% Ilker
     return (1.792747-(0.05126103*T)+(0.0005918645*T*T))*1e-6
 
 def wiki_viscosity(T):
+    """
+    Viscosity function I copied from Wikipedia
+    """
+
     A = 29.39*1e-3
     B = 507.88 
     C = 149.3
@@ -435,38 +442,35 @@ def wiki_viscosity(T):
 #TURBULENCE PARAMETRIZATIONS
 
 
-#basic version
-def basic_BB(Reb):
-    Pr = 700
 
-    if Reb < 0.18:
-        return 0
-        
-    elif ((Reb >= 0.18) and (Reb <= 96.56)):
-        return 0.1 * Pr**(-0.5) * Reb**(0.5)
-
-    else:
-        return 2*Reb**(-0.5)
 
 #vectorized version (acts on every element of an array)
 def BB(Reb):
     """
-    vectorized version of the Osborn(1980) turbulence parametrizaion
+    returns vectorized version of the _______ turbulence parametrizaion
     """
+
+    #basic version
+    def basic_BB(Reb):
+        Pr = 700
+
+        if Reb < 0.18:
+            return 0
+            
+        elif ((Reb >= 0.18) and (Reb <= 96.56)):
+            return 0.1 * Pr**(-0.5) * Reb**(0.5)
+
+        else:
+            return 2*Reb**(-0.5)
+
+
+
     vBB = np.vectorize(basic_BB,otypes=[float])
     return vBB(Reb)
 
 
 
-def basic_Skif(Reb):
-    if Reb < 7:
-        return 0
-        
-    elif ((Reb >= 7) and (Reb<=100)):
-        return 0.2
-        
-    else:
-        return 2*Reb**(-0.5)
+
 
 #vectorized version (acts on every element of an array)
 def Skif(Reb):
@@ -474,18 +478,32 @@ def Skif(Reb):
     vectorized version of the Shih(2005) turbulence parametrizaion
     """
 
+    def basic_Skif(Reb):
+        if Reb < 7:
+            return 0
+            
+        elif ((Reb >= 7) and (Reb<=100)):
+            return 0.2
+            
+        else:
+            return 2*Reb**(-0.5)
+
+
     vSkif = np.vectorize(basic_Skif, otypes=[float]) 
     return vSkif(Reb)
      
         
-def basic_Osborn(Reb):
-    return 0.2
+
         
 #vectorized version (acts on every element of an array)
 def Osborn(Reb):
     """
     vectorized version of the Osborn(1980) turbulence parametrizaion
     """
+    
+    def basic_Osborn(Reb):
+        return 0.2
+    
     vOsborn = np.vectorize(basic_Osborn, otypes=[float])    
     return vOsborn(Reb)
     
