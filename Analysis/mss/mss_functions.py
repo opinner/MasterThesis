@@ -6,7 +6,37 @@
    
    
    
-def load_clean_and_interpolate_data(datafile_path):  
+def load_clean_and_interpolate_data(datafile_path):
+    """
+    loads a a .mat file of mss measurements
+    a few files are cleaned through a hardcoded routine (emb217/TR1-8.mat, emb169/TS118, emb169/TRR109)
+    
+    
+    
+    datafile_path: absolute path of the mss measurements saved as a .mat file
+
+
+    return values:
+        number_of_profiles              number of profiles/casts in the transect
+        lat                             latitude in degrees (as a float) of the casts
+        lon                             longitude in degrees (as a float) of the casts
+        distance                        distance in km from the starting point of the transect
+        
+        interp_pressure                 equidistant pressure array between the highest and the lowest measured pressure value
+        oxygen_grid                     oxygen saturation in percent as a grid (number_of_profiles x len(interp_pressure))
+        salinity_grid                   salinity in g/kg as a grid (number_of_profiles x len(interp_pressure)) 
+        consv_temperature_grid          conservative temperature in degrees Celsius as a grid (number_of_profiles x len(interp_pressure))
+        density_grid                    density in kg/m^3 as a grid (number_of_profiles x len(interp_pressure))
+        
+        eps_pressure                    pressure values to the dissipation rate values (the pressure distance between points is bigger than in interp_pressure) 
+        eps_grid                        measured dissipation rate values (number_of_profiles x len(eps_pressure))
+        eps_consv_temperature_grid      conservative temperature as a grid (number_of_profiles x len(eps_pressure))
+        eps_N_squared_grid              N^2, the Brunt-Vaisala frequency in 1/s^2 as a grid (number_of_profiles x len(eps_pressure))
+        eps_density_grid                density in kg/m^3 as a grid (number_of_profiles x len(eps_pressure))
+        
+        0                               error code, returned if distance is not monotonically increasing (ergo a loop in the data)
+
+    """
     import scipy.io as sio
     import geopy.distance as geo
     import numpy as np
@@ -268,6 +298,29 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
     
     searches for the highermost nanvalues as the ground
     calculates the position of the bottom boundary layer    
+    
+    input:
+       number_of_profiles               number of profiles/casts in the transect
+       interp_pressure
+       
+       density_grid                     density in kg/m^3 as a grid (number_of_profiles x len(interp_pressure))
+       oxygen_grid                      oxygen saturation in percent as a grid (number_of_profiles x len(interp_pressure))
+       
+       height_above_ground              Default value 10m
+       minimal_density_difference       Default value 0.02 kg/m^3
+    
+    
+    return values:
+        bathymetrie                     pressure values of the first NaN value (in most cases this corresponds to the bottom, but is sometimes wrong due to missing data
+        list_of_bathymetrie_indices     corresponding index (eg for interp_pressure or other arrays of the same size)
+        
+        BBL                             pressure values of the calculated Bottom Boundary Layer (exact position depends on the criteria)
+        list_of_BBL_indices             corresponding index (eg for interp_pressure or other arrays of the same size)
+        
+        BBL_range                       pressure values of "height_above_ground" meters. Follows therefore the batyhmetrie. 
+        list_of_BBL_range_indices       corresponding index (eg for interp_pressure or other arrays of the same size)
+    
+    
     """    
     #search for bottom currents
     ###########################################################################################################################################################
