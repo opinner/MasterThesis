@@ -21,14 +21,20 @@ def colorbar(mappable):
 acceptance_limit = 0.2
 
 #for the UBUNTU Laptop
-#LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/adcp/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/adcp/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/adcp/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/adcp/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/ADCP600/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/ADCP1200/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/adcp/data"]
+LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/adcp/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/adcp/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/adcp/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/adcp/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/ADCP600/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/ADCP1200/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/adcp/data"]
 
 #for the VM
-LIST_OF_FOLDERS = ["/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_flach/adcp/data","/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_tief/adcp/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-flach/adcp/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-tief/adcp/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/ADCP600/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/ADCP1200/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Tief/adcp/data"]
+#LIST_OF_FOLDERS = ["/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_flach/adcp/data","/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_tief/adcp/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-flach/adcp/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-tief/adcp/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/ADCP600/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/ADCP1200/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Tief/adcp/data"]
+
 #Handpicked from the complete ADCP plots
-desired_depths_emb169 = [20, 50, 60]
-desired_depths_emb177 = [20, 50, 60]
-desired_depths_emb217 = [20, 50, 60]
+desired_depths_emb169_flach = [58,65,72]
+desired_depths_emb177_flach = [30, 50, 61]
+desired_depths_emb217_flach = [20, 50, 60]
+
+desired_depths_emb169_tief = [58,65,72]
+desired_depths_emb177_tief = [30, 50, 61]
+desired_depths_emb217_tief = [20, 50, 60]
+
     
 for FOLDERNAME in LIST_OF_FOLDERS:
     path = pathlib.Path(FOLDERNAME)

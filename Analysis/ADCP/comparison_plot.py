@@ -22,9 +22,10 @@ def colorbar(mappable):
     return fig.colorbar(mappable, cax=cax)
 
 
+#for the UBUNTU Laptop
+LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/adcp/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/adcp/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/adcp/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/adcp/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/ADCP600/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/ADCP1200/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/adcp/data"]
 
-
-LIST_OF_FOLDERS = ["/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_flach/adcp/data","/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_tief/adcp/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-flach/adcp/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-tief/adcp/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/ADCP600/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/ADCP1200/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Tief/adcp/data"]
+#LIST_OF_FOLDERS = ["/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_flach/adcp/data","/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_tief/adcp/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-flach/adcp/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-tief/adcp/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/ADCP600/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/ADCP1200/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Tief/adcp/data"]
 
 
 #create ouput pictures, which will be filled later in the code
@@ -248,10 +249,10 @@ f2.set_size_inches(18,10.5)
     
 #Save the plot as png
 plot1_name = "./pictures/"+"ADCP_comparison_flach2" 
-f1.savefig(plot1_name)
+#f1.savefig(plot1_name)
 
 plot2_name = "./pictures/"+"ADCP_comparison_tief2" 
-f2.savefig(plot2_name)
+#f2.savefig(plot2_name)
     
 #preferences of the x-limit
 axarr1[0,0].set_xlim(left = mdates.date2num(start_flach_2017), right = mdates.date2num(start_flach_2017 + max_time_delta))
@@ -270,10 +271,10 @@ axarr2[2,1].set_xlim(left = mdates.date2num(start_tief_2019), right = mdates.dat
 
 #Save the changend plot again as png
 plot1_name = "/home/ole/Thesis/Analysis/ADCP/pictures/"+"ADCP_comparison_flach_same_scale2" 
-f1.savefig(plot1_name)
+#f1.savefig(plot1_name)
 
 plot2_name = "/home/ole/Thesis/Analysis/ADCP/pictures/"+"ADCP_comparison_tief_same_scale2" 
-f2.savefig(plot2_name)
+#f2.savefig(plot2_name)
     
 plt.show()
     
