@@ -4,7 +4,7 @@
 #######################################################################
    
    
-   
+import numpy as np   
    
 def load_clean_and_interpolate_data(datafile_path):
     """

@@ -175,7 +175,8 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                 #original measurement data
                 north_south[i,:]
         
-        #sio.savemat(FILENAME,
+        
+        sio.savemat(FILENAME,
         
         
         

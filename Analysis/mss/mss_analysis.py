@@ -20,14 +20,10 @@ def colorbar(mappable):
     #cax.set_label('Temperature / Celsius')
     return fig.colorbar(mappable, cax=cax)
 
-    
-#Constants
-rho_0 = 1000 #kg/m³
-g = 9.81 #m/s² #could be replace by gsw.grav(lat,p)
+
 
 #contains the MSS Data
-LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb217_mss_data","/home/ole/share-windows/emb177_mss_data/","/ home/ole/share-windows/emb169_mss_data/MSS055/matlab/","/home/ole/share-windows/emb169_mss_data/MSS038/matlab/"]
-
+LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb217_mss_data","/home/ole/share-windows/emb177_mss_data/","/home/ole/share-windows/emb169_mss_data/MSS055/matlab","/home/ole/share-windows/emb169_mss_data/MSS038/matlab/"]
  
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     path = pathlib.Path(FOLDERNAME)
@@ -54,6 +50,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         if DATAFILENAME == "TS11_TODL_merged.mat":
             continue
             
+
+        transect_name = DATAFILENAME[:-4]
 
         #define the pictures
         f1, axarr1 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
@@ -82,13 +80,19 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         eps_Reynolds_bouyancy_grid = eps_grid/(eps_viscosity_grid*eps_N_squared_grid)
         eps_wiki_Reynolds_bouyancy_grid = eps_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
 
+        #use self written function to get BBL
         results = thesis.find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02)
         bathymetrie,list_of_bathymetrie_indices = results[0]
         BBL,list_of_BBL_indices = results[1]
         BBL_range,list_of_BBL_range_indices = results[2]
 
-              
-             
+          
+          
+        ##########################################################################################################################################################  
+          
+        np.savez("/home/ole/share-windows/processed_mss/"+cruisename+"/"+transect_name ,number_of_profiles = number_of_profiles, lat = lat,lon = lon,distance = distance, bathymetrie = bathymetrie,list_of_bathymetrie_indices = list_of_bathymetrie_indices,BBL = BBL,list_of_BBL_indices = list_of_BBL_indices,BBL_range = BBL_range,list_of_BBL_range_indices = list_of_BBL_range_indices, interp_pressure = interp_pressure,oxygen_grid = oxygen_grid,salinity_grid = salinity_grid,consv_temperature_grid = consv_temperature_grid, density_grid = density_grid, eps_pressure = eps_pressure,eps_grid = eps_grid,eps_consv_temperature_grid = eps_consv_temperature_grid,eps_N_squared_grid = eps_N_squared_grid,eps_density_grid = eps_density_grid,eps_viscosity_grid = eps_viscosity_grid,eps_wiki_Reynolds_bouyancy_grid = eps_wiki_Reynolds_bouyancy_grid)
+        
+        
         ##########################################################################################################################################################
         #Plotting
 
