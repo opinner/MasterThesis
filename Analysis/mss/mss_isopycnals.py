@@ -106,8 +106,8 @@ f2, axarr2 = plt.subplots(nrows = 2)#, sharex = True, sharey = True)
 cmap_hot = plt.get_cmap('hot_r')
 cmap_hot.set_bad(color = 'lightgrey')
 
-cmap_vir = plt.get_cmap('viridis')
-cmap_vir.set_bad(color = 'lightgrey')
+cmap_RdBu = plt.get_cmap('RdBu_r')
+cmap_RdBu.set_bad(color = 'lightgrey')
 
 for FILENAME in FILENAMES:
 
@@ -414,7 +414,7 @@ for FILENAME in FILENAMES:
     #eps_grid[eps_grid==0] = 1e-10
        
     #Plot the data   
-    img1_0 = axarr1[y_position,0].pcolormesh(plotmesh_longitude,interp_pressure,consv_temperature_grid.T, cmap = "RdBu_r", vmin = 5, vmax = 15)
+    img1_0 = axarr1[y_position,0].pcolormesh(plotmesh_longitude,interp_pressure,consv_temperature_grid.T, cmap = cmap_RdBu, vmin = 5, vmax = 15)
     img1_1 = axarr1[y_position,1].pcolormesh(plotmesh_longitude,interp_coarse_pressure,np.log10(eps_grid.T), vmax = -6.5, vmin = -9, cmap = cmap_hot)
     
     depth_at_tc_flach = bathymetrie[np.argmin(np.absolute(lon-20.6150))]
@@ -446,8 +446,8 @@ for FILENAME in FILENAMES:
     colorbar(img1_1).set_label(r"log10($\epsilon$) [W/kg]") 
     
     if cruisename == "emb217":
-        img2_0 = axarr2[0].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_grid.T, cmap = "RdBu_r")#, vmin = 5, vmax = 15)
-        img2_1 = axarr2[1].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_grid.T, cmap = "RdBu_r")#, vmin = 5, vmax = 15)
+        img2_0 = axarr2[0].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_grid.T, cmap = cmap_RdBu)#, vmin = 5, vmax = 15)
+        img2_1 = axarr2[1].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_grid.T, cmap = cmap_RdBu)#, vmin = 5, vmax = 15)
 
         tc_flach = axarr2[0].vlines(20.6150,1,depth_at_tc_flach,color = "r", label = "TC-chains")
         tc_flach = axarr2[1].vlines(20.6150,1,depth_at_tc_flach,color = "r", label = "TC-chains")

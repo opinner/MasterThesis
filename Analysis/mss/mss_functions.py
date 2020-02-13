@@ -31,6 +31,7 @@ def load_clean_and_interpolate_data(datafile_path):
         eps_pressure                    pressure values to the dissipation rate values (the pressure distance between points is bigger than in interp_pressure) 
         eps_grid                        measured dissipation rate values (number_of_profiles x len(eps_pressure))
         eps_consv_temperature_grid      conservative temperature as a grid (number_of_profiles x len(eps_pressure))
+        eps_oxygen_grid                 oxygen saturation as a grid (number_of_profiles x len(eps_pressure))
         eps_N_squared_grid              N^2, the Brunt-Vaisala frequency in 1/s^2 as a grid (number_of_profiles x len(eps_pressure))
         eps_density_grid                density in kg/m^3 as a grid (number_of_profiles x len(eps_pressure))
         
@@ -66,8 +67,6 @@ def load_clean_and_interpolate_data(datafile_path):
     lat = STA_substructure["LAT"][0]
     lon = STA_substructure["LON"][0]
 
-    #print(lat)
-
     pressure = CTD_substructure["P"][0]
     oxygen = CTD_substructure["O2"][0]
     absolute_salinity = CTD_substructure["SA"][0] #is this unit sufficient
@@ -79,11 +78,11 @@ def load_clean_and_interpolate_data(datafile_path):
     eps_pressure = MIX_substructure["P"][0]
 
     number_of_profiles = np.shape(pressure)[-1]
-    #print("number_of_profiles",number_of_profiles)
 
     latitude = []
     longitude = []
 
+    #calculates the distance in km of the position from every profile to the position of the starting profile.  
     distance = np.zeros(number_of_profiles)
     origin = (float(lat[0][0][0]),float(lon[0][0][0])) #lots of brackets to get a number, not an array (workaround)
     for i in range(number_of_profiles):
@@ -96,8 +95,8 @@ def load_clean_and_interpolate_data(datafile_path):
     lon = np.asarray(longitude)
 
 
-#Data Cleaning
-#-----------------------------------------------------------------------------------------------------------------
+    #Data Cleaning
+    #-----------------------------------------------------------------------------------------------------------------
    
     
     #remove data from a file, with overlapping positional points
@@ -154,7 +153,7 @@ def load_clean_and_interpolate_data(datafile_path):
         eps = eps[:-1]
         eps_pressure = eps_pressure[:-1]
         number_of_profiles = np.shape(pressure)[-1]
-#-----------------------------------------------------------------------------------------------------------------    
+    #-----------------------------------------------------------------------------------------------------------------    
 
     #test if distance is monotonically increasing
     try:
@@ -166,13 +165,16 @@ def load_clean_and_interpolate_data(datafile_path):
         return 0
         #continue #jump to the next datafile
 
+
+    #TODO point density? 
+
     #initial values 
     min_pressure = 10
     max_pressure = 60
     max_size = 1000
     min_size = 3000
 
-    #select the start and end point for the
+    #select the min and max values for the equidistant pressure array (later used for the grid)
     for i in range(number_of_profiles):
         if np.nanmin(pressure[i]) < min_pressure:
             min_pressure = np.nanmin(pressure[i])
@@ -215,6 +217,8 @@ def load_clean_and_interpolate_data(datafile_path):
     #needed for the interpolation of S and T to the same grid as the eps
     eps_salinity_grid = np.ones((np.shape(eps_grid)))
     eps_consv_temperature_grid = np.ones(np.shape(eps_grid))
+    eps_oxygen_grid = np.copy(eps_salinity_grid)
+    
 
     #vector times matrix multiplication to get a 2D array, where every column is equal to eps_pressure
     eps_pressure_grid = np.reshape(eps_pressure,(1,-1))*np.ones(np.shape(eps_grid))
@@ -232,7 +236,7 @@ def load_clean_and_interpolate_data(datafile_path):
 
 
 
-
+    #Grid interpolation (loops over all profiles)
     for i in range(number_of_profiles): 
         #interpolation to a common fine grid
         oxygen_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),oxygen[i].flatten(), left = np.nan, right = np.nan)
@@ -250,6 +254,7 @@ def load_clean_and_interpolate_data(datafile_path):
         eps_grid[i] = eps[i].flatten()
 
         #interpolate S and T to the same grid as eps
+        eps_oxygen_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),oxygen[i].flatten(), left = np.nan, right = np.nan)
         eps_salinity_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
         eps_consv_temperature_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
         
@@ -263,18 +268,15 @@ def load_clean_and_interpolate_data(datafile_path):
     #density_grid_check = (1 - alpha_grid * (consv_temperature_grid) + beta_grid * (salinity_grid))*rho_0
     #difference = density_grid-density_grid_check
 
-    #TODO calculate N^2 with the gsw toolbox 
-    #BV_freq_squared_grid_gsw, midpoint_pressure_grid = gsw.Nsquared(salinity_grid,consv_temperature_grid,pressure_grid, lat = np.mean(lat), axis = 1)
-
-    #calculate N^2 with the gsw toolbox, by using teh shifted grid we should get a N^2 grid that is defined at teh same points as eps_grid
+    #calculate N^2 with the gsw toolbox, by using the shifted grid we should get a N^2 grid that is defined at teh same points as eps_grid
     eps_N_squared_grid, crosscheck_pressure_grid = gsw.Nsquared(shifted_salinity_grid,shifted_consv_temperature_grid,shifted_pressure_grid, lat = np.mean(lat), axis = 1)
     crosscheck_pressure = np.mean(crosscheck_pressure_grid, axis = 0)
 
-    #test if we really calculated N^2 for the same points as the dissipation measurement
+    #test if we really calculated N^2 for the same points as pressure points from the dissipation measurement
     assert(np.all(crosscheck_pressure == eps_pressure))
       
       
-    return [[number_of_profiles,lat,lon,distance],[interp_pressure,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid],[eps_pressure,eps_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid]]
+    return [[number_of_profiles,lat,lon,distance],[interp_pressure,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid],[eps_pressure,eps_grid,eps_consv_temperature_grid,eps_oxygen_grid,eps_N_squared_grid,eps_density_grid]]
         
         
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -374,7 +376,7 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
         BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
         
         #check if the maximum is at the edge of the intervall or if the maximum is too small
-        if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index-1]) < minimal_density_difference):
+        if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index+1]) < minimal_density_difference):
             BBL_index = nan_index #equivalent to a BBL thickness of 0
         
         #print(BBL_index,nan_index)
@@ -406,25 +408,36 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-def get_viscosity(T):
+def get_viscosity(T, eps_density_grid, formula = "Ilker"):
     """
-    Viscosity function I got from Peter (probable source: Ilker)
+    returns temperature and density dependent viscosity 
+    depending on the keyword it use different formulas
     """
-    #% T is temperature in degC; vis in m2/s
-    #% vis=(1.792747-(.05126103*T)+(0.0005918645*T*T))*1e-6;
-    #% Ilker
-    return (1.792747-(0.05126103*T)+(0.0005918645*T*T))*1e-6
-
-def wiki_viscosity(T):
-    """
-    Viscosity function I copied from Wikipedia
-    """
-
-    A = 29.39*1e-3
-    B = 507.88 
-    C = 149.3
+    #TODO dynamic or kinematic viscosity?
     
-    return A * np.exp(B/(T-C))
+    
+    if formula == "Ilker":
+        """
+        Viscosity function I got from Peter (probable source: Ilker)
+        """
+        #% T is temperature in degC; vis in m2/s
+        #% vis=(1.792747-(.05126103*T)+(0.0005918645*T*T))*1e-6;
+        #% Ilker
+        return (1.792747-(0.05126103*T)+(0.0005918645*T*T))*1e-6
+
+
+
+    if formula == "Wikipedia":
+        """
+        Viscosity function I copied from Wikipedia
+        """
+
+        A = 29.39*1e-3
+        B = 507.88 
+        C = 149.3
+        
+        return (A * np.exp(B/(T-C)))/eps_density_grid
+
     
     
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -447,7 +460,7 @@ def wiki_viscosity(T):
 #vectorized version (acts on every element of an array)
 def BB(Reb):
     """
-    returns vectorized version of the _______ turbulence parametrizaion
+    returns vectorized version of the Bouffard and Boegman (2013) turbulence parametrizaion
     """
 
     #basic version
@@ -522,4 +535,41 @@ def Osborn(Reb):
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        
+"""
+Dissipitation    
+"""
+
+def correct_dissipation(dissipation_1D,Reb_1D, a = 1.3):
+    """
+    Correction of Dissipation rate correction following Garanaik2018
+    """
+    #Reb_1D[Reb_1D < 0] = np.nan
+    
+    correction_factor = (1-np.exp(-a*np.log10(Reb_1D)))
+    #assert((np.nanmax(correction_factor) <= 1) and (np.nanmin(correction_factor)>= 0))
+    
+    dissipation_3D =  dissipation_1D * (1-np.exp(-a*np.log10(Reb_1D)))
+    
+    return dissipation_3D
+    
+    
+    
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////    
+    
+
+
+
+
+
+      

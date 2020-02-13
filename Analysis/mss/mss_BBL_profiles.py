@@ -1,7 +1,6 @@
 #---------------------------------------------------------------------#
 #Plots 5 succesive profiles with markers where the BBL was determined
 #additionally shows where on the transect these 5 profiles lay
-#TODO add new grid
 #---------------------------------------------------------------------#
 
 import numpy as np
@@ -11,6 +10,7 @@ import geopy.distance as geo
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import gsw 
 import pathlib
+import mss_functions as thesis
 
 def colorbar(mappable):
     ax = mappable.axes
@@ -68,101 +68,16 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         try:
             number_of_profiles,lat,lon,distance = results[0]
             interp_pressure,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid = results[1]
-            eps_pressure,eps_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid = results[2]
+            eps_pressure,eps_grid,eps_consv_temperature_grid,eps_oxygen_grid,eps_N_squared_grid,eps_density_grid = results[2]
         except TypeError:
             print(cruisename,DATAFILENAME[:-4],"is skipped!")
             continue
 
-
-        #calculate the viscosity (2 different formula)
-        eps_wiki_viscosity_grid = thesis.wiki_viscosity(eps_consv_temperature_grid)/eps_density_grid
-        eps_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid)
-
-        #calculate the Reynolds bouyancy number defined on eps_pressure
-        eps_Reynolds_bouyancy_grid = eps_grid/(eps_viscosity_grid*eps_N_squared_grid)
-        eps_wiki_Reynolds_bouyancy_grid = eps_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
-
+        #use self written function to get BBL
         results = thesis.find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02)
         bathymetrie,list_of_bathymetrie_indices = results[0]
         BBL,list_of_BBL_indices = results[1]
         BBL_range,list_of_BBL_range_indices = results[2]
-
-
-        """"
-        #search for bottom currents
-        ###########################################################################################################################################################
-        bathymetrie = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
-        list_of_bathymetrie_indices = np.zeros(number_of_profiles)
-
-        halocline = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
-        list_of_halocline_indices = np.zeros(number_of_profiles)
-
-        BBL = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
-        list_of_BBL_indices = np.zeros(number_of_profiles)
-
-        BBL_range = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
-        list_of_BBL_range_indices = np.zeros(number_of_profiles)
-
-        for i in range(number_of_profiles):
-
-            #------------------search for bathymetrie values starts from below:-------------------------------
-            #search is done in the fine grid
-
-            #returns the pressure of the last nan value in a continuous row starting from high pressure (TODO:is it better to use the last index with data?)
-            nan_index =  -np.argmax(np.flip(~np.isnan(salinity_grid[i,:]))) #at the moment the index is negative
-            nan_index = density_grid[i,:].size + nan_index #now defined as positive index
-            
-           
-            if nan_index == density_grid[i,:].size:
-                if not np.isnan(salinity_grid[i,-1]): #if there are no NAN values towards the bottom
-                    nan_index = len(interp_pressure)-1
-                    
-            list_of_bathymetrie_indices[i] = nan_index 
-            bathymetrie[i] = interp_pressure[nan_index]
-            
-            #print(nan_index)
-            #print("bathymetrie check\n")
-            #print(interp_pressure[nan_index-1],salinity_grid[i,nan_index-1])
-            #print(interp_pressure[nan_index],salinity_grid[i,nan_index])
-            #print(interp_pressure[nan_index+1],salinity_grid[i,nan_index+1])
-            #while interp_coarse_pressure[j]
-            #if 
-          
-            #TODO
-            #------------------search for halocline values starts from above:-------------------------------
-            
-
-
-            #------------------search for BBL values starts from below:-------------------------------  
-            
-            #index of maximal distance bottom plus 15m 
-            height_above_ground = 10
-            BBL_boundary_index = np.argmax(interp_pressure >= (bathymetrie[i]-height_above_ground))
-            assert(interp_pressure[BBL_boundary_index]<bathymetrie[i]) #tests if the point 15m above the ground is really above
-            
-            #TODO get the index (and from that the pressure) where the density difference is bigger than 0.01
-            #BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:density_grid[i,:].size + nan_index])>0.01))
-            
-            #get the index (and from that the pressure) where the density difference is at maximum (in the lowermost 15 m)
-            assert(nan_index>=0)
-            BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
-            
-            #check if the maximum is at the edge of the intervall or if the maximum is too small
-            minimal_density_difference = 0.02
-            if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index-1]) < minimal_density_difference):
-                BBL_index = nan_index #equivalent to a BBL thickness of 0
-            
-            #print(BBL_index,nan_index)
-            #print("BBL",interp_pressure[BBL_index])
-            #print(bathymetrie[i])
-           
-            list_of_BBL_indices[i] = BBL_index 
-            BBL[i] = interp_pressure[BBL_index]
-            
-            list_of_BBL_range_indices[i] = BBL_boundary_index 
-            BBL_range[i] = interp_pressure[BBL_boundary_index]
-
-        """
 
 
         ##########################################################################################################################################################   
@@ -287,8 +202,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         f1.tight_layout() 
         f2.tight_layout()     
         
-        f1.savefig("./BBL_profiles/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_transect", dpi=450)
-        f2.savefig("./BBL_profiles/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_profiles", dpi=450)
+        f1.savefig("./BBL_profiles/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_BBL_transect", dpi=300)
+        f2.savefig("./BBL_profiles/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_BBL_profiles", dpi=300)
 
         plt.close(fig = "all")
 plt.show()

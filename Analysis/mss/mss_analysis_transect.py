@@ -1,6 +1,6 @@
 #---------------------------------------------------------#
 #Plots one mss transect 
-#plus as an exampe one profile from that transect
+#plus as an example one profile from that transect
 #---------------------------------------------------------#
 
 import numpy as np
@@ -32,6 +32,114 @@ def wiki_viscosity(T):
     C = 149.3
     
     return A * np.exp(B/(T-C))
+
+
+
+def experimental_BBL(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02):
+    import numpy as np
+
+    """
+    procedural function    
+    
+    searches for the highermost nanvalues as the ground
+    calculates the position of the bottom boundary layer    
+    
+    input:
+       number_of_profiles               number of profiles/casts in the transect
+       interp_pressure
+       
+       density_grid                     density in kg/m^3 as a grid (number_of_profiles x len(interp_pressure))
+       oxygen_grid                      oxygen saturation in percent as a grid (number_of_profiles x len(interp_pressure))
+       
+       height_above_ground              Default value 10m
+       minimal_density_difference       Default value 0.02 kg/m^3
+    
+    
+    return values:
+        bathymetrie                     pressure values of the first NaN value (in most cases this corresponds to the bottom, but is sometimes wrong due to missing data
+        list_of_bathymetrie_indices     corresponding index (eg for interp_pressure or other arrays of the same size)
+        
+        BBL                             pressure values of the calculated Bottom Boundary Layer (exact position depends on the criteria)
+        list_of_BBL_indices             corresponding index (eg for interp_pressure or other arrays of the same size)
+        
+        BBL_range                       pressure values of "height_above_ground" meters. Follows therefore the batyhmetrie. 
+        list_of_BBL_range_indices       corresponding index (eg for interp_pressure or other arrays of the same size)
+    
+    
+    """    
+    #search for bottom currents
+    ###########################################################################################################################################################
+    bathymetrie = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
+    list_of_bathymetrie_indices = np.zeros(number_of_profiles)
+
+    halocline = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
+    list_of_halocline_indices = np.zeros(number_of_profiles)
+
+    BBL = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
+    list_of_BBL_indices = np.zeros(number_of_profiles)
+
+    BBL_range = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
+    list_of_BBL_range_indices = np.zeros(number_of_profiles)
+
+    for i in range(number_of_profiles):
+
+        #------------------search for bathymetrie values starts from below:-------------------------------
+        #search is done in the fine grid
+
+        #returns the pressure of the last nan value in a continuous row starting from high pressure (TODO:is it better to use the last index with data?)
+        nan_index =  -np.argmax(np.flip(~np.isnan(density_grid[i,:]))) #at the moment the index is negative
+        nan_index = density_grid[i,:].size + nan_index #now defined as positive index
+        
+       
+        if nan_index == density_grid[i,:].size:
+            if not np.isnan(density_grid[i,-1]): #if there are no NAN values towards the bottom
+                nan_index = len(interp_pressure)-1
+                
+        list_of_bathymetrie_indices[i] = nan_index 
+        bathymetrie[i] = interp_pressure[nan_index]
+        
+      
+        #TODO
+        #------------------search for halocline values starts from above:-------------------------------
+        
+
+
+        #------------------search for BBL values starts from below:-------------------------------  
+        
+        #index of maximal distance bottom plus 15m 
+        
+        BBL_boundary_index = np.argmax(interp_pressure >= (bathymetrie[i]-height_above_ground))
+        assert(interp_pressure[BBL_boundary_index]<bathymetrie[i]) #tests if the point 15m above the ground is really above
+        
+        #TODO get the index (and from that the pressure) where the density difference is bigger than 0.01
+        BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:density_grid[i,:].size + nan_index])>minimal_density_difference))
+        
+        #get the index (and from that the pressure) where the density difference is at maximum (in the lowermost 15 m)
+        assert(nan_index>=0)
+        #BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
+        
+        #check if the maximum is at the edge of the intervall or if the maximum is too small
+        if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index+1]) < minimal_density_difference):
+            BBL_index = nan_index #equivalent to a BBL thickness of 0
+        
+        #print(BBL_index,nan_index)
+        #print("BBL",interp_pressure[BBL_index])
+        #print(bathymetrie[i])
+       
+        list_of_BBL_indices[i] = BBL_index 
+        BBL[i] = interp_pressure[BBL_index]
+        
+        list_of_BBL_range_indices[i] = BBL_boundary_index 
+        BBL_range[i] = interp_pressure[BBL_boundary_index]
+        
+        
+    return [[bathymetrie,list_of_bathymetrie_indices],[BBL,list_of_BBL_indices],[BBL_range,list_of_BBL_range_indices]]
+
+
+#########################################################################################################################################
+#########################################################################################################################################
+#########################################################################################################################################
+#########################################################################################################################################
             
 #Constants
 rho_0 = 1000 #kg/m³
@@ -80,6 +188,11 @@ bathymetrie,list_of_bathymetrie_indices = results[0]
 BBL,list_of_BBL_indices = results[1]
 BBL_range,list_of_BBL_range_indices = results[2]
         
+#Test of different BBL conditions
+exp_results = experimental_BBL(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02)
+exp_bathymetrie,exp_list_of_bathymetrie_indices = results[0]
+exp_BBL,exp_list_of_BBL_indices = results[1]
+exp_BBL_range,exp_list_of_BBL_range_indices = results[2]
 
 #append the last distance plus the last difference (for plotting all the n profiles we need a distance array of size n+1 
 plotmesh_distance = np.append(distance,2*distance[-1]-distance[-2])

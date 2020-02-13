@@ -56,16 +56,22 @@ def Osborn(Reb):
     return vOsborn(Reb)
 
 
+f1,axis1 = plt.subplots()
+
  
 Reb = np.linspace(0,1000,1000)
 
 #bigger linewidths
 linewidth = 4
 
-plt.plot(Reb,Osborn(Reb), linewidth=linewidth, label = "Osborn")
-plt.plot(Reb,BB(Reb), linewidth=linewidth, label = "BB")
-plt.plot(Reb,Skif(Reb), "--", linewidth=linewidth ,label = "Skif")
+axis1.plot(Reb,Osborn(Reb), linewidth=linewidth, label = "Osborn")
+axis1.plot(Reb,BB(Reb), linewidth=linewidth, label = "BB")
+axis1.plot(Reb,Skif(Reb), "--", linewidth=linewidth ,label = "Skif")
 
+axis1.set_xlabel(r"$Re_b$")
+axis1.set_ylabel(r"$\Gamma$")
 
-plt.legend()
+axis1.legend(loc = "lower right")
+axis1.set_title("Turbulence parametrizations")
+
 plt.show()      

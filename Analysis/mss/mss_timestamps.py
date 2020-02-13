@@ -93,9 +93,9 @@ assert(len(emb177_transsect_list) == len(set(emb177_transsect_list)))
 assert(len(emb217_transsect_list) == len(set(emb217_transsect_list)))
 
             
-np.savez("./emb169_mss_timestamps",emb169_mss_start = emb169_mss_start,  emb169_mss_stop = emb169_mss_stop, emb169_transsect_list = emb169_transsect_list)
-np.savez("./emb177_mss_timestamps",emb177_mss_start = emb177_mss_start,  emb177_mss_stop = emb177_mss_stop, emb177_transsect_list = emb177_transsect_list)            
-np.savez("./emb217_mss_timestamps",emb217_mss_start = emb217_mss_start,  emb217_mss_stop = emb217_mss_stop, emb217_transsect_list = emb217_transsect_list)
+np.savez("/home/ole/Thesis/Analysis/mss/emb169_mss_timestamps",emb169_mss_start = emb169_mss_start,  emb169_mss_stop = emb169_mss_stop, emb169_transsect_list = emb169_transsect_list)
+np.savez("/home/ole/Thesis/Analysis/mss/emb177_mss_timestamps",emb177_mss_start = emb177_mss_start,  emb177_mss_stop = emb177_mss_stop, emb177_transsect_list = emb177_transsect_list)          
+np.savez("/home/ole/Thesis/Analysis/mss/emb217_mss_timestamps",emb217_mss_start = emb217_mss_start,  emb217_mss_stop = emb217_mss_stop, emb217_transsect_list = emb217_transsect_list)
             
             
             
