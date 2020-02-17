@@ -67,8 +67,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         try:
             number_of_profiles,lat,lon,distance = results[0]
-            interp_pressure,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid = results[1]
-            eps_pressure,eps_grid,eps_consv_temperature_grid,eps_oxygen_grid,eps_N_squared_grid,eps_density_grid = results[2]
+            interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid = results[1]
+            eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid = results[2]
         except TypeError:
             print(cruisename,DATAFILENAME[:-4],"is skipped!")
             continue
@@ -139,7 +139,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #Plot the data  
         #append the last distance plus the last difference (for plotting all the n profiles we need a distance array of size n+1 
         plotmesh_distance = np.append(distance,2*distance[-1]-distance[-2])
-        
+        #plotmesh_longitude = np.append(lon,2*lon[-1]-lon[-2])
+                
         cmap = plt.get_cmap('viridis')
         cmap.set_bad(color = 'lightgrey')
  

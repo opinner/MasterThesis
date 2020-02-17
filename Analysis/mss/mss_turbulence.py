@@ -77,8 +77,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         lon                             longitude in degrees (as a float) of the casts
         distance                        distance in km from the starting point of the transect
         
-        interp_pressure                 equidistant pressure array between the highest and the lowest measured pressure value
-        oxygen_grid                     oxygen saturation in percent as a grid (number_of_profiles x len(interp_pressure))
+        interp_pressure                 equidistant 1D pressure array between the highest and the lowest measured pressure value
+        oxygen_grid                     oxygen concentration in percent as a grid (number_of_profiles x len(interp_pressure))
         salinity_grid                   salinity in g/kg as a grid (number_of_profiles x len(interp_pressure)) 
         consv_temperature_grid          conservative temperature in degrees Celsius as a grid (number_of_profiles x len(interp_pressure))
         density_grid                    density in kg/m^3 as a grid (number_of_profiles x len(interp_pressure))
@@ -86,6 +86,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         eps_pressure                    pressure values to the dissipation rate values (the pressure distance between points is bigger than in interp_pressure) 
         eps_grid                        measured dissipation rate values (number_of_profiles x len(eps_pressure))
         eps_consv_temperature_grid      conservative temperature as a grid (number_of_profiles x len(eps_pressure))
+        eps_oxygen_grid                 oxygen concentration in percent as a grid (number_of_profiles x len(eps_pressure))
         eps_N_squared_grid              N^2, the Brunt-Vaisala frequency in 1/s^2 as a grid (number_of_profiles x len(eps_pressure))
         eps_density_grid                density in kg/m^3 as a grid (number_of_profiles x len(eps_pressure))
         

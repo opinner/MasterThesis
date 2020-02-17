@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import geopy.distance as geo
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import gsw 
-
+import mss_functions as thesis
 
 def colorbar(mappable):
     ax = mappable.axes
@@ -94,6 +94,9 @@ def experimental_BBL(number_of_profiles,interp_pressure,density_grid,oxygen_grid
         if nan_index == density_grid[i,:].size:
             if not np.isnan(density_grid[i,-1]): #if there are no NAN values towards the bottom
                 nan_index = len(interp_pressure)-1
+        
+        
+        assert(nan_index>=0)
                 
         list_of_bathymetrie_indices[i] = nan_index 
         bathymetrie[i] = interp_pressure[nan_index]
@@ -112,15 +115,24 @@ def experimental_BBL(number_of_profiles,interp_pressure,density_grid,oxygen_grid
         assert(interp_pressure[BBL_boundary_index]<bathymetrie[i]) #tests if the point 15m above the ground is really above
         
         #TODO get the index (and from that the pressure) where the density difference is bigger than 0.01
-        BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:density_grid[i,:].size + nan_index])>minimal_density_difference))
+        #TODO still yields negative Indices
+        #BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:density_grid[i,:].size + nan_index])>minimal_density_difference))
+        
+        #
         
         #get the index (and from that the pressure) where the density difference is at maximum (in the lowermost 15 m)
-        assert(nan_index>=0)
-        #BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
+        BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
+        
+        assert(BBL_index>=0)
+        print(nan_index,BBL_index)
+        ((density_grid[i,BBL_index]-density_grid[i,BBL_index+1]) < minimal_density_difference)
+        
         
         #check if the maximum is at the edge of the intervall or if the maximum is too small
         if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index+1]) < minimal_density_difference):
             BBL_index = nan_index #equivalent to a BBL thickness of 0
+        
+
         
         #print(BBL_index,nan_index)
         #print("BBL",interp_pressure[BBL_index])
@@ -145,10 +157,11 @@ def experimental_BBL(number_of_profiles,interp_pressure,density_grid,oxygen_grid
 rho_0 = 1000 #kg/m³
 g = 9.81 #m/s² #could be replace by gsw.grav(lat,p)
 
-FILENAME = "/home/ole/share-windows/emb217_mss_data/TR1-4.mat"
+datafile_path = "/home/ole/share-windows/emb217_mss_data/TR1-4.mat"
 
-splitted_filename = FILENAME.split("/")
+splitted_filename = datafile_path.split("/")
 cruisename = splitted_filename[4][0:6]
+DATAFILENAME = splitted_filename[-1]
 print("cruisename",cruisename)  
 
 #define the pictures
@@ -160,20 +173,21 @@ f5, axarr5 = plt.subplots(2)
 
 
     
-print("Filename:",sio.whosmat(FILENAME))
+print("Filename:",sio.whosmat(datafile_path))
 
 
 results = thesis.load_clean_and_interpolate_data(datafile_path)
 
 try:
     number_of_profiles,lat,lon,distance = results[0]
-    interp_pressure,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid = results[1]
-    eps_pressure,eps_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid = results[2]
+    interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid = results[1]
+    eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid = results[2]
 except TypeError:
     print(cruisename,DATAFILENAME[:-4],"is skipped!")
-    continue
             
           
+
+
 
 #calculate the viscosity (2 different formula)
 eps_wiki_viscosity_grid = wiki_viscosity(eps_consv_temperature_grid)/eps_density_grid
@@ -183,30 +197,35 @@ eps_viscosity_grid = get_viscosity(eps_consv_temperature_grid)
 eps_Reynolds_bouyancy_grid = eps_grid/(eps_viscosity_grid*eps_N_squared_grid)
 eps_wiki_Reynolds_bouyancy_grid = eps_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
 
+#find the BBL
 results = thesis.find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02)
 bathymetrie,list_of_bathymetrie_indices = results[0]
 BBL,list_of_BBL_indices = results[1]
 BBL_range,list_of_BBL_range_indices = results[2]
-        
+
+"""        
 #Test of different BBL conditions
 exp_results = experimental_BBL(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02)
 exp_bathymetrie,exp_list_of_bathymetrie_indices = results[0]
 exp_BBL,exp_list_of_BBL_indices = results[1]
 exp_BBL_range,exp_list_of_BBL_range_indices = results[2]
+"""
 
 #append the last distance plus the last difference (for plotting all the n profiles we need a distance array of size n+1 
 plotmesh_distance = np.append(distance,2*distance[-1]-distance[-2])
-       
-axarr5[0].plot(distance,bathymetrie)
+plotmesh_longitude = np.append(lon,2*lon[-1]-lon[-2])
+        
+               
+axarr5[0].plot(lon,bathymetrie)
 axarr5[0].invert_yaxis()
 axarr5[1].plot(lon)    
     
 #draw the calculated layers in the plot    
-axarr1[0].plot(distance,bathymetrie)
-axarr1[0].plot(distance,BBL)
+axarr1[0].plot(lon,bathymetrie)
+axarr1[0].plot(lon,BBL)
     
 #Plotting
-transect_index = -5
+transect_index = -6
 print("Profile at Longitude",lon[transect_index])
 #print(lon)
 #print(np.all(np.diff(lon)>0))
@@ -217,13 +236,13 @@ img4_0d = axarr4[0].plot(0,BBL_range[transect_index],"ok")
 print("Bottom",bathymetrie[transect_index],"BBL",BBL[transect_index],"max BBL",interp_pressure[transect_index],)
 
 
-img4_1 = axarr4[1].plot(salinity_grid[transect_index,:],interp_pressure)
+img4_1 = axarr4[1].plot(density_grid[transect_index,:],interp_pressure)
 
 img4_2 = axarr4[2].plot(consv_temperature_grid[transect_index,:],interp_pressure)
 img4_2b = axarr4[2].plot(eps_consv_temperature_grid[transect_index,:],eps_pressure)
 
 #img4_3 = axarr4[3].plot(BV_freq_squared_grid_gsw[transect_index,:],mid_point_pressure, label = "fine grid")
-img4_3b = axarr4[3].plot(np.log10(eps_N_squared[transect_index,:]),eps_pressure, label = "eps grid")
+img4_3b = axarr4[3].plot(np.log10(eps_N_squared_grid[transect_index,:]),eps_pressure, label = "eps grid")
 
 img4_4 = axarr4[4].plot(eps_viscosity_grid[transect_index,:]*10**6,eps_pressure,label = "Ilker")
 img4_4b = axarr4[4].plot(eps_wiki_viscosity_grid[transect_index,:]*10**6,eps_pressure,"--",label = "Wikipedia")
@@ -238,7 +257,7 @@ img4_7 = axarr4[7].plot(np.diff(density_grid[transect_index,:]),interp_pressure[
 
 axarr4[0].set_xlabel("oxygen")
 axarr4[0].set_ylabel("pressure [dbar]")
-axarr4[1].set_xlabel("SA")
+axarr4[1].set_xlabel("density")
 axarr4[2].set_xlabel("CT")
 axarr4[3].set_xlabel("N^2")
 axarr4[4].set_xlabel("viscosity / 10^(-6)")
@@ -251,7 +270,7 @@ axarr4[6].legend()
 axarr4[6].set_xlim([-15,100])
 
 axarr4[0].set_title("Measurement 02")
-axarr4[1].set_title("Measurement SA")
+axarr4[1].set_title("calulation density")
 axarr4[2].set_title("Measurement CT")
 axarr4[3].set_title("Calculation N^2")
 axarr4[4].set_title("Calculation nu")
@@ -263,22 +282,22 @@ axarr4[6].set_title("Calculation Re_b")
 img3_0 = axarr3[0].pcolormesh(lon,eps_pressure,eps_Reynolds_bouyancy_grid.T, vmin = -10, vmax = 1000)
 img3_1 = axarr3[1].hist(np.log10(eps_grid.flatten()),bins = 300)
 img3_1 = axarr3[1].hist(np.log10(eps_viscosity_grid.flatten()),bins = 300)
-img3_1 = axarr3[1].hist(np.log10(eps_N_squared.flatten()),bins = 300)
+img3_1 = axarr3[1].hist(np.log10(eps_N_squared_grid.flatten()),bins = 300)
 img3_2 = axarr3[2].hist(np.log10(eps_Reynolds_bouyancy_grid.flatten()),bins = 300) 
  
 #Plot the data   
-img1_0 = axarr1[0].pcolormesh(plotmesh_distance,interp_pressure,oxygen_grid.T)
-img1_1 = axarr1[1].pcolormesh(plotmesh_distance,interp_pressure,salinity_grid.T)
-img1_2 = axarr1[2].pcolormesh(plotmesh_distance,interp_pressure,consv_temperature_grid.T)
-img1_3 = axarr1[3].pcolormesh(plotmesh_distance,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
+img1_0 = axarr1[0].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_grid.T)
+img1_1 = axarr1[1].pcolormesh(plotmesh_longitude,interp_pressure,salinity_grid.T)
+img1_2 = axarr1[2].pcolormesh(plotmesh_longitude,interp_pressure,consv_temperature_grid.T)
+img1_3 = axarr1[3].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
 
-img2_0 = axarr2[0].pcolormesh(plotmesh_distance,interp_pressure,density_grid.T)
-img2_1 = axarr2[1].pcolormesh(plotmesh_distance,eps_pressure,eps_N_squared.T,vmin = 0, vmax = 0.015)
-img2_2 = axarr2[2].pcolormesh(plotmesh_distance,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
-img2_3 = axarr2[3].pcolormesh(plotmesh_distance,eps_pressure,eps_Reynolds_bouyancy_grid.T, vmin = -5, vmax = 100)
+img2_0 = axarr2[0].pcolormesh(plotmesh_longitude,interp_pressure,density_grid.T)
+img2_1 = axarr2[1].pcolormesh(plotmesh_longitude,eps_pressure,eps_N_squared_grid.T,vmin = 0, vmax = 0.015)
+img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10)
+img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure,eps_Reynolds_bouyancy_grid.T, vmin = -5, vmax = 100)
 
-axarr1[3].set_xlabel("distance [km]")
-axarr2[3].set_xlabel("distance [km]")
+axarr1[3].set_xlabel("Longitude")# [km]")
+axarr2[3].set_xlabel("LOngitude")# [km]")
 
     
     

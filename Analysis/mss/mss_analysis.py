@@ -1,6 +1,10 @@
 #---------------------------------------------------------#
 #Plots every mss measurement as a transect 
 #plus as an example one profile from that transect
+
+#TODO Why all the runtime warnings?
+#TODO RuntimeWarning for nan values. Solve by switching to pandas?
+#TODO change plots from distance to longitude
 #---------------------------------------------------------#
 import numpy as np
 import scipy.io as sio
@@ -63,12 +67,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         try:
             number_of_profiles,lat,lon,distance = results[0]
-            interp_pressure,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid = results[1]
-            eps_pressure,eps_grid,eps_consv_temperature_grid,eps_oxygen_grid,eps_N_squared_grid,eps_density_grid = results[2]
+            interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid = results[1]
+            eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid = results[2]
         except TypeError:
             print(cruisename,DATAFILENAME[:-4],"is skipped!")
             continue
      
+     
+
 
         #calculate the viscosity (2 different formula)
         eps_wiki_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_density_grid,"Wikipedia")
@@ -83,7 +89,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         #A negative Reynolds bouyancy has no physical meaning, therefore get replaced by NaNs
         #These negative values occur through a negative squared bouyancy frequency
-        eps_Reynolds_bouyancy_grid[eps_Reynolds_bouyancy_grid < 0] = np.nan
+        eps_Reynolds_bouyancy_grid[eps_Reynolds_bouyancy_grid < 0] = np.nan 
         eps_wiki_Reynolds_bouyancy_grid[eps_wiki_Reynolds_bouyancy_grid < 0] = np.nan            
                     
         #apply the correction on the dissipation rate following Garanaik2018           
@@ -123,6 +129,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         img4_0b = axarr4[0].plot(0,BBL[transect_index],"Dr")
         img4_0c = axarr4[0].plot(0,bathymetrie[transect_index],"Dg")
         img4_0d = axarr4[0].plot(0,BBL_range[transect_index],"ok")
+        
+        
         print("Bottom",bathymetrie[transect_index],"BBL",BBL[transect_index],"max BBL",interp_pressure[transect_index],)
 
 
@@ -177,6 +185,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #Plot the data  
         #append the last distance plus the last difference (for plotting all the n profiles we need a distance array of size n+1 
         plotmesh_distance = np.append(distance,2*distance[-1]-distance[-2])
+        plotmesh_longitude = np.append(lon,2*lon[-1]-lon[-2])
 
         cmap_hot = plt.get_cmap('hot_r')
         cmap_hot.set_bad(color = 'lightgrey')
@@ -184,28 +193,28 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         cmap_RdBu = plt.get_cmap('RdBu_r')
         cmap_RdBu.set_bad(color = 'lightgrey')
  
-        img1_0 = axarr1[0].pcolormesh(plotmesh_distance,interp_pressure,oxygen_grid.T,cmap = cmap_RdBu)
-        img1_1 = axarr1[1].pcolormesh(plotmesh_distance,interp_pressure,salinity_grid.T,cmap = cmap_RdBu)
-        img1_2 = axarr1[2].pcolormesh(plotmesh_distance,interp_pressure,consv_temperature_grid.T,cmap = cmap_RdBu)
-        img1_3 = axarr1[3].pcolormesh(plotmesh_distance,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10,cmap = cmap_hot)
+        img1_0 = axarr1[0].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_grid.T,cmap = cmap_RdBu)
+        img1_1 = axarr1[1].pcolormesh(plotmesh_longitude,interp_pressure,salinity_grid.T,cmap = cmap_RdBu)
+        img1_2 = axarr1[2].pcolormesh(plotmesh_longitude,interp_pressure,consv_temperature_grid.T,cmap = cmap_RdBu)
+        img1_3 = axarr1[3].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10,cmap = cmap_hot)
 
 
-        img2_0 = axarr2[0].pcolormesh(plotmesh_distance,interp_pressure,density_grid.T,cmap = cmap_RdBu)
-        img2_1 = axarr2[1].pcolormesh(plotmesh_distance,eps_pressure,eps_N_squared_grid.T,vmin = 0, vmax = 0.015,cmap = cmap_RdBu)
-        img2_2 = axarr2[2].pcolormesh(plotmesh_distance,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10,cmap = cmap_RdBu)
-        img2_3 = axarr2[3].pcolormesh(plotmesh_distance,eps_pressure,eps_Reynolds_bouyancy_grid.T, vmin = -5, vmax = 100,cmap = cmap_hot)
+        img2_0 = axarr2[0].pcolormesh(plotmesh_longitude,interp_pressure,density_grid.T,cmap = cmap_RdBu)
+        img2_1 = axarr2[1].pcolormesh(plotmesh_longitude,eps_pressure,eps_N_squared_grid.T,vmin = 0, vmax = 0.015,cmap = cmap_RdBu)
+        img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10,cmap = cmap_RdBu)
+        img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure,eps_Reynolds_bouyancy_grid.T, vmin = -5, vmax = 100,cmap = cmap_hot)
         
         
         #draw the calculated layers in the plot    
-        axarr1[0].plot(distance,bathymetrie)
-        axarr1[0].plot(distance,BBL)
+        axarr1[0].plot(lon,bathymetrie)
+        axarr1[0].plot(lon,BBL,"g")
            
-        axarr2[0].plot(distance,bathymetrie)
-        axarr2[0].plot(distance,BBL)
+        axarr2[0].plot(lon,bathymetrie)
+        axarr2[0].plot(lon,BBL,"g")
 
 
-        axarr1[3].set_xlabel("distance [km]")
-        axarr2[3].set_xlabel("distance [km]")
+        axarr1[3].set_xlabel("Longitude")#("distance [km]")
+        axarr2[3].set_xlabel("LOngitude")
             
         f1.set_size_inches(18,10.5)
         f2.set_size_inches(18,10.5)

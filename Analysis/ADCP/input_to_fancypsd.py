@@ -9,6 +9,10 @@ import matplotlib.dates as mdates
 from scipy.optimize import curve_fit 
 
 
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#TODO Sort data to one file per mooring
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 def colorbar(mappable):
     ax = mappable.axes
     fig = ax.figure
@@ -36,6 +40,32 @@ desired_depths_emb217_flach = [20, 50, 60]
 desired_depths_emb169_tief = [58,65,72]
 desired_depths_emb177_tief = [30, 50, 61]
 desired_depths_emb217_tief = [20, 50, 60]
+
+#moorings:
+emb169_flach_original_cuts = []
+emb169_flach_centered_cuts = []
+emb169_flach_depths_of_cuts = []
+                
+emb169_tief_original_cuts = []
+emb169_tief_centered_cuts = []
+emb169_tief_depths_of_cuts = []
+
+emb177_flach_original_cuts = []
+emb177_flach_centered_cuts = []
+emb177_flach_depths_of_cuts = []
+
+emb177_tief_original_cuts = []
+emb177_tief_centered_cuts = []
+emb177_tief_depths_of_cuts = []
+
+emb217_flach_original_cuts = []
+emb217_flach_centered_cuts = []
+emb217_flach_depths_of_cuts = []
+
+emb217_tief_original_cuts = []
+emb217_tief_centered_cuts = []
+emb217_tief_depths_of_cuts = []
+
 
     
 for FOLDERNAME in LIST_OF_FOLDERS:
@@ -191,10 +221,6 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         print("from ",depth[0]," to ",depth[-1])
         
         
-        original_cuts = []
-        centered_cuts = []
-        depths_of_cuts = []
-        
         for desired_depth in horizontal_cut:
         
             #finds the index of the depth closely to the prior determined desired depth value
@@ -207,22 +233,125 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                 
                 print(cruisename,flach_or_tief,depth[index],desired_depth)
 
-                #Data with the mean subtracted and holes filled
-                centered_cuts.append(dfm_north_south[index,:])
-            
-                #original measurement data
-                original_cuts.append(north_south[index,:])
+                if cruisename == "emb169":
+                    if flach_or_tief == "tief":
+                        #Data with the mean subtracted and holes filled
+                        emb169_tief_centered_cuts.append(dfm_north_south[index,:])
+                        #original measurement data
+                        emb169_tief_original_cuts.append(north_south[index,:])
+                        #actual depth of the slice               
+                        emb169_tief_depths_of_cuts.append(depth[index])
+                        
+                    elif  flach_or_tief == "flach":
+                        #Data with the mean subtracted and holes filled
+                        emb169_flach_centered_cuts.append(dfm_north_south[index,:])
+                        #original measurement data
+                        emb169_flach_original_cuts.append(north_south[index,:])
+                        #actual depth of the slice
+                        emb169_flach_depths_of_cuts.append(depth[index])
+                        
+                    else:
+                        print(flach_or_tief)
+                        assert(False)
+                        
+                if cruisename == "emb177":
+                    if flach_or_tief == "tief":
+                        #Data with the mean subtracted and holes filled
+                        emb177_tief_centered_cuts.append(dfm_north_south[index,:])
+                        #original measurement data
+                        emb177_tief_original_cuts.append(north_south[index,:])
+                        #actual depth of the slice
+                        emb177_tief_depths_of_cuts.append(depth[index])
+                        
+                    elif  flach_or_tief == "flach":
+                        #Data with the mean subtracted and holes filled
+                        emb177_flach_centered_cuts.append(dfm_north_south[index,:])
+                        #original measurement data
+                        emb177_flach_original_cuts.append(north_south[index,:])
+                        #actual depth of the slice
+                        emb177_flach_depths_of_cuts.append(depth[index])
+                        
+                    else:
+                        assert(False)
+                        
+                        
+                if cruisename == "emb217":
+                    if flach_or_tief == "tief" or flach_or_tief == "Tief":
+                        #Data with the mean subtracted and holes filled
+                        emb217_tief_centered_cuts.append(dfm_north_south[index,:])
+                        #original measurement data
+                        emb217_tief_original_cuts.append(north_south[index,:])
+                        #actual depth of the slice
+                        emb217_tief_depths_of_cuts.append(depth[index])
+                        
+                    elif  flach_or_tief == "flach" or flach_or_tief == "Flach":
+                        #Data with the mean subtracted and holes filled
+                        emb217_flach_centered_cuts.append(dfm_north_south[index,:])
+                        #original measurement data
+                        emb217_flach_original_cuts.append(north_south[index,:])
+                        #actual depth of the slice
+                        emb217_flach_depths_of_cuts.append(depth[index])
+                        
+                    else:
+                        print(flach_or_tief)
+                        assert(False)
+
+
+
         
-                depths_of_cuts.append(depth[index])
+        
+FILENAME_emb169_flach = "/home/ole/share-windows/adcp_slices/ADCP_horizontal_slice_emb169_flach"
+emb169_flach_matlab_dictionary = {}
+emb169_flach_matlab_dictionary["depths_of_cuts"] = emb169_flach_depths_of_cuts
+emb169_flach_matlab_dictionary["original_cuts"] = emb169_flach_original_cuts
+emb169_flach_matlab_dictionary["centered_cuts"] = emb169_flach_centered_cuts
+#save data to a .mat to use in fancypsd.mat
+sio.savemat(FILENAME_emb169_flach,emb169_flach_matlab_dictionary)
         
         
-        FILENAME = "./Cuts/ADCP_cuts_" + cruisename + "_" + flach_or_tief
-        
-        #save data to a .mat to use in fancypsd.mat
-        #sio.savemat(FILENAME,depths_of_cuts = depths_of_cuts, original_cuts = original_cuts, centered_cuts = centered_cuts)
-        
-        
-        
+FILENAME_emb169_tief = "/home/ole/share-windows/adcp_slices/ADCP_horizontal_slice_emb169_tief"
+emb169_tief_matlab_dictionary = {}
+emb169_tief_matlab_dictionary["depths_of_cuts"] = emb169_tief_depths_of_cuts
+emb169_tief_matlab_dictionary["original_cuts"] = emb169_tief_original_cuts
+emb169_tief_matlab_dictionary["centered_cuts"] = emb169_tief_centered_cuts
+#save data to a .mat to use in fancypsd.mat
+sio.savemat(FILENAME_emb169_tief,emb169_tief_matlab_dictionary)
+
+
+FILENAME_emb177_flach = "/home/ole/share-windows/adcp_slices/ADCP_horizontal_slice_emb177_flach"
+emb177_flach_matlab_dictionary = {}
+emb177_flach_matlab_dictionary["depths_of_cuts"] = emb177_flach_depths_of_cuts
+emb177_flach_matlab_dictionary["original_cuts"] = emb177_flach_original_cuts
+emb177_flach_matlab_dictionary["centered_cuts"] = emb177_flach_centered_cuts
+#save data to a .mat to use in fancypsd.mat
+sio.savemat(FILENAME_emb177_flach,emb177_flach_matlab_dictionary)
+
+
+FILENAME_emb177_tief = "/home/ole/share-windows/adcp_slices/ADCP_horizontal_slice_emb177_tief"
+emb177_tief_matlab_dictionary = {}
+emb177_tief_matlab_dictionary["depths_of_cuts"] = emb177_tief_depths_of_cuts
+emb177_tief_matlab_dictionary["original_cuts"] = emb177_tief_original_cuts
+emb177_tief_matlab_dictionary["centered_cuts"] = emb177_tief_centered_cuts
+#save data to a .mat to use in fancypsd.mat
+sio.savemat(FILENAME_emb177_tief,emb177_tief_matlab_dictionary)
+
+
+FILENAME_emb217_flach = "/home/ole/share-windows/adcp_slices/ADCP_horizontal_slice_emb217_flach"
+emb217_flach_matlab_dictionary = {}
+emb217_flach_matlab_dictionary["depths_of_cuts"] = emb217_flach_depths_of_cuts
+emb217_flach_matlab_dictionary["original_cuts"] = emb217_flach_original_cuts
+emb217_flach_matlab_dictionary["centered_cuts"] = emb217_flach_centered_cuts
+#save data to a .mat to use in fancypsd.mat
+sio.savemat(FILENAME_emb217_flach,emb217_flach_matlab_dictionary)
+
+
+FILENAME_emb217_tief = "/home/ole/share-windows/adcp_slices/ADCP_horizontal_slice_emb217_tief"
+emb217_tief_matlab_dictionary = {}
+emb217_tief_matlab_dictionary["depths_of_cuts"] = emb217_tief_depths_of_cuts
+emb217_tief_matlab_dictionary["original_cuts"] = emb217_tief_original_cuts
+emb217_tief_matlab_dictionary["centered_cuts"] = emb217_tief_centered_cuts
+#save data to a .mat to use in fancypsd.mat
+sio.savemat(FILENAME_emb217_tief,emb217_tief_matlab_dictionary)        
         #create ouput pictures, which will be filled later in the code
         #figure 1 for overview
         #f1, axarr1 = plt.subplots(nrows = 1, ncols = 1)

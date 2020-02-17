@@ -23,13 +23,16 @@ def load_clean_and_interpolate_data(datafile_path):
         distance                        distance in km from the starting point of the transect
         
         interp_pressure                 equidistant pressure array between the highest and the lowest measured pressure value
+        pressure_grid
         oxygen_grid                     oxygen saturation in percent as a grid (number_of_profiles x len(interp_pressure))
         salinity_grid                   salinity in g/kg as a grid (number_of_profiles x len(interp_pressure)) 
         consv_temperature_grid          conservative temperature in degrees Celsius as a grid (number_of_profiles x len(interp_pressure))
         density_grid                    density in kg/m^3 as a grid (number_of_profiles x len(interp_pressure))
         
-        eps_pressure                    pressure values to the dissipation rate values (the pressure distance between points is bigger than in interp_pressure) 
+        eps_pressure                    1D array of pressure values to the dissipation rate values (the pressure distance between points is bigger than in interp_pressure) 
+        eps_pressure_grid               
         eps_grid                        measured dissipation rate values (number_of_profiles x len(eps_pressure))
+        eps_salinity_grid               salinity in g/kg as a grid (number_of_profiles x len(eps_pressure)) 
         eps_consv_temperature_grid      conservative temperature as a grid (number_of_profiles x len(eps_pressure))
         eps_oxygen_grid                 oxygen saturation as a grid (number_of_profiles x len(eps_pressure))
         eps_N_squared_grid              N^2, the Brunt-Vaisala frequency in 1/s^2 as a grid (number_of_profiles x len(eps_pressure))
@@ -68,7 +71,7 @@ def load_clean_and_interpolate_data(datafile_path):
     lon = STA_substructure["LON"][0]
 
     pressure = CTD_substructure["P"][0]
-    oxygen = CTD_substructure["O2"][0]
+    oxygen_sat = CTD_substructure["O2"][0]
     absolute_salinity = CTD_substructure["SA"][0] #is this unit sufficient
     consv_temperature = CTD_substructure["CT"][0] #TODO better use conservative temperature?
     alpha = CTD_substructure["ALPHA"][0]
@@ -106,7 +109,7 @@ def load_clean_and_interpolate_data(datafile_path):
         distance = np.delete(distance,np.s_[33:47])
         
         pressure = np.delete(pressure,np.s_[33:47],axis=0)
-        oxygen = np.delete(oxygen,np.s_[33:47],axis=0)
+        oxygen_sat = np.delete(oxygen_sat,np.s_[33:47],axis=0)
         absolute_salinity =  np.delete(absolute_salinity,np.s_[33:47],axis=0)
         consv_temperature = np.delete(consv_temperature,np.s_[33:47],axis=0)
         alpha = np.delete(alpha,np.s_[33:47],axis=0)
@@ -125,7 +128,7 @@ def load_clean_and_interpolate_data(datafile_path):
         distance = distance[:21]
         
         pressure = pressure[:21]
-        oxygen = oxygen[:21]
+        oxygen_sat = oxygen_sat[:21]
         absolute_salinity =  absolute_salinity[:21]
         consv_temperature = consv_temperature[:21]
         alpha = alpha[:21]
@@ -143,7 +146,7 @@ def load_clean_and_interpolate_data(datafile_path):
         distance = distance[:-1]
         
         pressure = pressure[:-1]
-        oxygen = oxygen[:-1]
+        oxygen_sat = oxygen_sat[:-1]
         absolute_salinity =  absolute_salinity[:-1]
         consv_temperature = consv_temperature[:-1]
         alpha = alpha[:-1]
@@ -199,9 +202,9 @@ def load_clean_and_interpolate_data(datafile_path):
     pressure_grid = np.reshape(interp_pressure,(1,-1))*np.ones((np.shape(pressure)[-1],min_size))
 
     #create grids that changes in distance on x and in depth on y-axis
-    oxygen_grid = np.zeros((np.shape(pressure)[-1],min_size))
-    salinity_grid = np.copy(oxygen_grid)
-    consv_temperature_grid = np.copy(oxygen_grid)
+    oxygen_sat_grid = np.zeros((np.shape(pressure)[-1],min_size))
+    salinity_grid = np.copy(oxygen_sat_grid)
+    consv_temperature_grid = np.copy(oxygen_sat_grid)
     alpha_grid = np.copy(consv_temperature_grid)
     beta_grid = np.copy(salinity_grid)
 
@@ -217,7 +220,7 @@ def load_clean_and_interpolate_data(datafile_path):
     #needed for the interpolation of S and T to the same grid as the eps
     eps_salinity_grid = np.ones((np.shape(eps_grid)))
     eps_consv_temperature_grid = np.ones(np.shape(eps_grid))
-    eps_oxygen_grid = np.copy(eps_salinity_grid)
+    eps_oxygen_sat_grid = np.copy(eps_salinity_grid)
     
 
     #vector times matrix multiplication to get a 2D array, where every column is equal to eps_pressure
@@ -239,7 +242,7 @@ def load_clean_and_interpolate_data(datafile_path):
     #Grid interpolation (loops over all profiles)
     for i in range(number_of_profiles): 
         #interpolation to a common fine grid
-        oxygen_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),oxygen[i].flatten(), left = np.nan, right = np.nan)
+        oxygen_sat_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)
         salinity_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
         consv_temperature_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
         alpha_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),alpha[i].flatten(), left = np.nan, right = np.nan)
@@ -254,7 +257,7 @@ def load_clean_and_interpolate_data(datafile_path):
         eps_grid[i] = eps[i].flatten()
 
         #interpolate S and T to the same grid as eps
-        eps_oxygen_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),oxygen[i].flatten(), left = np.nan, right = np.nan)
+        eps_oxygen_sat_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)
         eps_salinity_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
         eps_consv_temperature_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
         
@@ -274,10 +277,50 @@ def load_clean_and_interpolate_data(datafile_path):
 
     #test if we really calculated N^2 for the same points as pressure points from the dissipation measurement
     assert(np.all(crosscheck_pressure == eps_pressure))
+    
+    #create grids that have the latitude/longitude values for every depth (size: number_of_profiles x len(interp_pressure))
+    lat_grid = np.reshape(lat,(-1,1)) * np.ones((number_of_profiles,max_size))
+    lon_grid = np.reshape(lon,(-1,1)) * np.ones((number_of_profiles,max_size))
+    
+    assert(np.all(lon_grid[:,0] == lon))
+    
+    #create grids that have the latitude/longitude values for every depth (size: number_of_profiles x len(eps_pressure))
+    eps_lat_grid = np.reshape(lat,(-1,1)) * np.ones((number_of_profiles,eps_pressure.size))
+    eps_lon_grid = np.reshape(lat,(-1,1)) * np.ones((number_of_profiles,eps_pressure.size))
       
-      
-    return [[number_of_profiles,lat,lon,distance],[interp_pressure,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid],[eps_pressure,eps_grid,eps_consv_temperature_grid,eps_oxygen_grid,eps_N_squared_grid,eps_density_grid]]
+    #convert oxygen saturation to oxygen concentration (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
+    oxygen_grid = oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
+    eps_oxygen_grid = oxygen_saturation_to_concentration(eps_oxygen_sat_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)     
         
+        
+          
+    return [[number_of_profiles,lat,lon,distance],[interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid],[eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid]]
+        
+
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+def oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat, lon):
+    import gsw 
+    
+    maximum_concentration = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat, lon)
+
+
+    oxygen_concentration = (oxygen_sat_grid / 100 ) * maximum_concentration
+
+
+    return oxygen_concentration
         
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -306,7 +349,7 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
        interp_pressure
        
        density_grid                     density in kg/m^3 as a grid (number_of_profiles x len(interp_pressure))
-       oxygen_grid                      oxygen saturation in percent as a grid (number_of_profiles x len(interp_pressure))
+       oxygen_grid                      oxygen concentration in percent as a grid (number_of_profiles x len(interp_pressure))
        
        height_above_ground              Default value 10m
        minimal_density_difference       Default value 0.02 kg/m^3
@@ -375,10 +418,23 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
         assert(nan_index>=0)
         BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
         
-        #check if the maximum is at the edge of the intervall or if the maximum is too small
-        if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)) or ((density_grid[i,BBL_index]-density_grid[i,BBL_index+1]) < minimal_density_difference):
-            BBL_index = nan_index #equivalent to a BBL thickness of 0
+        density_jump = np.diff(density_grid[i,:])[BBL_index-1]
+        #print(density_jump)
+        #print(np.max(np.diff(density_grid[i,BBL_boundary_index:nan_index])))
+        #check if density jump is really the biggest density step
+        #assert(density_jump == np.max(np.diff(density_grid[i,BBL_boundary_index:nan_index])))
         
+        #check if the maximum is at the edge of the intervall or 
+        if (BBL_index == BBL_boundary_index) or (BBL_index == (BBL_boundary_index+1)):
+            #print(nan_index,BBL_index, "at the upper edge")
+            BBL_index = nan_index
+
+        #check if the maximum is too small
+        elif (density_jump < minimal_density_difference):
+            #print(nan_index,BBL_index, "maximum to small")
+            BBL_index = nan_index
+    
+                    
         #print(BBL_index,nan_index)
         #print("BBL",interp_pressure[BBL_index])
         #print(bathymetrie[i])
@@ -389,7 +445,8 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
         list_of_BBL_range_indices[i] = BBL_boundary_index 
         BBL_range[i] = interp_pressure[BBL_boundary_index]
         
-        
+
+                
     return [[bathymetrie,list_of_bathymetrie_indices],[BBL,list_of_BBL_indices],[BBL_range,list_of_BBL_range_indices]]
 
 
