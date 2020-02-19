@@ -201,7 +201,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         img2_0 = axarr2[0].pcolormesh(plotmesh_longitude,interp_pressure,density_grid.T,cmap = cmap_RdBu)
         img2_1 = axarr2[1].pcolormesh(plotmesh_longitude,eps_pressure,eps_N_squared_grid.T,vmin = 0, vmax = 0.015,cmap = cmap_RdBu)
-        img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10,cmap = cmap_RdBu)
+        img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10,cmap = cmap_hot)
         img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure,eps_Reynolds_bouyancy_grid.T, vmin = -5, vmax = 100,cmap = cmap_hot)
         
         
@@ -214,7 +214,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
 
         axarr1[3].set_xlabel("Longitude")#("distance [km]")
-        axarr2[3].set_xlabel("LOngitude")
+        axarr2[3].set_xlabel("Longitude")
             
         f1.set_size_inches(18,10.5)
         f2.set_size_inches(18,10.5)
@@ -273,6 +273,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         f2.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_calculations")
         f4.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_profiles")
 
+        #close the pictures after saving
         plt.close(fig = "all")
     #plt.show()
 

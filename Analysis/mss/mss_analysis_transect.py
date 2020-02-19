@@ -20,20 +20,6 @@ def colorbar(mappable):
     return fig.colorbar(mappable, cax=cax)
 
 
-def get_viscosity(T):
-#% T is temperature in degC; vis in m2/s
-#% vis=(1.792747-(.05126103*T)+(0.0005918645*T*T))*1e-6;
-#% Ilker
-    return (1.792747-(0.05126103*T)+(0.0005918645*T*T))*1e-6
-
-def wiki_viscosity(T):
-    A = 29.39*1e-3
-    B = 507.88 
-    C = 149.3
-    
-    return A * np.exp(B/(T-C))
-
-
 
 def experimental_BBL(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02):
     import numpy as np
@@ -190,8 +176,8 @@ except TypeError:
 
 
 #calculate the viscosity (2 different formula)
-eps_wiki_viscosity_grid = wiki_viscosity(eps_consv_temperature_grid)/eps_density_grid
-eps_viscosity_grid = get_viscosity(eps_consv_temperature_grid)
+eps_wiki_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_density_grid,"Wikipedia")
+eps_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_density_grid)
 
 #calculate the Reynolds bouyancy number defined on eps_pressure
 eps_Reynolds_bouyancy_grid = eps_grid/(eps_viscosity_grid*eps_N_squared_grid)
