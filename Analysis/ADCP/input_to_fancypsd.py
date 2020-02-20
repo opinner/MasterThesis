@@ -18,9 +18,6 @@ import pandas as pd
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #TODO is centering necessary?
-#TODO mark the interpolated data points
-#TODO cut to the right size
-#TODO which time formatting does fancy_psd need?
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 def colorbar(mappable):
@@ -32,11 +29,12 @@ def colorbar(mappable):
     return fig.colorbar(mappable, cax=cax)
 
 #defines which fraction of missing data is acceptable
-acceptance_limit = 0.2
+acceptance_limit = 0.3
+subtract_mean = True
 
-#Einstellungen Plot:
-vmin = -0.3
-vmax = +0.3  
+#Preferences Plot:
+vmin = -0.3 #lower y-limit of the velocity slices
+vmax = +0.3 #upper y-limit of the velocity slices
 cmap = plt.get_cmap('seismic')
 cmap.set_bad(color = 'lightgrey')#, alpha = 0.5)
 hfmt = mdates.DateFormatter('%d %b')
@@ -51,11 +49,11 @@ LIST_OF_FOLDERS = ["/home/ole/windows/all_data/emb169/deployments/moorings/Peter
 #Handpicked from the complete ADCP plots
 desired_depths_emb169_flach = [58,65,72]
 desired_depths_emb177_flach = [30, 50, 61]
-desired_depths_emb217_flach = [18, 50, 75]
+desired_depths_emb217_flach = [20, 50, 75]
 
 desired_depths_emb169_tief = [20,58,85]
 desired_depths_emb177_tief = [40, 70, 85]
-desired_depths_emb217_tief = [18, 50, 85]
+desired_depths_emb217_tief = [20, 50, 85]
 
 #cuts to avoid edge effects (manually picked) 
 cuts_emb169_flach = [0,-1]
@@ -197,15 +195,22 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         #print("timestep in minutes",timestep*24*60) #result circa 900 s = 15min
         #print("timestep in seconds",timestep*24*60*60)
 
-              
+        
+        if subtract_mean == True:    
         #dfm = difference from mean 
-        try:
-            dfm_west_east = west_east[:,:]-np.reshape(np.nanmean(west_east[:,:],axis=1),(depth.size,1))
-            dfm_north_south = north_south[:,:]-np.reshape(np.nanmean(north_south[:,:],axis=1),(depth.size,1))
-        except RuntimeWarning:
-            print("depth with no data")
-        #TODO Why has this no effect? How to catch the warning
-        #https://stackoverflow.com/questions/15933741/how-do-i-catch-a-numpy-warning-like-its-an-exception-not-just-for-testing  
+            try:
+                dfm_west_east = west_east[:,:]-np.reshape(np.nanmean(west_east[:,:],axis=1),(depth.size,1))
+                dfm_north_south = north_south[:,:]-np.reshape(np.nanmean(north_south[:,:],axis=1),(depth.size,1))
+            except RuntimeWarning:
+                print("depth with no data")
+            #TODO Why has this no effect? How to catch the warning
+            #https://stackoverflow.com/questions/15933741/how-do-i-catch-a-numpy-warning-like-its-an-exception-not-just-for-testing  
+            
+        else:
+            dfm_west_east = np.copy(west_east)   
+            dfm_north_south = np.copy(north_south)    
+            
+
 
 
         #check for missing data and fill them partly through linear interpolation 
@@ -413,6 +418,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
             #finds the index of the depth closely to the prior determined desired depth value
             slice_index = np.argmin(np.absolute(depth-desired_depth))
             
+            #print("Assert:",np.count_nonzero(np.isnan(dfm_north_south[slice_index,:])) == 0)
             assert(np.count_nonzero(np.isnan(dfm_north_south[slice_index,:])) == 0)
             assert(np.count_nonzero(np.isnan(dfm_west_east[slice_index,:])) == 0)           
             
@@ -433,6 +439,9 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                 if cruisename == "emb169":
                     if flach_or_tief == "tief":
                     
+                        #emb169_tief_axarr1[order_index,0].set_xlim(left = mdates.date2num(utc[cuts_emb169_tief[0]]), right = mdates.date2num(utc[cuts_emb169_tief[1]]))
+                        #emb169_tief_axarr1[order_index,1].set_xlim(left = mdates.date2num(utc[cuts_emb169_tief[0]]), right = mdates.date2num(utc[cuts_emb169_tief[1]]))
+                        
                         cut_mask_array[cuts_emb169_tief[0]:cuts_emb169_tief[1]] = True
                 
                         cut_plot_west_east  = ma.masked_where(cut_mask_array,dfm_west_east[slice_index,:])
@@ -565,20 +574,12 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                         assert(False)
                         
                         
-                if cruisename == "emb217":
-                
-                    if Is_amount_of_NaNs_in_west_east_tolerable == False:   
-                        print(depth[slice_index])
-                        print(Number_of_Nans_west_east)
-                        print(acceptance_limit*dfm_west_east[i,:].size)
-                
-                
+                if cruisename == "emb217":          
                 
                 
                     if flach_or_tief == "tief" or flach_or_tief == "Tief":
                     
-                        #if order_index == 2:
-                        #    cuts_emb217_flach = [0,-1]
+                        print(np.count_nonzero(np.isnan(west_east[slice_index,cuts_emb217_tief[0]:cuts_emb217_tief[1]])),np.count_nonzero(np.isnan(west_east[slice_index,cuts_emb217_tief[0]:cuts_emb217_tief[1]]))/north_south[slice_index,cuts_emb217_tief[0]:cuts_emb217_tief[1]].size)
                     
                         cut_mask_array[cuts_emb217_tief[0]:cuts_emb217_tief[1]] = True
                         cut_plot_west_east  = ma.masked_where(cut_mask_array,dfm_west_east[slice_index,:])
@@ -614,7 +615,10 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                     
                         if order_index == 2:
                             cuts_emb217_flach = [0,-1]
-                            
+                        
+                        
+                        print(np.count_nonzero(np.isnan(west_east[slice_index,cuts_emb217_flach[0]:cuts_emb217_flach[1]])),np.count_nonzero(np.isnan(west_east[slice_index,cuts_emb217_flach[0]:cuts_emb217_flach[1]]))/north_south[slice_index,cuts_emb217_flach[0]:cuts_emb217_flach[1]].size)
+                                                    
                         cut_mask_array[cuts_emb217_flach[0]:cuts_emb217_flach[1]] = True
                         cut_plot_west_east  = ma.masked_where(cut_mask_array,dfm_west_east[slice_index,:])
                         cut_plot_north_south = ma.masked_where(cut_mask_array,dfm_north_south[slice_index,:])  
