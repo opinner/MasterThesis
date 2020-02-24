@@ -14,11 +14,7 @@ import datetime as dt
 import matplotlib.dates as mdates
 from scipy.optimize import curve_fit 
 import numpy.ma as ma
-import pandas as pd
 
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#TODO is centering necessary?
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 def colorbar(mappable):
     ax = mappable.axes
@@ -30,6 +26,7 @@ def colorbar(mappable):
 
 #defines which fraction of missing data is acceptable
 acceptance_limit = 0.3
+#if before the patching the mean gets subtracted
 subtract_mean = True
 
 #Preferences Plot:
@@ -67,38 +64,38 @@ cuts_emb217_tief = [99,8165]
 #moorings:
 emb169_flach_original_cuts_u = [[],[],[],]
 emb169_flach_original_cuts_v = [[],[],[],]
-emb169_flach_centered_cuts_u = [[],[],[],]
-emb169_flach_centered_cuts_v = [[],[],[],]
+emb169_flach_patched_cuts_u = [[],[],[],]
+emb169_flach_patched_cuts_v = [[],[],[],]
 emb169_flach_depths_of_cuts = [[],[],[],]
                 
 emb169_tief_original_cuts_u = [[],[],[],]
 emb169_tief_original_cuts_v = [[],[],[],]
-emb169_tief_centered_cuts_u = [[],[],[],]
-emb169_tief_centered_cuts_v = [[],[],[],]
+emb169_tief_patched_cuts_u = [[],[],[],]
+emb169_tief_patched_cuts_v = [[],[],[],]
 emb169_tief_depths_of_cuts = [[],[],[],]
 
 emb177_flach_original_cuts_u = [[],[],[],]
 emb177_flach_original_cuts_v = [[],[],[],]
-emb177_flach_centered_cuts_u = [[],[],[],]
-emb177_flach_centered_cuts_v = [[],[],[],]
+emb177_flach_patched_cuts_u = [[],[],[],]
+emb177_flach_patched_cuts_v = [[],[],[],]
 emb177_flach_depths_of_cuts = [[],[],[],]
 
 emb177_tief_original_cuts_u = [[],[],[],]
 emb177_tief_original_cuts_v = [[],[],[],]
-emb177_tief_centered_cuts_u = [[],[],[],]
-emb177_tief_centered_cuts_v = [[],[],[],]
+emb177_tief_patched_cuts_u = [[],[],[],]
+emb177_tief_patched_cuts_v = [[],[],[],]
 emb177_tief_depths_of_cuts = [[],[],[],]
 
 emb217_flach_original_cuts_u = [[],[],[],]
 emb217_flach_original_cuts_v = [[],[],[],]
-emb217_flach_centered_cuts_u = [[],[],[],]
-emb217_flach_centered_cuts_v = [[],[],[],]
+emb217_flach_patched_cuts_u = [[],[],[],]
+emb217_flach_patched_cuts_v = [[],[],[],]
 emb217_flach_depths_of_cuts = [[],[],[],]
 
 emb217_tief_original_cuts_u = [[],[],[],]
 emb217_tief_original_cuts_v = [[],[],[],]
-emb217_tief_centered_cuts_u = [[],[],[],]
-emb217_tief_centered_cuts_v = [[],[],[],]
+emb217_tief_patched_cuts_u = [[],[],[],]
+emb217_tief_patched_cuts_v = [[],[],[],]
 emb217_tief_depths_of_cuts = [[],[],[],]
 
 
@@ -452,13 +449,15 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                                   
                         emb169_tief_matlab_time = matlab_time[cuts_emb169_tief[0]:cuts_emb169_tief[1]]
                         #Data with the mean subtracted and holes filled
-                        emb169_tief_centered_cuts_u[order_index] = dfm_west_east[slice_index,cuts_emb169_tief[0]:cuts_emb169_tief[1]]
-                        emb169_tief_centered_cuts_v[order_index] = dfm_north_south[slice_index,cuts_emb169_tief[0]:cuts_emb169_tief[1]]
+                        emb169_tief_patched_cuts_u[order_index] = dfm_west_east[slice_index,cuts_emb169_tief[0]:cuts_emb169_tief[1]]
+                        emb169_tief_patched_cuts_v[order_index] = dfm_north_south[slice_index,cuts_emb169_tief[0]:cuts_emb169_tief[1]]
                         #original measurement data
                         emb169_tief_original_cuts_u[order_index] = west_east[slice_index,cuts_emb169_tief[0]:cuts_emb169_tief[1]]
                         emb169_tief_original_cuts_v[order_index] = north_south[slice_index,cuts_emb169_tief[0]:cuts_emb169_tief[1]]
                         #actual depth of the slice               
                         emb169_tief_depths_of_cuts[order_index] = depth[slice_index]
+                        #mask where dfm was patched
+                        emb169_tief_nan_mask = (~np.isnan(west_east[slice_index,:]))[cuts_emb169_tief[0]:cuts_emb169_tief[1]]  
                         
                         emb169_tief_axarr1[order_index,0].plot(utc,dfm_west_east[slice_index,:])                                               
                         emb169_tief_axarr1[order_index,1].plot(utc,dfm_north_south[slice_index,:])
@@ -481,13 +480,16 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                     
                         emb169_flach_matlab_time = matlab_time[cuts_emb169_flach[0]:cuts_emb169_flach[1]]
                         #Data with the mean subtracted and holes filled
-                        emb169_flach_centered_cuts_u[order_index] = dfm_west_east[slice_index,:]
-                        emb169_flach_centered_cuts_v[order_index] = dfm_north_south[slice_index,:]                        
+                        emb169_flach_patched_cuts_u[order_index] = dfm_west_east[slice_index,cuts_emb169_flach[0]:cuts_emb169_flach[1]]
+                        emb169_flach_patched_cuts_v[order_index] = dfm_north_south[slice_index,cuts_emb169_flach[0]:cuts_emb169_flach[1]]                        
                         #original measurement data
-                        emb169_flach_original_cuts_u[order_index] = west_east[slice_index,:]                        
-                        emb169_flach_original_cuts_v[order_index] = north_south[slice_index,:]
+                        emb169_flach_original_cuts_u[order_index] = west_east[slice_index,cuts_emb169_flach[0]:cuts_emb169_flach[1]]                        
+                        emb169_flach_original_cuts_v[order_index] = north_south[slice_index,cuts_emb169_flach[0]:cuts_emb169_flach[1]]
                         #actual depth of the slice
                         emb169_flach_depths_of_cuts[order_index] = depth[slice_index]
+                        emb169_flach_nan_mask = ~np.isnan(west_east[slice_index,:])
+                        #mask where dfm was patched
+                        emb169_flach_nan_mask = (~np.isnan(west_east[slice_index,cuts_emb169_flach[0]:cuts_emb169_flach[1]]))          
                         
                         emb169_flach_axarr1[order_index,0].plot(utc,dfm_west_east[slice_index,:])
                         emb169_flach_axarr1[order_index,1].plot(utc,dfm_north_south[slice_index,:])
@@ -514,13 +516,16 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                     
                         emb177_tief_matlab_time = matlab_time[cuts_emb177_tief[0]:cuts_emb177_tief[1]]
                         #Data with the mean subtracted and holes filled
-                        emb177_tief_centered_cuts_u[order_index] = dfm_west_east[slice_index,cuts_emb177_tief[0]:cuts_emb177_tief[1]]
-                        emb177_tief_centered_cuts_v[order_index] = dfm_north_south[slice_index,cuts_emb177_tief[0]:cuts_emb177_tief[1]]
+                        emb177_tief_patched_cuts_u[order_index] = dfm_west_east[slice_index,cuts_emb177_tief[0]:cuts_emb177_tief[1]]
+                        emb177_tief_patched_cuts_v[order_index] = dfm_north_south[slice_index,cuts_emb177_tief[0]:cuts_emb177_tief[1]]
                         #original measurement data
                         emb177_tief_original_cuts_u[order_index] = west_east[slice_index,cuts_emb177_tief[0]:cuts_emb177_tief[1]]                        
                         emb177_tief_original_cuts_v[order_index] = north_south[slice_index,cuts_emb177_tief[0]:cuts_emb177_tief[1]]
                         #actual depth of the slice
                         emb177_tief_depths_of_cuts[order_index] = depth[slice_index]
+                        
+                        #mask where dfm was patched
+                        emb177_tief_nan_mask = (~np.isnan(west_east[slice_index,:]))[cuts_emb177_tief[0]:cuts_emb177_tief[1]]
                                                
                         emb177_tief_axarr1[order_index,0].plot(utc,dfm_west_east[slice_index,:])
                         emb177_tief_axarr1[order_index,1].plot(utc,dfm_north_south[slice_index,:])
@@ -548,13 +553,15 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                     
                         emb177_flach_matlab_time = matlab_time[cuts_emb177_flach[0]:cuts_emb177_flach[1]]
                         #Data with the mean subtracted and holes filled
-                        emb177_flach_centered_cuts_u[order_index] = dfm_west_east[slice_index,cuts_emb177_flach[0]:cuts_emb177_flach[1]]
-                        emb177_flach_centered_cuts_v[order_index] = dfm_north_south[slice_index,cuts_emb177_flach[0]:cuts_emb177_flach[1]]
+                        emb177_flach_patched_cuts_u[order_index] = dfm_west_east[slice_index,cuts_emb177_flach[0]:cuts_emb177_flach[1]]
+                        emb177_flach_patched_cuts_v[order_index] = dfm_north_south[slice_index,cuts_emb177_flach[0]:cuts_emb177_flach[1]]
                         #original measurement data
                         emb177_flach_original_cuts_u[order_index] = west_east[slice_index,cuts_emb177_flach[0]:cuts_emb177_flach[1]]
                         emb177_flach_original_cuts_v[order_index] = north_south[slice_index,cuts_emb177_flach[0]:cuts_emb177_flach[1]]                        
                         #actual depth of the slice
                         emb177_flach_depths_of_cuts[order_index] = depth[slice_index]
+                        #mask where dfm was patched
+                        emb177_flach_nan_mask = (~np.isnan(west_east[slice_index,:]))[cuts_emb177_flach[0]:cuts_emb177_flach[1]]
                         
                         emb177_flach_axarr1[order_index,0].plot(utc,dfm_west_east[slice_index,:])
                         emb177_flach_axarr1[order_index,1].plot(utc,dfm_north_south[slice_index,:])
@@ -589,14 +596,17 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                     
                         emb217_tief_matlab_time = matlab_time[cuts_emb217_tief[0]:cuts_emb217_tief[1]]
                         #Data with the mean subtracted and holes filled
-                        emb217_tief_centered_cuts_u[order_index] = dfm_west_east[slice_index,cuts_emb217_tief[0]:cuts_emb217_tief[1]]
-                        emb217_tief_centered_cuts_v[order_index] = dfm_north_south[slice_index,cuts_emb217_tief[0]:cuts_emb217_tief[1]]
+                        emb217_tief_patched_cuts_u[order_index] = dfm_west_east[slice_index,cuts_emb217_tief[0]:cuts_emb217_tief[1]]
+                        emb217_tief_patched_cuts_v[order_index] = dfm_north_south[slice_index,cuts_emb217_tief[0]:cuts_emb217_tief[1]]
                         #original measurement data
                         emb217_tief_original_cuts_u[order_index] = west_east[slice_index,cuts_emb217_tief[0]:cuts_emb217_tief[1]]
                         emb217_tief_original_cuts_v[order_index] = north_south[slice_index,cuts_emb217_tief[0]:cuts_emb217_tief[1]]
                         #actual depth of the slice
                         emb217_tief_depths_of_cuts[order_index] = depth[slice_index]                                               
+                        #mask where dfm was patched
+                        emb217_tief_nan_mask = (~np.isnan(west_east[slice_index,:]))[cuts_emb217_tief[0]:cuts_emb217_tief[1]]
                         
+                                                
                         emb217_tief_axarr1[order_index,0].plot(utc,dfm_west_east[slice_index,:])
                         emb217_tief_axarr1[order_index,1].plot(utc,dfm_north_south[slice_index,:])
 
@@ -627,14 +637,17 @@ for FOLDERNAME in LIST_OF_FOLDERS:
                     
                         emb217_flach_matlab_time = matlab_time[cuts_emb217_flach[0]:cuts_emb217_flach[1]]
                         #Data with the mean subtracted and holes filled
-                        emb217_flach_centered_cuts_u[order_index] = dfm_west_east[slice_index,cuts_emb217_flach[0]:cuts_emb217_flach[1]]
-                        emb217_flach_centered_cuts_v[order_index] = dfm_north_south[slice_index,cuts_emb217_flach[0]:cuts_emb217_flach[1]]
+                        emb217_flach_patched_cuts_u[order_index] = dfm_west_east[slice_index,cuts_emb217_flach[0]:cuts_emb217_flach[1]]
+                        emb217_flach_patched_cuts_v[order_index] = dfm_north_south[slice_index,cuts_emb217_flach[0]:cuts_emb217_flach[1]]
                         #original measurement data
                         emb217_flach_original_cuts_u[order_index] = west_east[slice_index,cuts_emb217_flach[0]:cuts_emb217_flach[1]]
                         emb217_flach_original_cuts_v[order_index] = north_south[slice_index,cuts_emb217_flach[0]:cuts_emb217_flach[1]]
                         #actual depth of the slice
                         emb217_flach_depths_of_cuts[order_index] = depth[slice_index]
-                                             
+                        #mask where dfm was patched
+                        emb217_flach_nan_mask = (~np.isnan(west_east[slice_index,:]))[cuts_emb217_flach[0]:cuts_emb217_flach[1]]
+                        
+                                                                     
                         emb217_flach_axarr1[order_index,0].plot(utc,dfm_west_east[slice_index,:])
                         emb217_flach_axarr1[order_index,1].plot(utc,dfm_north_south[slice_index,:])
 
@@ -668,9 +681,10 @@ emb169_flach_matlab_dictionary = {}
 emb169_flach_matlab_dictionary["matlab_time"] = emb169_flach_matlab_time
 emb169_flach_matlab_dictionary["depths_of_cuts"] = emb169_flach_depths_of_cuts
 emb169_flach_matlab_dictionary["u"] = emb169_flach_original_cuts_u
-emb169_flach_matlab_dictionary["centered_u"] = emb169_flach_centered_cuts_u
+emb169_flach_matlab_dictionary["patched_u"] = emb169_flach_patched_cuts_u
 emb169_flach_matlab_dictionary["v"] = emb169_flach_original_cuts_v
-emb169_flach_matlab_dictionary["centered_v"] = emb169_flach_centered_cuts_v
+emb169_flach_matlab_dictionary["patched_v"] = emb169_flach_patched_cuts_v
+emb169_flach_matlab_dictionary["nan_mask"] =emb169_flach_nan_mask
 #save data to a .mat to use in fancypsd.mat
 sio.savemat(FILENAME_emb169_flach,emb169_flach_matlab_dictionary)
 #picture_emb169_flach_cuts.savefig(plot1_name)        
@@ -680,9 +694,10 @@ emb169_tief_matlab_dictionary = {}
 emb169_tief_matlab_dictionary["matlab_time"] = emb169_tief_matlab_time
 emb169_tief_matlab_dictionary["depths_of_cuts"] = emb169_tief_depths_of_cuts
 emb169_tief_matlab_dictionary["u"] = emb169_tief_original_cuts_u
-emb169_tief_matlab_dictionary["centered_u"] = emb169_tief_centered_cuts_u
+emb169_tief_matlab_dictionary["patched_u"] = emb169_tief_patched_cuts_u
 emb169_tief_matlab_dictionary["v"] = emb169_tief_original_cuts_v
-emb169_tief_matlab_dictionary["centered_v"] = emb169_tief_centered_cuts_v
+emb169_tief_matlab_dictionary["patched_v"] = emb169_tief_patched_cuts_v
+emb169_tief_matlab_dictionary["nan_mask"] =emb169_tief_nan_mask
 #save data to a .mat to use in fancypsd.mat
 sio.savemat(FILENAME_emb169_tief,emb169_tief_matlab_dictionary)
 
@@ -691,10 +706,11 @@ FILENAME_emb177_flach = "/home/ole/share-windows/adcp_slices/ADCP_horizontal_sli
 emb177_flach_matlab_dictionary = {}
 emb177_flach_matlab_dictionary["matlab_time"] = emb177_flach_matlab_time
 emb177_flach_matlab_dictionary["depths_of_cuts"] = emb177_flach_depths_of_cuts
-emb177_flach_matlab_dictionary["u"] = emb177_tief_original_cuts_u
-emb177_flach_matlab_dictionary["centered_u"] = emb177_tief_centered_cuts_u
-emb177_flach_matlab_dictionary["v"] = emb177_tief_original_cuts_v
-emb177_flach_matlab_dictionary["centered_v"] = emb177_tief_centered_cuts_v
+emb177_flach_matlab_dictionary["u"] = emb177_flach_original_cuts_u
+emb177_flach_matlab_dictionary["patched_u"] = emb177_flach_patched_cuts_u
+emb177_flach_matlab_dictionary["v"] = emb177_flach_original_cuts_v
+emb177_flach_matlab_dictionary["patched_v"] = emb177_flach_patched_cuts_v
+emb177_flach_matlab_dictionary["nan_mask"] =emb177_flach_nan_mask
 #save data to a .mat to use in fancypsd.mat
 sio.savemat(FILENAME_emb177_flach,emb177_flach_matlab_dictionary)
 
@@ -704,9 +720,10 @@ emb177_tief_matlab_dictionary = {}
 emb177_tief_matlab_dictionary["matlab_time"] = emb177_tief_matlab_time
 emb177_tief_matlab_dictionary["depths_of_cuts"] = emb177_tief_depths_of_cuts
 emb177_tief_matlab_dictionary["u"] = emb177_tief_original_cuts_u
-emb177_tief_matlab_dictionary["centered_u"] = emb177_tief_centered_cuts_u
+emb177_tief_matlab_dictionary["patched_u"] = emb177_tief_patched_cuts_u
 emb177_tief_matlab_dictionary["v"] = emb177_tief_original_cuts_v
-emb177_tief_matlab_dictionary["centered_v"] = emb177_tief_centered_cuts_v
+emb177_tief_matlab_dictionary["patched_v"] = emb177_tief_patched_cuts_v
+emb177_tief_matlab_dictionary["nan_mask"] =emb177_tief_nan_mask
 #save data to a .mat to use in fancypsd.mat
 sio.savemat(FILENAME_emb177_tief,emb177_tief_matlab_dictionary)
 
@@ -716,9 +733,10 @@ emb217_flach_matlab_dictionary = {}
 emb217_flach_matlab_dictionary["matlab_time"] = emb217_flach_matlab_time
 emb217_flach_matlab_dictionary["depths_of_cuts"] = emb217_flach_depths_of_cuts
 emb217_flach_matlab_dictionary["u"] = emb217_flach_original_cuts_u
-emb217_flach_matlab_dictionary["centered_u"] = emb217_flach_centered_cuts_u
+emb217_flach_matlab_dictionary["patched_u"] = emb217_flach_patched_cuts_u
 emb217_flach_matlab_dictionary["v"] = emb217_flach_original_cuts_v
-emb217_flach_matlab_dictionary["centered_v"] = emb217_flach_centered_cuts_v
+emb217_flach_matlab_dictionary["patched_v"] = emb217_flach_patched_cuts_v
+emb217_flach_matlab_dictionary["nan_mask"] =emb217_flach_nan_mask
 #save data to a .mat to use in fancypsd.mat
 sio.savemat(FILENAME_emb217_flach,emb217_flach_matlab_dictionary)
 
@@ -728,14 +746,16 @@ emb217_tief_matlab_dictionary = {}
 emb217_tief_matlab_dictionary["matlab_time"] = emb217_tief_matlab_time
 emb217_tief_matlab_dictionary["depths_of_cuts"] = emb217_tief_depths_of_cuts
 emb217_tief_matlab_dictionary["u"] = emb217_tief_original_cuts_u
-emb217_tief_matlab_dictionary["centered_u"] = emb217_tief_centered_cuts_u
+emb217_tief_matlab_dictionary["patched_u"] = emb217_tief_patched_cuts_u
 emb217_tief_matlab_dictionary["v"] = emb217_tief_original_cuts_v
-emb217_tief_matlab_dictionary["centered_v"] = emb217_tief_centered_cuts_v
+emb217_tief_matlab_dictionary["patched_v"] = emb217_tief_patched_cuts_v
+emb217_tief_matlab_dictionary["nan_mask"] = emb217_tief_nan_mask
 #save data to a .mat to use in fancypsd.mat
 sio.savemat(FILENAME_emb217_tief,emb217_tief_matlab_dictionary)        
 
 
 
+#figure_size = (7.25
 
 picture_emb169_flach_cuts.suptitle("emb169 flach")
 picture_emb169_flach_cuts.tight_layout() #TODO top=0.934,bottom=0.081,left=0.041,right=0.979,hspace=0.181,wspace=0.06
