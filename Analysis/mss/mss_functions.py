@@ -164,6 +164,7 @@ def load_clean_and_interpolate_data(datafile_path):
     except AssertionError:  
         print("##########################################")
         print(cruisename,DATAFILENAME[:-4],"is skipped!")
+        print("Distance is not monotonically increasing. Mabye due to a loop in the transsect?")
         print("##########################################")
         return 0
         #continue #jump to the next datafile
@@ -211,7 +212,7 @@ def load_clean_and_interpolate_data(datafile_path):
     #check if the pressure points for every eps profile are the same
     for i in range(number_of_profiles):  
         assert(np.all(eps_pressure[i].flatten() == eps_pressure[0].flatten()))
-    #if yes the pressure can be a 1D array instead of a 2D array    
+    #if yes the pressure can be coverted to a 1D array instead of a 2D array    
     eps_pressure = eps_pressure[0].flatten()
         
     #averaged of approx 5 depth bins (???)

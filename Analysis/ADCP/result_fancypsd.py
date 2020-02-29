@@ -9,9 +9,6 @@ import matplotlib.dates as mdates
 from scipy.optimize import curve_fit 
 import numpy.ma as ma
 
-
-#TODO change append to np.append
-
 FOLDERNAME = "/home/ole/share-windows/adcp_slices"
 path = pathlib.Path(FOLDERNAME)
 DATAFILENAMES = []
@@ -37,12 +34,7 @@ for mooring in  mooring_names:
     for DATAFILENAME in DATAFILENAMES:
 
 
-        datafile_path = FOLDERNAME+"/"+DATAFILENAME
-        
-        #print("--------------------------------------\nfile:")
-        #print(datafile_path[25:])
-        #print(cruisename,flach_or_tief[3:])
-        
+        datafile_path = FOLDERNAME+"/"+DATAFILENAME        
         if DATAFILENAME[:4] == "ADCP":
             current_mooring = DATAFILENAME[22:-4]
             
