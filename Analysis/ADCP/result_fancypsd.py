@@ -16,31 +16,6 @@ FOLDERNAME = "/home/ole/share-windows/adcp_slices"
 path = pathlib.Path(FOLDERNAME)
 DATAFILENAMES = []
 
-#define the pictures
-picture_emb169_flach_1, emb169_flach_axarr1 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-picture_emb169_flach_2, emb169_flach_axarr2 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-picture_emb169_flach_3, emb169_flach_axarr3 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-
-picture_emb169_tief_1, emb169_tief_axarr1 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-picture_emb169_tief_2, emb169_tief_axarr2 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-picture_emb169_tief_3, emb169_tief_axarr3 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-
-picture_emb177_flach_1, emb177_flach_axarr1 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-picture_emb177_flach_2, emb177_flach_axarr2 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-picture_emb177_flach_3, emb177_flach_axarr3 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-
-picture_emb177_tief_1, emb177_tief_axarr1 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-picture_emb177_tief_2, emb177_tief_axarr2 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-picture_emb177_tief_3, emb177_tief_axarr3 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-
-picture_emb217_flach_1, emb217_flach_axarr1 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-picture_emb217_flach_2, emb217_flach_axarr2 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-picture_emb217_flach_3, emb217_flach_axarr3 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-
-picture_emb217_tief_1, emb217_tief_axarr1 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-picture_emb217_tief_2, emb217_tief_axarr2 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
-picture_emb217_tief_3, emb217_tief_axarr3 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")  
-
 
 #go through all files of specified folder and select only files ending with .mat
 for p in path.iterdir():
@@ -51,58 +26,158 @@ for p in path.iterdir():
 
 DATAFILENAMES = sorted(DATAFILENAMES) 
 
-for DATAFILENAME in DATAFILENAMES:
-    datafile_path = FOLDERNAME+"/"+DATAFILENAME
-    
-    #print("--------------------------------------\nfile:")
-    #print(datafile_path[25:])
-    #print(cruisename,flach_or_tief[3:])
-    
 
-    data = sio.loadmat(datafile_path)    
+mooring_names = ["emb217_tief"] #["emb169_flach","emb169_tief","emb177_flach","emb177_tief","emb217_flach","emb217_tief"]
+
+for mooring in  mooring_names:
+
+    f1, axarr1 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
+    f2, axarr2 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
+    f3, axarr3 = plt.subplots(nrows = 2, ncols = 2, sharex = "row", sharey = "row")
+    for DATAFILENAME in DATAFILENAMES:
+
+
+        datafile_path = FOLDERNAME+"/"+DATAFILENAME
+        
+        #print("--------------------------------------\nfile:")
+        #print(datafile_path[25:])
+        #print(cruisename,flach_or_tief[3:])
+        
+        if DATAFILENAME[:4] == "ADCP":
+            current_mooring = DATAFILENAME[22:-4]
+            
+        elif DATAFILENAME[:3] == "PSD":
+            current_mooring = DATAFILENAME[4:-4]
+            
+        #print(current_mooring,mooring)  
+        if current_mooring != mooring:
+            continue
+        
+        data = sio.loadmat(datafile_path)    
+        
+        print(DATAFILENAME)
+        #print(sio.whosmat(datafile_path))
+        #print(data.keys())
+        
+
+        if DATAFILENAME[:4] == "ADCP":
+            matlab_time = data["matlab_time"]
+            
+            utc = []
+            for i in range(3):
+                utc.append(np.asarray(pl.num2date(matlab_time[i]-366)).flatten())
+            
+            patched_u = data["patched_u"]
+            patched_v = data["patched_v"]
+            depths_of_cuts = data["depths_of_cuts"].flatten()
+            patched_mask = data["nan_mask"]
+            
+            print(depths_of_cuts)
+            
+            print(np.shape(utc))
+            print(np.shape(patched_u[0]))
+            
+            #top=0.954,bottom=0.081,left=0.05,right=0.985,hspace=0.231,wspace=0.02
+
+            axarr1[0,0].plot(utc[0],patched_u[0],"b",label = "u")                                          
+            axarr1[0,1].plot(utc[0],patched_v[0],"r",label = "v")
+            nan_u  = ma.masked_where(patched_mask[0],patched_u[0])
+            nan_v = ma.masked_where(patched_mask[0],patched_v[0])  
+            axarr1[0,0].plot(utc[0],nan_u,"k")
+            axarr1[0,1].plot(utc[0],nan_v,"k")
+            
+            axarr1[0,0].set_title(current_mooring+" cut at "+str(np.round(depths_of_cuts[0],2))+" dbar")
+            #f1.suptitle(current_mooring+" cut at "+str(depths_of_cuts[0])+" dbar")
+            
+            axarr2[0,0].plot(utc[1],patched_u[1],"b",label = "u")                                           
+            axarr2[0,1].plot(utc[1],patched_v[1],"r",label = "v")
+            nan_u  = ma.masked_where(patched_mask[1],patched_u[1])
+            nan_v = ma.masked_where(patched_mask[1],patched_v[1])  
+            axarr2[0,0].plot(utc[1],nan_u,"k")
+            axarr2[0,1].plot(utc[1],nan_v,"k")
+            axarr2[0,0].set_title(current_mooring+" cut at "+str(np.round(depths_of_cuts[1],2))+" dbar")
+            #f2.suptitle(current_mooring+" cut at "+str(depths_of_cuts[1])+" dbar")
+                        
+            axarr3[0,0].plot(utc[2],patched_u[2],"b",label = "u")                                               
+            axarr3[0,1].plot(utc[2],patched_v[2],"r",label = "v")
+            nan_u  = ma.masked_where(patched_mask[2],patched_u[2])
+            nan_v = ma.masked_where(patched_mask[2],patched_v[2])  
+            axarr3[0,0].plot(utc[2],nan_u,"k")
+            axarr3[0,1].plot(utc[2],nan_v,"k")       
+            axarr3[0,0].set_title(current_mooring+" cut at "+str(np.round(depths_of_cuts[2],2))+" dbar")  
+            #f3.suptitle(current_mooring+" cut at "+str(depths_of_cuts[2])+" dbar")
+                        
+        elif DATAFILENAME[:3] == "PSD":
+            print("Found PSD")
+            F = [data["F_1"].flatten()]
+            Pu = [data["Pu_1"].flatten()]
+            Pv = [data["Pv_1"].flatten()]
+            Ctop = [data["Ctop_1"].flatten()]
+            Cbot = [data["Cbot_1"].flatten()]
+            Pw = [data["Pw_1"].flatten()]
+            clockwise = [data["clockwise_1"].flatten()]
+            anticlockwise = [data["anticlockwise_1"].flatten()]
+                        
+            F.append(data["F_2"].flatten())
+            Pu.append(data["Pu_2"].flatten())
+            Pv.append(data["Pv_2"].flatten())
+            Ctop.append(data["Ctop_2"].flatten())
+            Cbot.append(data["Cbot_2"].flatten())
+            Pw.append(data["Pw_2"].flatten())
+            clockwise.append(data["clockwise_2"].flatten())
+            anticlockwise.append(data["anticlockwise_2"].flatten())
+                        
+            F.append(data["F_3"].flatten())
+            Pu.append(data["Pu_3"].flatten())
+            Pv.append(data["Pv_3"].flatten())
+            Ctop.append(data["Ctop_3"].flatten())
+            Cbot.append(data["Cbot_3"].flatten())
+            Pw.append(data["Pw_3"].flatten())
+            clockwise.append(data["clockwise_3"].flatten())
+            anticlockwise.append(data["anticlockwise_3"].flatten())
+            
+            axarr1[1,0].loglog(F[0],Pu[0],"b", label = "u")                                               
+            axarr1[1,0].loglog(F[0],Pv[0],"r", label = "v")
+            axarr1[1,1].loglog(F[0],clockwise[0],label = "clockwise")                                               
+            axarr1[1,1].loglog(F[0],anticlockwise[0], label = "anticlockwise")
+            axarr1[1,0].loglog(F[0],Ctop[0],"k", alpha = 0.5)            
+            axarr1[1,0].loglog(F[0],Cbot[0],"k", alpha = 0.5)      
+            axarr1[1,1].loglog(F[0],Ctop[0],"k", alpha = 0.5)            
+            axarr1[1,1].loglog(F[0],Cbot[0],"k", alpha = 0.5)                   
+             
+            print(np.shape(F[0]),np.shape(clockwise[0])) 
+            print(np.shape(F[1]),np.shape(clockwise[1]))
+            print(np.shape(F[2]),np.shape(clockwise[2]))
+                                   
+            axarr2[1,0].loglog(F[1],Pu[1],"b",label = "u")                                               
+            axarr2[1,0].loglog(F[1],Pv[1],"r",label = "v")
+            axarr2[1,1].loglog(F[1],clockwise[1],label = "clockwise")                                               
+            axarr2[1,1].loglog(F[1],anticlockwise[1], label = "anticlockwise")
+            axarr2[1,0].loglog(F[1],Ctop[1],"k", alpha = 0.5)            
+            axarr2[1,0].loglog(F[1],Cbot[1],"k", alpha = 0.5)    
+            axarr2[1,1].loglog(F[1],Ctop[1],"k", alpha = 0.5)            
+            axarr2[1,1].loglog(F[1],Cbot[1],"k", alpha = 0.5)    
+                                   
+            axarr3[1,0].loglog(F[2],Pu[2],"b",label = "u")                                               
+            axarr3[1,0].loglog(F[2],Pv[2],"r",label = "v")
+            axarr3[1,1].loglog(F[2],clockwise[2],label = "clockwise")                                               
+            axarr3[1,1].loglog(F[2],anticlockwise[2], label = "anticlockwise")
+            axarr3[1,0].loglog(F[2],Ctop[2],"k", alpha = 0.5)            
+            axarr3[1,0].loglog(F[2],Cbot[2],"k", alpha = 0.5)    
+            axarr3[1,1].loglog(F[2],Ctop[2],"k", alpha = 0.5)            
+            axarr3[1,1].loglog(F[2],Cbot[2],"k", alpha = 0.5)    
+                           
+        else:
+            print("File couldn't be classifed")
+
+    for row in range(2):
+        for column in range(2):
+            axarr1[row,column].legend()
+            axarr2[row,column].legend()
+            axarr3[row,column].legend()   
+                   
+        #plt.close(fig = "all")
+        
+    print("\n")
     
-    print(DATAFILENAME)
-    print(sio.whosmat(datafile_path))
-    print(data.keys())
-    
-    print("\n\n\n\n")
-    
-    if DATAFILENAME[:4] == "ADCP":
-        matlab_time = data["matlab_time"]
-        utc = np.asarray(pl.num2date(matlab_time-366))
-        patched_u = data["patched_u"]
-        patched_v = data["patched_v"]
-        depths_of_cuts = ["depths_of_cuts"]
-        patched_mask = ["nan_mask"]
-        
-        
-    elif DATAFILENAME[:3] == "PSD":
-        F = data["F_1"]
-        Pu = data["Pu_1"]
-        Pv = data["Pv_1"]
-        Ctop = data["Ctop_1"]
-        Cbot = data["Cbot_1"]
-        PW = data["Pw_1"]
-        clockwise = data["clockwise_1"]
-        anticlockwise = data["anticlockwise_1"]
-        
-        F = np.append(F,data["F_2"])
-        Pu.append(data["Pu_2"])
-        Pv.append(data["Pv_2"])
-        Ctop.append(data["Ctop_2"])
-        Cbot.append(data["Cbot_2"])
-        Pw.append(data["Pw_2"])
-        clockwise.append(data["clockwise_2"])
-        anticlockwise.append(data["anticlockwise_2"])
-        
-        F.append(data["F_3"])
-        Pu.append(data["Pu_3"])
-        Pv.append(data["Pv_3"])
-        Ctop.append(data["Ctop_3"])
-        Cbot.append(data["Cbot_3"])
-        Pw.append(data["Pw_3"])
-        clockwise.append(data["clockwise_3"])
-        anticlockwise.append(data["anticlockwise_3"])
-        
-    else:
-        print("File couldn't be classifed")
+plt.show()

@@ -6,6 +6,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import gsw.conversions as gsw
 import pathlib
 import mss_functions as thesis
+import numpy.ma as ma
 
 def colorbar(mappable):
     ax = mappable.axes
@@ -123,9 +124,26 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         list_of_BBL_range_indices       corresponding index (eg for interp_pressure or other arrays of the same size)
         """
         
+        print("Number of profiles:",number_of_profiles)
+        
+        eps_N_grid = np.sqrt(eps_N_squared_grid)
+        #ozmidov scale
+        ozmidov_scale_grid = np.sqrt(eps_grid/(eps_N_grid**3))
         
         #conversion from pressure coordinates to depth
-        eps_depth = gsw.z_from_p(eps_pressure,np.mean(lat))
+        eps_depth = gsw.z_from_p(eps_pressure,np.mean(lat)) #mean lat should be sufficient, because the transect is east-west
+        bathymetrie_in_m = gsw.z_from_p(bathymetrie,np.mean(lat))
+        
+        eps_depth_grid = np.reshape(eps_depth,(1,-1))*np.ones(np.shape(eps_grid))
+        
+        distance_from_ground_grid = eps_depth_grid - np.reshape(bathymetrie_in_m,(-1,1))
+        boundary_check_grid = ~(distance_from_ground_grid < ozmidov_scale_grid)
+            
+            
+        #boundary_check_grid = np.zeros(np.shape(ozmidov_scale_grid))
+        #check if ozimidov scale is bigger than the distance from the ground
+        #for i in range(number_of_profiles):
+        #density_grid[ozmidov_scale_grid,:])))
         
         
         Gamma_Osborn_eps_grid = thesis.Osborn(corrected_eps_Reynolds_bouyancy_grid)
@@ -134,7 +152,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
         oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400/(1000^2)        
+        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400/(1000**2)        
         
         Gamma_BB_eps_grid = thesis.BB(corrected_eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * corrected_eps_grid / (eps_N_squared_grid)
@@ -142,21 +160,34 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
         oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400/(1000^2)
+        oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400/(1000**2)
         
         Gamma_Skif_eps_grid = thesis.Skif(corrected_eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * corrected_eps_grid / (eps_N_squared_grid)
         #TODO: Which differention scheme should I use? 
         #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
-        oxygen_flux_Skif_grid = (turbulent_diffusivity_Skif_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
+        oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400/(1000^2)
+        oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400/(1000**2)
         
         
         
         #plotting a example profile
-        axarr1[0].plot(eps_oxygen_grid[-5,:],eps_pressure)
-        axarr1[1].plot(eps_N_squared_grid[-5,:],eps_pressure)
+        axarr1[0].plot(eps_oxygen_grid[-5,:],eps_pressure) #distance_from_ground_grid[-5,:],eps_pressure)
+        axarr1[0].axvline(x=0)
+        
+        mask = ma.masked_where(boundary_check_grid[-5,:],distance_from_ground_grid[-5,:])
+        print(mask)
+        
+        for i in range(distance_from_ground_grid[-5,:].size):
+            print(distance_from_ground_grid[-5,i],ozmidov_scale_grid[-5,i],boundary_check_grid[-5,i])
+            
+        print("Boundary effects:",np.any(boundary_check_grid[-5,:]))
+            
+            
+        #axarr1[0].plot(mask,eps_pressure,"r")
+        
+        axarr1[1].plot(ozmidov_scale_grid[-5,:],eps_pressure) #        axarr1[1].plot(eps_N_squared_grid[-5,:],eps_pressure)
 
         axarr1[2].plot(np.log10(eps_Reynolds_bouyancy_grid[-5,:]),eps_pressure, label = "raw")
         axarr1[2].plot(np.log10(corrected_eps_Reynolds_bouyancy_grid[-5,:]),eps_pressure, label = "corrected")
@@ -190,7 +221,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         axarr1[0].set_xlabel("oxygen [micromol/l]")
         axarr1[0].set_ylabel("pressure [dbar]")
-        axarr1[1].set_xlabel(r"$N^2$ [$1/s^2$]")
+        axarr1[1].set_xlabel("Ozmidov scale")#(r"$N^2$ [$1/s^2$]")
         axarr1[2].set_xlabel(r"Reb")
         axarr1[3].set_xlabel(r"$\Gamma$")
         axarr1[4].set_xlabel("turbulent diffusitivity")
@@ -198,7 +229,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         axarr1[6].set_xlabel("oxygen flux [???]")
 
         #axarr1[3].ticklabel_format(axis="x", style="sci", scilimits=(0,0))
-        axarr1[0].set_ylim(80,125)
+        axarr1[0].set_ylim(0,125)
         
         #plotting the transects
         plotmesh_longitude = np.append(lon,2*lon[-1]-lon[-2])
