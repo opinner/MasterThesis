@@ -145,6 +145,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         #img4_3 = axarr4[3].plot(BV_freq_squared_grid_gsw[transect_index,:],mid_point_pressure, label = "fine grid")
         img4_3b = axarr4[3].plot(eps_N_squared_grid[transect_index,:],eps_pressure, label = "eps grid")
+        #TODO np.ma.m
+
 
         img4_4 = axarr4[4].plot(eps_viscosity_grid[transect_index,:]*10**6,eps_pressure,label = "Ilker")
         img4_4b = axarr4[4].plot(eps_wiki_viscosity_grid[transect_index,:]*10**6,eps_pressure,"--",label = "Wikipedia")
