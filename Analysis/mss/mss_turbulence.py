@@ -186,8 +186,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
             
         #axarr1[0].plot(mask,eps_pressure,"r")
+        axarr1[1].plot(np.log10(eps_grid[-5,:]),eps_pressure, label = "dissipation")
         
-        axarr1[1].plot(ozmidov_scale_grid[-5,:],eps_pressure) #        axarr1[1].plot(eps_N_squared_grid[-5,:],eps_pressure)
+        axarr1[2].plot(ozmidov_scale_grid[-5,:],eps_pressure, label = "Ozmidov") #        axarr1[1].plot(eps_N_squared_grid[-5,:],eps_pressure)
 
         axarr1[2].plot(np.log10(eps_Reynolds_bouyancy_grid[-5,:]),eps_pressure, label = "raw")
         axarr1[2].plot(np.log10(corrected_eps_Reynolds_bouyancy_grid[-5,:]),eps_pressure, label = "corrected")
@@ -221,7 +222,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         axarr1[0].set_xlabel("oxygen [micromol/l]")
         axarr1[0].set_ylabel("pressure [dbar]")
-        axarr1[1].set_xlabel("Ozmidov scale")#(r"$N^2$ [$1/s^2$]")
+        axarr1[1].set_xlabel("Dissipation")#(r"$N^2$ [$1/s^2$]")
         axarr1[2].set_xlabel(r"Reb")
         axarr1[3].set_xlabel(r"$\Gamma$")
         axarr1[4].set_xlabel("turbulent diffusitivity")

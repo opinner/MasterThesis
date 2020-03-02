@@ -2,9 +2,11 @@
 #Plots every mss measurement as a transect 
 #plus as an example one profile from that transect
 
-#TODO Why all the runtime warnings?
+#TODO Why all the runtime warnings? Workaround "turn off warnings"?
 #TODO RuntimeWarning for nan values. Solve by switching to pandas?
 #TODO change plots from distance to longitude
+#TODO change linecolor when N^2 < 0
+#TODO color Re_b after the three classifications
 #---------------------------------------------------------#
 import numpy as np
 import scipy.io as sio
@@ -82,7 +84,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         #print("eps_viscosity_grid\n",np.shape(eps_viscosity_grid))
 
-        #calculate the Reynolds bouyancy number defined on eps_pressure
+        #calculate the Reynolds bouyancy number defined on the pressure values defined in eps_pressure
         eps_Reynolds_bouyancy_grid = eps_grid/(eps_viscosity_grid*eps_N_squared_grid)
         eps_wiki_Reynolds_bouyancy_grid = eps_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
 
@@ -136,13 +138,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         #img4_1 = axarr4[1].plot(salinity_grid[transect_index,:],interp_pressure, label = "fine grid")
         img4_1 = axarr4[1].plot(density_grid[transect_index,:],interp_pressure, label = "fine grid")
-        img4_1b = axarr4[1].plot(eps_density_grid[transect_index,:],eps_pressure, label = "fine grid")
+        img4_1b = axarr4[1].plot(eps_density_grid[transect_index,:],eps_pressure, label = "eps grid")
 
         img4_2 = axarr4[2].plot(consv_temperature_grid[transect_index,:],interp_pressure, label = "fine grid")
         img4_2b = axarr4[2].plot(eps_consv_temperature_grid[transect_index,:],eps_pressure, label = "eps grid")
 
         #img4_3 = axarr4[3].plot(BV_freq_squared_grid_gsw[transect_index,:],mid_point_pressure, label = "fine grid")
-        img4_3b = axarr4[3].plot(np.log10(eps_N_squared_grid[transect_index,:]),eps_pressure, label = "eps grid")
+        img4_3b = axarr4[3].plot(eps_N_squared_grid[transect_index,:],eps_pressure, label = "eps grid")
 
         img4_4 = axarr4[4].plot(eps_viscosity_grid[transect_index,:]*10**6,eps_pressure,label = "Ilker")
         img4_4b = axarr4[4].plot(eps_wiki_viscosity_grid[transect_index,:]*10**6,eps_pressure,"--",label = "Wikipedia")
@@ -201,8 +203,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         img2_0 = axarr2[0].pcolormesh(plotmesh_longitude,interp_pressure,density_grid.T,cmap = cmap_RdBu)
         img2_1 = axarr2[1].pcolormesh(plotmesh_longitude,eps_pressure,eps_N_squared_grid.T,vmin = 0, vmax = 0.015,cmap = cmap_RdBu)
-        img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10,cmap = cmap_hot)
-        img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure,eps_Reynolds_bouyancy_grid.T, vmin = -5, vmax = 100,cmap = cmap_hot)
+        img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9,cmap = cmap_hot)
+        img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure,eps_Reynolds_bouyancy_grid.T, vmin = 0, vmax = 100,cmap = cmap_hot)
         
         
         #draw the calculated layers in the plot    
