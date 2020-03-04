@@ -1,3 +1,9 @@
+#----------------------------------------------------------------
+# plots the 3 horizontal adcp measured velocities timeseries (per mooring)
+#plus their power spectral density and rotary spectra
+
+#----------------------------------------------------------------
+
 import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -55,47 +61,52 @@ for mooring in  mooring_names:
         if DATAFILENAME[:4] == "ADCP":
             matlab_time = data["matlab_time"]
             
+            days = []
+            for i in range(3):
+                days.append(matlab_time[i].flatten()-matlab_time[i][0])
+                
             utc = []
             for i in range(3):
                 utc.append(np.asarray(pl.num2date(matlab_time[i]-366)).flatten())
+
             
             patched_u = data["patched_u"]
             patched_v = data["patched_v"]
             depths_of_cuts = data["depths_of_cuts"].flatten()
             patched_mask = data["nan_mask"]
             
-            print(depths_of_cuts)
+            #print(depths_of_cuts)
             
-            print(np.shape(utc))
-            print(np.shape(patched_u[0]))
+            #print(np.shape(utc))
+            #print(np.shape(patched_u[0]))
             
             #top=0.954,bottom=0.081,left=0.05,right=0.985,hspace=0.231,wspace=0.02
 
-            axarr1[0,0].plot(utc[0],patched_u[0],"b",label = "u")                                          
-            axarr1[0,1].plot(utc[0],patched_v[0],"r",label = "v")
+            axarr1[0,0].plot(days[0],patched_u[0],"b",label = "u")                                          
+            axarr1[0,1].plot(days[0],patched_v[0],"r",label = "v")
             nan_u  = ma.masked_where(patched_mask[0],patched_u[0])
             nan_v = ma.masked_where(patched_mask[0],patched_v[0])  
-            axarr1[0,0].plot(utc[0],nan_u,"k")
-            axarr1[0,1].plot(utc[0],nan_v,"k")
+            axarr1[0,0].plot(days[0],nan_u,"k")
+            axarr1[0,1].plot(days[0],nan_v,"k")
             
             axarr1[0,0].set_title(current_mooring+" cut at "+str(np.round(depths_of_cuts[0],2))+" dbar")
             #f1.suptitle(current_mooring+" cut at "+str(depths_of_cuts[0])+" dbar")
             
-            axarr2[0,0].plot(utc[1],patched_u[1],"b",label = "u")                                           
-            axarr2[0,1].plot(utc[1],patched_v[1],"r",label = "v")
+            axarr2[0,0].plot(days[1],patched_u[1],"b",label = "u")                                           
+            axarr2[0,1].plot(days[1],patched_v[1],"r",label = "v")
             nan_u  = ma.masked_where(patched_mask[1],patched_u[1])
             nan_v = ma.masked_where(patched_mask[1],patched_v[1])  
-            axarr2[0,0].plot(utc[1],nan_u,"k")
-            axarr2[0,1].plot(utc[1],nan_v,"k")
+            axarr2[0,0].plot(days[1],nan_u,"k")
+            axarr2[0,1].plot(days[1],nan_v,"k")
             axarr2[0,0].set_title(current_mooring+" cut at "+str(np.round(depths_of_cuts[1],2))+" dbar")
             #f2.suptitle(current_mooring+" cut at "+str(depths_of_cuts[1])+" dbar")
                         
-            axarr3[0,0].plot(utc[2],patched_u[2],"b",label = "u")                                               
-            axarr3[0,1].plot(utc[2],patched_v[2],"r",label = "v")
+            axarr3[0,0].plot(days[2],patched_u[2],"b",label = "u")                                               
+            axarr3[0,1].plot(days[2],patched_v[2],"r",label = "v")
             nan_u  = ma.masked_where(patched_mask[2],patched_u[2])
             nan_v = ma.masked_where(patched_mask[2],patched_v[2])  
-            axarr3[0,0].plot(utc[2],nan_u,"k")
-            axarr3[0,1].plot(utc[2],nan_v,"k")       
+            axarr3[0,0].plot(days[2],nan_u,"k")
+            axarr3[0,1].plot(days[2],nan_v,"k")       
             axarr3[0,0].set_title(current_mooring+" cut at "+str(np.round(depths_of_cuts[2],2))+" dbar")  
             #f3.suptitle(current_mooring+" cut at "+str(depths_of_cuts[2])+" dbar")
                         
@@ -167,8 +178,21 @@ for mooring in  mooring_names:
             axarr1[row,column].legend()
             axarr2[row,column].legend()
             axarr3[row,column].legend()   
-                   
-        #plt.close(fig = "all")
+    
+    axarr1[0,0].set_xlabel("days")
+    axarr1[0,1].set_xlabel("days")
+    axarr2[0,0].set_xlabel("days")
+    axarr2[0,1].set_xlabel("days")
+    axarr3[0,0].set_xlabel("days")
+    axarr3[0,1].set_xlabel("days")                   
+
+    axarr1[1,0].set_xlabel("cycles per hour")
+    axarr1[1,1].set_xlabel("cycles per hour")
+    axarr2[1,0].set_xlabel("cycles per hour")
+    axarr2[1,1].set_xlabel("cycles per hour")
+    axarr3[1,0].set_xlabel("cycles per hour")
+    axarr3[1,1].set_xlabel("cycles per hour")       
+    #plt.close(fig = "all")
         
     print("\n")
     

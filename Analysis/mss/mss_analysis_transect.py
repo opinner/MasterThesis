@@ -211,7 +211,7 @@ axarr1[0].plot(lon,bathymetrie)
 axarr1[0].plot(lon,BBL)
     
 #Plotting
-transect_index = -6
+transect_index = -5
 print("Profile at Longitude",lon[transect_index])
 #print(lon)
 #print(np.all(np.diff(lon)>0))

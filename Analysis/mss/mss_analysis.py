@@ -1,6 +1,7 @@
 #---------------------------------------------------------#
 #Plots every mss measurement as a transect 
 #plus as an example one profile from that transect
+#---------------------------------------------------------#
 
 #TODO Why all the runtime warnings? Workaround "turn off warnings"?
 #TODO RuntimeWarning for nan values. Solve by switching to pandas?

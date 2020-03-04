@@ -146,13 +146,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #density_grid[ozmidov_scale_grid,:])))
         
         
+        """
         Gamma_Osborn_eps_grid = thesis.Osborn(corrected_eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * corrected_eps_grid / (eps_N_squared_grid)
         #TODO: Which differention scheme should I use? 
         #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
         oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400/(1000**2)        
+        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400/(1000**2)      
         
         Gamma_BB_eps_grid = thesis.BB(corrected_eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * corrected_eps_grid / (eps_N_squared_grid)
@@ -168,6 +169,40 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
         oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
+        oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400/(1000**2)          
+        """
+        
+        Gamma_Osborn_eps_grid = thesis.Osborn(eps_Reynolds_bouyancy_grid)
+        turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
+        #TODO
+        turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = 0
+        
+        #TODO: Which differention scheme should I use? 
+        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
+        oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
+        #convert from m*micromol/(l*s) to mmol/(m^2*d)
+        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400/(1000**2)   
+                
+        
+        Gamma_BB_eps_grid = thesis.BB(eps_Reynolds_bouyancy_grid)
+        turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * eps_grid / (eps_N_squared_grid)
+        
+        #TODO
+        turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = 0
+        
+        #TODO: Which differention scheme should I use? 
+        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
+        oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
+        #convert from m*micromol/(l*s) to mmol/(m^2*d)
+        oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400/(1000**2)
+        
+        Gamma_Skif_eps_grid = thesis.Skif(eps_Reynolds_bouyancy_grid)
+        turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
+        turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = 0
+        #TODO: Which differention scheme should I use? 
+        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
+        oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
+        #convert from m*micromol/(l*s) to mmol/(m^2*d)
         oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400/(1000**2)
         
         
@@ -177,7 +212,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         axarr1[0].axvline(x=0)
         
         mask = ma.masked_where(boundary_check_grid[-5,:],distance_from_ground_grid[-5,:])
-        print(mask)
+        #print(mask)
         
         for i in range(distance_from_ground_grid[-5,:].size):
             print(distance_from_ground_grid[-5,i],ozmidov_scale_grid[-5,i],boundary_check_grid[-5,i])
@@ -203,7 +238,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
 
         
-        axarr1[4].set_xlim((np.nanmin(turbulent_diffusivity_Skif_grid[-5,:]),np.nanmax(turbulent_diffusivity_Skif_grid[-5,:])))        
+        #axarr1[4].set_xlim((np.nanmin(turbulent_diffusivity_Skif_grid[-5,:]),np.nanmax(turbulent_diffusivity_Skif_grid[-5,:])))        
         axarr1[4].ticklabel_format(axis="x", style="sci", scilimits=(0,0))
         
         
@@ -213,7 +248,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         axarr1[6].plot(oxygen_flux_BB_grid[-5,:],eps_pressure[1:], label = "BB")
         axarr1[6].plot(oxygen_flux_Skif_grid[-5,:],eps_pressure[1:], label = "Skif")        
         
-        axarr1[6].set_xlim((np.nanmin(oxygen_flux_Skif_grid[-5,:])-0.1*np.nanmax(oxygen_flux_Skif_grid[-5,:]),np.nanmax(oxygen_flux_Skif_grid[-5,:])))
+        #axarr1[6].set_xlim((np.nanmin(oxygen_flux_Skif_grid[-5,:])-0.1*np.nanmax(oxygen_flux_Skif_grid[-5,:]),1.1*np.nanmax(oxygen_flux_Skif_grid[-5,:])))
         axarr1[6].ticklabel_format(axis="x", style="sci", scilimits=(0,0))
         
         axarr1[2].legend()
@@ -227,7 +262,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         axarr1[3].set_xlabel(r"$\Gamma$")
         axarr1[4].set_xlabel("turbulent diffusitivity")
         axarr1[5].set_xlabel("d 0$_2$ / dz [micromol/(l m)]")
-        axarr1[6].set_xlabel("oxygen flux [???]")
+        axarr1[6].set_xlabel("oxygen flux [mmol/(m^2*d)]")
 
         #axarr1[3].ticklabel_format(axis="x", style="sci", scilimits=(0,0))
         axarr1[0].set_ylim(0,125)
@@ -268,6 +303,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         f1.savefig("/home/ole/Thesis/Analysis/mss/pictures/oxygen_fluxes/"+cruisename+"_"+transect_name+"_profiles", DPI = 300)
         f2.savefig("/home/ole/Thesis/Analysis/mss/pictures/oxygen_fluxes/"+cruisename+"_"+transect_name+"_transects", DPI = 300)
+        
+        if transect_name == "TR1-4":
+            plt.show()
         
         #close the pictures after saving
         plt.close(fig = "all")
