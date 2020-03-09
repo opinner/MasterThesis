@@ -54,16 +54,16 @@ desired_depths_emb169_tief = [20,58,85]
 desired_depths_emb177_tief = [40, 70, 85]
 desired_depths_emb217_tief = [20, 50, 85]
 
-#cuts to avoid edge effects (manually picked) 
-cuts_emb169_flach = [0,-1]
-cuts_emb177_flach = [87,12778]
-cuts_emb217_flach = [0,8086]
+#trim to avoid edge effects (manually picked) 
+trim_emb169_flach = [0,-1]
+trim_emb177_flach = [87,12778]
+trim_emb217_flach = [0,8086]
 
-cuts_emb169_tief = [0,-1]
-cuts_emb177_tief = [60,5491]
-cuts_emb217_tief = [100,8165]
+trim_emb169_tief = [0,-1]
+trim_emb177_tief = [60,5491]
+trim_emb217_tief = [100,8165]
 
-mooring_names = ["emb169_flach","emb169_tief","emb177_flach","emb177_tief","emb217_flach","emb217_tief"]
+mooring_names = ["emb217_flach"]#["emb169_flach","emb169_tief","emb177_flach","emb177_tief","emb217_flach","emb217_tief"]
 
 for mooring in  mooring_names: 
 
@@ -201,31 +201,31 @@ for mooring in  mooring_names:
             if cruisename == "emb169":
                 if flach_or_tief == "tief":
                     horizontal_cut = desired_depths_emb169_tief
-                    cut_points = cuts_emb169_tief
+                    cut_points = trim_emb169_tief
                 elif  flach_or_tief == "flach":
                     horizontal_cut = desired_depths_emb169_flach   
-                    cut_points = cuts_emb169_flach                    
+                    cut_points = trim_emb169_flach                    
             elif cruisename == "emb177":
                 if flach_or_tief == "tief":
                     horizontal_cut = desired_depths_emb177_tief       
-                    cut_points = cuts_emb177_tief                     
+                    cut_points = trim_emb177_tief                     
                 elif  flach_or_tief == "flach":
                     horizontal_cut = desired_depths_emb177_flach
-                    cut_points = cuts_emb177_flach 
+                    cut_points = trim_emb177_flach 
                                                     
             elif cruisename == "emb217":
                 if flach_or_tief == "tief" or flach_or_tief == "Tief":
                     horizontal_cut = desired_depths_emb217_tief
-                    cut_points = cuts_emb217_tief
+                    cut_points = trim_emb217_tief
                 elif  flach_or_tief == "flach" or flach_or_tief == "Flach":
                     horizontal_cut = desired_depths_emb217_flach
-                    cut_points = cuts_emb217_flach
+                    cut_points = trim_emb217_flach
             
             
-            img1_1 = axarr2[0].pcolormesh(utc,depth,west_east, vmin = vmin, vmax = vmax, cmap = cmap)
-            img1_2 = axarr2[1].pcolormesh(utc,depth,north_south, vmin = vmin, vmax = vmax, cmap = cmap)
-            colorbar(img1_1)
-            colorbar(img1_2)
+            img2_1 = axarr2[0].pcolormesh(utc,depth,west_east, vmin = vmin, vmax = vmax, cmap = cmap)
+            img2_2 = axarr2[1].pcolormesh(utc,depth,north_south, vmin = vmin, vmax = vmax, cmap = cmap)
+            colorbar(img2_1).set_label("velocity [m/s]")
+            colorbar(img2_2).set_label("velocity [m/s]")
             
             axarr2[0].xaxis.set_major_locator(mdates.DayLocator())
             axarr2[0].xaxis.set_minor_locator(mdates.HourLocator(byhour = [0,6,12,18],interval = 1))
@@ -241,6 +241,11 @@ for mooring in  mooring_names:
             axarr2[1].set_ylim(bottom = 0, top = 90)
             axarr2[1].invert_yaxis()      
             
+            #axarr2[0].set_xlabel("cycles per hour")   
+            axarr2[1].set_xlabel("2019")   
+            axarr2[0].set_ylabel("pressure [dbar]")  
+            axarr2[1].set_ylabel("pressure [dbar]")  
+                                       
             print("\n",datafile_path)
             print("from ",depth[0]," to ",depth[-1])
             
@@ -268,7 +273,8 @@ for mooring in  mooring_names:
                                     
                     cut_mask_array = np.zeros(west_east[slice_index,:].size, dtype=bool)
                     
-                    print(cruisename,flach_or_tief,depth[slice_index],desired_depth,order_index)
+                    print("\t",depth[slice_index],desired_depth,order_index)
+                    #print(cruisename,flach_or_tief,depth[slice_index],desired_depth,order_index)
 
 
                     if cruisename == "emb217" and flach_or_tief == "flach" and order_index == 2:
@@ -281,7 +287,7 @@ for mooring in  mooring_names:
                     cut_plot_utc = ma.masked_where(cut_mask_array,utc)    
                 
                 
-                    matlab_time[order_index] = rtc[cut_points[0]:cut_points[1]]
+                    matlab_time[order_index] = (rtc[cut_points[0]:cut_points[1]]).flatten()
                     #Data with the mean subtracted and holes filled
                     patched_cuts_u[order_index] = dfm_west_east[slice_index,cut_points[0]:cut_points[1]]
                     patched_cuts_v[order_index] = dfm_north_south[slice_index,cut_points[0]:cut_points[1]]
@@ -316,15 +322,24 @@ for mooring in  mooring_names:
                             
 
 
-
-
+    print(matlab_time)
+    print(np.shape(matlab_time))
+    print(np.shape(matlab_time[0]))
+    print(type(matlab_time))
+    print(type(matlab_time[0]))
     f1.suptitle(mooring)
     #f1.tight_layout()
     f1.set_size_inches(18,10.5)
     f2.suptitle(mooring)
     f2.tight_layout()
-    f2.set_size_inches(18,10.5)
+    #f2.set_size_inches(18,10.5)
     
+
+    
+    #f2.subplots_adjust(top=0.95,bottom=0.056,left=0.05,right=0.961,hspace=0.2,wspace=0.2)
+    f2.set_size_inches(1.618*7.2,7.2)
+    plot2_name = plot_name = "/home/ole/share-windows/adcp_slices/"+mooring+"_cut_positions"
+    f2.savefig(plot2_name)
     
     SAVEFILENAME = "/home/ole/share-windows/adcp_slices/ADCP_horizontal_slice_"+mooring+".mat" 
     matlab_dictionary = {}
@@ -337,9 +352,9 @@ for mooring in  mooring_names:
     matlab_dictionary["nan_mask"] = nan_mask
     #save data to a .mat to use in fancypsd.mat
     sio.savemat(SAVEFILENAME,matlab_dictionary)     
-    print("!!!!!!!!!!!!!!!!!!!!!!!!") 
-    print("Saved as"+SAVEFILENAME)
-    print("!!!!!!!!!!!!!!!!!!!!!!!!")     
+    #print("!!!!!!!!!!!!!!!!!!!!!!!!") 
+    #print("Saved as"+SAVEFILENAME)
+    #print("!!!!!!!!!!!!!!!!!!!!!!!!")     
 plt.show()        
   
 

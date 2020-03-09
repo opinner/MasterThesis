@@ -189,6 +189,7 @@ bathymetrie,list_of_bathymetrie_indices = results[0]
 BBL,list_of_BBL_indices = results[1]
 BBL_range,list_of_BBL_range_indices = results[2]
 
+
 """        
 #Test of different BBL conditions
 exp_results = experimental_BBL(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02)
@@ -197,6 +198,26 @@ exp_BBL,exp_list_of_BBL_indices = results[1]
 exp_BBL_range,exp_list_of_BBL_range_indices = results[2]
 """
 
+#TODO
+turbulent_diffusivity_Osborn_grid = 0.2 * eps_grid / (eps_N_squared_grid)
+turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = 0
+        
+eps_depth = gsw.z_from_p(eps_pressure,np.mean(lat)) #mean lat should be sufficient, because the transect is east-west
+print(min(eps_depth),max(eps_depth))
+#TODO: Which differention scheme should I use? 
+#Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
+oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,:-1] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
+#convert from m*micromol/(l*s) to mmol/(m^2*d)
+oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400/(1000**2)   
+
+
+transect_index = -5
+print("\n\n\n\n")
+print("pressure\tdepth\teps\t","N^2\t","k\t","dO_2/dz\t","flux\t")
+for i in range(eps_pressure.size-1):
+    print(eps_pressure[i],"\t",np.round(eps_depth[i],1),"\t",'{:0.3e}'.format(eps_grid[transect_index,i]),"\t",'{:0.3e}'.format(eps_N_squared_grid[transect_index,i]),"\t",'{:0.3e}'.format(turbulent_diffusivity_Osborn_grid[transect_index,i]),"\t",'{:0.3e}'.format((np.diff(eps_oxygen_grid)/np.diff(eps_depth))[transect_index,i]),"\t",'{:0.3e}'.format(oxygen_flux_osborn_grid[transect_index,i]))
+print("\n\n\n\n")
+        
 #append the last distance plus the last difference (for plotting all the n profiles we need a distance array of size n+1 
 plotmesh_distance = np.append(distance,2*distance[-1]-distance[-2])
 plotmesh_longitude = np.append(lon,2*lon[-1]-lon[-2])
@@ -215,17 +236,23 @@ transect_index = -5
 print("Profile at Longitude",lon[transect_index])
 #print(lon)
 #print(np.all(np.diff(lon)>0))
+
+axarr4[0].plot(np.diff(eps_oxygen_grid[transect_index,:])/np.diff(eps_depth),eps_pressure[1:])
+
+"""
 img4_0 = axarr4[0].plot(oxygen_grid[transect_index,:],interp_pressure)
 img4_0b = axarr4[0].plot(0,BBL[transect_index],"Dr")
 img4_0c = axarr4[0].plot(0,bathymetrie[transect_index],"Dg")
 img4_0d = axarr4[0].plot(0,BBL_range[transect_index],"ok")
 print("Bottom",bathymetrie[transect_index],"BBL",BBL[transect_index],"max BBL",interp_pressure[transect_index],)
-
+"""
 
 img4_1 = axarr4[1].plot(density_grid[transect_index,:],interp_pressure)
 
-img4_2 = axarr4[2].plot(consv_temperature_grid[transect_index,:],interp_pressure)
-img4_2b = axarr4[2].plot(eps_consv_temperature_grid[transect_index,:],eps_pressure)
+img4_2 = axarr4[2].plot(oxygen_flux_osborn_grid[transect_index,:],eps_pressure[1:])
+
+#img4_2 = axarr4[2].plot(consv_temperature_grid[transect_index,:],interp_pressure)
+#img4_2b = axarr4[2].plot(eps_consv_temperature_grid[transect_index,:],eps_pressure)
 
 #img4_3 = axarr4[3].plot(BV_freq_squared_grid_gsw[transect_index,:],mid_point_pressure, label = "fine grid")
 img4_3b = axarr4[3].plot(np.log10(eps_N_squared_grid[transect_index,:]),eps_pressure, label = "eps grid")
@@ -236,6 +263,7 @@ img4_5 = axarr4[5].plot(np.log10(eps_grid[transect_index,:]),eps_pressure)
 img4_6 = axarr4[6].plot(eps_Reynolds_bouyancy_grid[transect_index,:],eps_pressure,label = "Ilker")
 img4_6b = axarr4[6].plot(eps_wiki_Reynolds_bouyancy_grid[transect_index,:],eps_pressure,"--",label = "Wikipedia")
 
+
 print(np.shape(interp_pressure))
 print(np.shape(salinity_grid))
 img4_7 = axarr4[7].plot(np.diff(density_grid[transect_index,:]),interp_pressure[1:])
@@ -244,7 +272,7 @@ img4_7 = axarr4[7].plot(np.diff(density_grid[transect_index,:]),interp_pressure[
 axarr4[0].set_xlabel("oxygen")
 axarr4[0].set_ylabel("pressure [dbar]")
 axarr4[1].set_xlabel("density")
-axarr4[2].set_xlabel("CT")
+axarr4[2].set_xlabel("oxygen flux") #axarr4[2].set_xlabel("CT")
 axarr4[3].set_xlabel("N^2")
 axarr4[4].set_xlabel("viscosity / 10^(-6)")
 axarr4[5].set_xlabel("log10(eps)")

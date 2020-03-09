@@ -3,6 +3,7 @@
 #plus their power spectral density and rotary spectra
 
 #----------------------------------------------------------------
+#TODO What is wrong with emb217_flach?
 
 import pathlib
 import numpy as np
@@ -30,7 +31,7 @@ for p in path.iterdir():
 DATAFILENAMES = sorted(DATAFILENAMES) 
 
 
-mooring_names = ["emb217_tief"] #["emb169_flach","emb169_tief","emb177_flach","emb177_tief","emb217_flach","emb217_tief"]
+mooring_names = ["emb169_flach","emb169_tief","emb177_flach","emb177_tief","emb217_tief"]#,"emb217_flach"] #["emb217_flach"] #
 
 for mooring in  mooring_names:
 
@@ -61,6 +62,18 @@ for mooring in  mooring_names:
         if DATAFILENAME[:4] == "ADCP":
             matlab_time = data["matlab_time"]
             
+            if np.shape(matlab_time)[0] == 1:
+                matlab_time = matlab_time[0]
+            
+            """
+            print(matlab_time)
+            print(np.shape(matlab_time))
+            print(np.shape(matlab_time[0]))
+            print(type(matlab_time))
+            print(type(matlab_time[0][0]))
+            """
+        
+    
             days = []
             for i in range(3):
                 days.append(matlab_time[i].flatten()-matlab_time[i][0])
@@ -75,38 +88,42 @@ for mooring in  mooring_names:
             depths_of_cuts = data["depths_of_cuts"].flatten()
             patched_mask = data["nan_mask"]
             
-            #print(depths_of_cuts)
-            
+            if np.shape(patched_u)[0] == 1:
+                patched_u = patched_u[0]
+                patched_v = patched_v[0]
+                patched_mask = patched_mask[0]            
             #print(np.shape(utc))
             #print(np.shape(patched_u[0]))
             
             #top=0.954,bottom=0.081,left=0.05,right=0.985,hspace=0.231,wspace=0.02
-
-            axarr1[0,0].plot(days[0],patched_u[0],"b",label = "u")                                          
-            axarr1[0,1].plot(days[0],patched_v[0],"r",label = "v")
-            nan_u  = ma.masked_where(patched_mask[0],patched_u[0])
-            nan_v = ma.masked_where(patched_mask[0],patched_v[0])  
-            axarr1[0,0].plot(days[0],nan_u,"k")
-            axarr1[0,1].plot(days[0],nan_v,"k")
+            print("test",np.shape(days[0]),np.shape(patched_u[0]))
+        
+            linewidth = 0.5
+            axarr1[0,0].plot(days[0],patched_u[0].flatten(),"b",label = "u",linewidth=linewidth)                                          
+            axarr1[0,1].plot(days[0],patched_v[0].flatten(),"r",label = "v",linewidth=linewidth)
+            nan_u  = ma.masked_where(patched_mask[0],patched_u[0]).flatten()
+            nan_v = ma.masked_where(patched_mask[0],patched_v[0]).flatten()
+            axarr1[0,0].plot(days[0],nan_u,"k",linewidth=linewidth)
+            axarr1[0,1].plot(days[0],nan_v,"k",linewidth=linewidth)
             
             axarr1[0,0].set_title(current_mooring+" cut at "+str(np.round(depths_of_cuts[0],2))+" dbar")
             #f1.suptitle(current_mooring+" cut at "+str(depths_of_cuts[0])+" dbar")
             
-            axarr2[0,0].plot(days[1],patched_u[1],"b",label = "u")                                           
-            axarr2[0,1].plot(days[1],patched_v[1],"r",label = "v")
-            nan_u  = ma.masked_where(patched_mask[1],patched_u[1])
-            nan_v = ma.masked_where(patched_mask[1],patched_v[1])  
-            axarr2[0,0].plot(days[1],nan_u,"k")
-            axarr2[0,1].plot(days[1],nan_v,"k")
+            axarr2[0,0].plot(days[1],patched_u[1].flatten(),"b",label = "u",linewidth=linewidth)                                           
+            axarr2[0,1].plot(days[1],patched_v[1].flatten(),"r",label = "v",linewidth=linewidth)
+            nan_u  = ma.masked_where(patched_mask[1],patched_u[1]).flatten()
+            nan_v = ma.masked_where(patched_mask[1],patched_v[1]).flatten()
+            axarr2[0,0].plot(days[1],nan_u,"k",linewidth=linewidth)
+            axarr2[0,1].plot(days[1],nan_v,"k",linewidth=linewidth)
             axarr2[0,0].set_title(current_mooring+" cut at "+str(np.round(depths_of_cuts[1],2))+" dbar")
             #f2.suptitle(current_mooring+" cut at "+str(depths_of_cuts[1])+" dbar")
                         
-            axarr3[0,0].plot(days[2],patched_u[2],"b",label = "u")                                               
-            axarr3[0,1].plot(days[2],patched_v[2],"r",label = "v")
-            nan_u  = ma.masked_where(patched_mask[2],patched_u[2])
-            nan_v = ma.masked_where(patched_mask[2],patched_v[2])  
-            axarr3[0,0].plot(days[2],nan_u,"k")
-            axarr3[0,1].plot(days[2],nan_v,"k")       
+            axarr3[0,0].plot(days[2],patched_u[2].flatten(),"b",label = "u",linewidth=linewidth)                                               
+            axarr3[0,1].plot(days[2],patched_v[2].flatten(),"r",label = "v",linewidth=linewidth)
+            nan_u  = ma.masked_where(patched_mask[2],patched_u[2]).flatten()
+            nan_v = ma.masked_where(patched_mask[2],patched_v[2]).flatten()
+            axarr3[0,0].plot(days[2],nan_u,"k",linewidth=linewidth)
+            axarr3[0,1].plot(days[2],nan_v,"k",linewidth=linewidth)       
             axarr3[0,0].set_title(current_mooring+" cut at "+str(np.round(depths_of_cuts[2],2))+" dbar")  
             #f3.suptitle(current_mooring+" cut at "+str(depths_of_cuts[2])+" dbar")
                         
@@ -186,13 +203,30 @@ for mooring in  mooring_names:
     axarr3[0,0].set_xlabel("days")
     axarr3[0,1].set_xlabel("days")                   
 
+    axarr1[0,1].set_ylim(-0.2,0.2)
+    axarr1[0,0].set_ylim(-0.2,0.2)
+    axarr2[0,1].set_ylim(-0.2,0.2)
+    axarr2[0,0].set_ylim(-0.2,0.2)    
+    axarr3[0,1].set_ylim(-0.2,0.2)
+    axarr3[0,0].set_ylim(-0.2,0.2)
+
     axarr1[1,0].set_xlabel("cycles per hour")
     axarr1[1,1].set_xlabel("cycles per hour")
     axarr2[1,0].set_xlabel("cycles per hour")
     axarr2[1,1].set_xlabel("cycles per hour")
     axarr3[1,0].set_xlabel("cycles per hour")
-    axarr3[1,1].set_xlabel("cycles per hour")       
-    #plt.close(fig = "all")
+    axarr3[1,1].set_xlabel("cycles per hour")   
+    
+    
+    f1.set_size_inches(1.618*7.2,7.2)
+    f2.set_size_inches(1.618*7.2,7.2)
+    f3.set_size_inches(1.618*7.2,7.2)
+            
+    plot_name = "/home/ole/share-windows/adcp_slices/"+mooring
+    f1.savefig(plot_name+str(1))
+    f2.savefig(plot_name+str(2))    
+    f3.savefig(plot_name+str(3)) 
+    plt.close(fig = "all")
         
     print("\n")
     
