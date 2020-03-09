@@ -179,7 +179,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         #TODO: Which differention scheme should I use? 
         #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
-        oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
+        oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
         oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400/(1000**2)   
                 
@@ -192,7 +192,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         #TODO: Which differention scheme should I use? 
         #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
-        oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
+        oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
         oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400/(1000**2)
         
@@ -201,7 +201,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = 0
         #TODO: Which differention scheme should I use? 
         #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
-        oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
+        oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
         oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400/(1000**2)
         
@@ -232,9 +232,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         axarr1[3].plot(Gamma_BB_eps_grid[-5,:],eps_pressure,label = "BB")
         axarr1[3].plot(Gamma_Skif_eps_grid[-5,:],eps_pressure,label = "Skif")
         
-        axarr1[4].plot(turbulent_diffusivity_Osborn_grid[-5,1:],eps_pressure[1:], label = "Osborn")     
-        axarr1[4].plot(turbulent_diffusivity_BB_grid[-5,1:],eps_pressure[1:], label = "BB")   
-        axarr1[4].plot(turbulent_diffusivity_Skif_grid[-5,1:],eps_pressure[1:], label = "Skif")
+        axarr1[4].plot(turbulent_diffusivity_Osborn_grid[-5,:],eps_pressure, label = "Osborn")     
+        axarr1[4].plot(turbulent_diffusivity_BB_grid[-5,:],eps_pressure, label = "BB")   
+        axarr1[4].plot(turbulent_diffusivity_Skif_grid[-5,:],eps_pressure, label = "Skif")
 
 
         
@@ -244,9 +244,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         axarr1[5].plot(np.diff(eps_oxygen_grid[-5,:])/np.diff(eps_depth),eps_pressure[1:])
                                 
-        axarr1[6].plot(oxygen_flux_osborn_grid[-5,:],eps_pressure[1:], label = "Osborn")
-        axarr1[6].plot(oxygen_flux_BB_grid[-5,:],eps_pressure[1:], label = "BB")
-        axarr1[6].plot(oxygen_flux_Skif_grid[-5,:],eps_pressure[1:], label = "Skif")        
+        axarr1[6].plot(oxygen_flux_osborn_grid[-5,:],eps_pressure[:], label = "Osborn")
+        axarr1[6].plot(oxygen_flux_BB_grid[-5,:],eps_pressure[:], label = "BB")
+        axarr1[6].plot(oxygen_flux_Skif_grid[-5,:],eps_pressure[:], label = "Skif")        
         
         #axarr1[6].set_xlim((np.nanmin(oxygen_flux_Skif_grid[-5,:])-0.1*np.nanmax(oxygen_flux_Skif_grid[-5,:]),1.1*np.nanmax(oxygen_flux_Skif_grid[-5,:])))
         axarr1[6].ticklabel_format(axis="x", style="sci", scilimits=(0,0))
@@ -279,7 +279,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         img2_0 = axarr2[0].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_grid.T,cmap = cmap_RdBu)
         img2_1 = axarr2[1].pcolormesh(plotmesh_longitude,interp_pressure,density_grid.T,cmap = cmap_RdBu)
         img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9.5, cmap = cmap_hot)
-        img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure[1:],oxygen_flux_Skif_grid.T, cmap = cmap_hot)  
+        img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure,oxygen_flux_Skif_grid.T, cmap = cmap_hot)  
         
         colorbar(img2_0).set_label("Oxygen [micromol/l]") 
         colorbar(img2_1).set_label(r"Density [kg/m$^3$]") 
