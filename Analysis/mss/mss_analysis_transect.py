@@ -139,10 +139,9 @@ def experimental_BBL(number_of_profiles,interp_pressure,density_grid,oxygen_grid
 #########################################################################################################################################
 #########################################################################################################################################
             
-#Constants
-rho_0 = 1000 #kg/m³
-g = 9.81 #m/s² #could be replace by gsw.grav(lat,p)
 
+
+datafile_path = "/home/ole/share-windows/emb217_mss_data/TR1-4.mat"
 datafile_path = "/home/ole/share-windows/emb217_mss_data/TR1-4.mat"
 
 splitted_filename = datafile_path.split("/")
@@ -155,7 +154,7 @@ f1, axarr1 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
 f2, axarr2 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
 f3, axarr3 = plt.subplots(nrows = 3, ncols = 1)
 f4, axarr4 = plt.subplots(nrows = 1, ncols = 8, sharey = True)#, sharex = True, 
-f5, axarr5 = plt.subplots(2)
+#f5, axarr5 = plt.subplots(2)
 
 
     
@@ -206,11 +205,11 @@ eps_depth = gsw.z_from_p(eps_pressure,np.mean(lat)) #mean lat should be sufficie
 print(min(eps_depth),max(eps_depth))
 #TODO: Which differention scheme should I use? 
 #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
-oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,:-1] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
+oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
 #convert from m*micromol/(l*s) to mmol/(m^2*d)
 oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400/(1000**2)   
 
-
+        
 transect_index = -5
 print("\n\n\n\n")
 print("pressure\tdepth\teps\t","N^2\t","k\t","dO_2/dz\t","flux\t")
@@ -222,10 +221,11 @@ print("\n\n\n\n")
 plotmesh_distance = np.append(distance,2*distance[-1]-distance[-2])
 plotmesh_longitude = np.append(lon,2*lon[-1]-lon[-2])
         
-               
+"""               
 axarr5[0].plot(lon,bathymetrie)
 axarr5[0].invert_yaxis()
 axarr5[1].plot(lon)    
+"""
     
 #draw the calculated layers in the plot    
 axarr1[0].plot(lon,bathymetrie)
@@ -237,7 +237,7 @@ print("Profile at Longitude",lon[transect_index])
 #print(lon)
 #print(np.all(np.diff(lon)>0))
 
-axarr4[0].plot(np.diff(eps_oxygen_grid[transect_index,:])/np.diff(eps_depth),eps_pressure[1:])
+axarr4[0].plot(thesis.central_differences(eps_oxygen_grid[transect_index,:])/thesis.central_differences(eps_depth),eps_pressure)
 
 """
 img4_0 = axarr4[0].plot(oxygen_grid[transect_index,:],interp_pressure)
@@ -249,7 +249,7 @@ print("Bottom",bathymetrie[transect_index],"BBL",BBL[transect_index],"max BBL",i
 
 img4_1 = axarr4[1].plot(density_grid[transect_index,:],interp_pressure)
 
-img4_2 = axarr4[2].plot(oxygen_flux_osborn_grid[transect_index,:],eps_pressure[1:])
+img4_2 = axarr4[2].plot(oxygen_flux_osborn_grid[transect_index,:],eps_pressure])
 
 #img4_2 = axarr4[2].plot(consv_temperature_grid[transect_index,:],interp_pressure)
 #img4_2b = axarr4[2].plot(eps_consv_temperature_grid[transect_index,:],eps_pressure)
