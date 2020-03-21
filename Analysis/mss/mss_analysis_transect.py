@@ -249,7 +249,7 @@ print("Bottom",bathymetrie[transect_index],"BBL",BBL[transect_index],"max BBL",i
 
 img4_1 = axarr4[1].plot(density_grid[transect_index,:],interp_pressure)
 
-img4_2 = axarr4[2].plot(oxygen_flux_osborn_grid[transect_index,:],eps_pressure])
+img4_2 = axarr4[2].plot(oxygen_flux_osborn_grid[transect_index,:],eps_pressure)
 
 #img4_2 = axarr4[2].plot(consv_temperature_grid[transect_index,:],interp_pressure)
 #img4_2b = axarr4[2].plot(eps_consv_temperature_grid[transect_index,:],eps_pressure)

@@ -63,7 +63,7 @@ trim_emb169_tief = [0,-1]
 trim_emb177_tief = [60,5491]
 trim_emb217_tief = [100,8165]
 
-mooring_names = ["emb217_flach"]#["emb169_flach","emb169_tief","emb177_flach","emb177_tief","emb217_flach","emb217_tief"]
+mooring_names = ["emb169_flach","emb169_tief","emb177_flach","emb177_tief","emb217_flach","emb217_tief"]
 
 for mooring in  mooring_names: 
 
@@ -321,12 +321,14 @@ for mooring in  mooring_names:
                         cut_points = temp
                             
 
-
+    """
     print(matlab_time)
     print(np.shape(matlab_time))
     print(np.shape(matlab_time[0]))
     print(type(matlab_time))
     print(type(matlab_time[0]))
+    """
+    
     f1.suptitle(mooring)
     #f1.tight_layout()
     f1.set_size_inches(18,10.5)

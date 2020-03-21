@@ -482,7 +482,7 @@ def central_differences(array):
         
         for profile in range(number_of_profiles):
             for i in range(1,vertical_points-1):
-                diff_grid[profile,i] = array[profile,i+1] - array[profile,i-1]  
+                diff_grid[profile,i] = (array[profile,i+1] - array[profile,i-1])/2
 
         diff_grid[:,0] = np.nan 
         diff_grid[:,-1] = np.nan

@@ -44,14 +44,19 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     for DATAFILENAME in DATAFILENAMES:
     
+        datafile_path = FOLDERNAME+"/"+DATAFILENAME
+        
+        transect_name = DATAFILENAME[:-4]
+    
+        #if transect_name != "TR1-10":
+        #    continue
+    
         #define the pictures
         f1, axarr1 = plt.subplots(nrows = 1, ncols = 7, sharey = True)
         f2, axarr2 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
     
     
-        datafile_path = FOLDERNAME+"/"+DATAFILENAME
-        
-        transect_name = DATAFILENAME[:-4]
+
         
         
         data = np.load(datafile_path)
@@ -181,7 +186,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
         oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400/(1000**2)   
+        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400
                 
         
         Gamma_BB_eps_grid = thesis.BB(eps_Reynolds_bouyancy_grid)
@@ -194,7 +199,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
         oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400/(1000**2)
+        oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400
         
         Gamma_Skif_eps_grid = thesis.Skif(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
@@ -203,38 +208,41 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
         oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400/(1000**2)
+        oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400
         
         
         
         #plotting a example profile
-        axarr1[0].plot(eps_oxygen_grid[-5,:],eps_pressure) #distance_from_ground_grid[-5,:],eps_pressure)
-        axarr1[0].axvline(x=0)
+        #axarr1[0].plot(eps_oxygen_grid[-5,:],eps_pressure) #distance_from_ground_grid[-5,:],eps_pressure)
+        #axarr1[0].axvline(x=0)
         
         mask = ma.masked_where(boundary_check_grid[-5,:],distance_from_ground_grid[-5,:])
         #print(mask)
         
+        axarr1[0].plot(np.log10(eps_N_squared_grid[-5,:]),eps_pressure)
+        
+        """
         for i in range(distance_from_ground_grid[-5,:].size):
             print(distance_from_ground_grid[-5,i],ozmidov_scale_grid[-5,i],boundary_check_grid[-5,i])
             
         print("Boundary effects:",np.any(boundary_check_grid[-5,:]))
-            
+        """    
             
         #axarr1[0].plot(mask,eps_pressure,"r")
         axarr1[1].plot(np.log10(eps_grid[-5,:]),eps_pressure, label = "dissipation")
         
-        axarr1[2].plot(ozmidov_scale_grid[-5,:],eps_pressure, label = "Ozmidov") #        axarr1[1].plot(eps_N_squared_grid[-5,:],eps_pressure)
+        #axarr1[2].plot(ozmidov_scale_grid[-5,:],eps_pressure, label = "Ozmidov") #        axarr1[1].plot(eps_N_squared_grid[-5,:],eps_pressure)
 
-        axarr1[2].plot(np.log10(eps_Reynolds_bouyancy_grid[-5,:]),eps_pressure, label = "raw")
-        axarr1[2].plot(np.log10(corrected_eps_Reynolds_bouyancy_grid[-5,:]),eps_pressure, label = "corrected")
+        axarr1[2].plot(eps_Reynolds_bouyancy_grid[-5,:],eps_pressure, label = "raw")
+        axarr1[2].plot(corrected_eps_Reynolds_bouyancy_grid[-5,:],eps_pressure, label = "corrected")
         
         axarr1[3].plot(Gamma_Osborn_eps_grid[-5,:],eps_pressure,label = "Osborn")
         axarr1[3].plot(Gamma_BB_eps_grid[-5,:],eps_pressure,label = "BB")
         axarr1[3].plot(Gamma_Skif_eps_grid[-5,:],eps_pressure,label = "Skif")
         
-        axarr1[4].plot(turbulent_diffusivity_Osborn_grid[-5,:],eps_pressure, label = "Osborn")     
-        axarr1[4].plot(turbulent_diffusivity_BB_grid[-5,:],eps_pressure, label = "BB")   
-        axarr1[4].plot(turbulent_diffusivity_Skif_grid[-5,:],eps_pressure, label = "Skif")
+        axarr1[4].plot(np.log10(turbulent_diffusivity_Osborn_grid[-5,:]),eps_pressure, label = "Osborn")     
+        axarr1[4].plot(np.log10(turbulent_diffusivity_BB_grid[-5,:]),eps_pressure, label = "BB")   
+        axarr1[4].plot(np.log10(turbulent_diffusivity_Skif_grid[-5,:]),eps_pressure, label = "Skif")
 
 
         
@@ -255,14 +263,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         axarr1[3].legend()
         axarr1[4].legend()        
         
-        axarr1[0].set_xlabel("oxygen [micromol/l]")
+        axarr1[0].set_xlabel(r"$N^2$")#oxygen [micromol/l]")
         axarr1[0].set_ylabel("pressure [dbar]")
         axarr1[1].set_xlabel("Dissipation")#(r"$N^2$ [$1/s^2$]")
         axarr1[2].set_xlabel(r"Reb")
         axarr1[3].set_xlabel(r"$\Gamma$")
         axarr1[4].set_xlabel("turbulent diffusitivity")
         axarr1[5].set_xlabel("d 0$_2$ / dz [micromol/(l m)]")
-        axarr1[6].set_xlabel("oxygen flux [mmol/(m^2*d)]")
+        axarr1[6].set_xlabel("FO [mmol/(m$^2$*d]")
 
         #axarr1[3].ticklabel_format(axis="x", style="sci", scilimits=(0,0))
         axarr1[0].set_ylim(0,125)
@@ -279,12 +287,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         img2_0 = axarr2[0].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_grid.T,cmap = cmap_RdBu)
         img2_1 = axarr2[1].pcolormesh(plotmesh_longitude,interp_pressure,density_grid.T,cmap = cmap_RdBu)
         img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9.5, cmap = cmap_hot)
-        img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure,oxygen_flux_Skif_grid.T, cmap = cmap_hot)  
+        img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure,oxygen_flux_Skif_grid.T, cmap = cmap_RdBu, vmin = -20, vmax= 20)  
         
         colorbar(img2_0).set_label("Oxygen [micromol/l]") 
         colorbar(img2_1).set_label(r"Density [kg/m$^3$]") 
         colorbar(img2_2).set_label(r"log10(dissipation) $[m^2 s^{-3}]$")
-        colorbar(img2_3).set_label(r" oxygen flux [???]")
+        colorbar(img2_3).set_label(r"FO [mmol/(m$^2$*d]")
         
         print(transect_name)
         
@@ -304,8 +312,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         f1.savefig("/home/ole/Thesis/Analysis/mss/pictures/oxygen_fluxes/"+cruisename+"_"+transect_name+"_profiles", DPI = 300)
         f2.savefig("/home/ole/Thesis/Analysis/mss/pictures/oxygen_fluxes/"+cruisename+"_"+transect_name+"_transects", DPI = 300)
         
-        if transect_name == "TR1-4":
-            plt.show()
+
+        #plt.show()
         
         #close the pictures after saving
         plt.close(fig = "all")
