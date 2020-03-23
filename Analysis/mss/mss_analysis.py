@@ -113,7 +113,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
           
         ##########################################################################################################################################################  
           
-        np.savez("/home/ole/share-windows/processed_mss/"+cruisename+"/"+transect_name ,number_of_profiles = number_of_profiles, lat = lat,lon = lon,distance = distance, bathymetrie = bathymetrie,list_of_bathymetrie_indices = list_of_bathymetrie_indices,BBL = BBL,list_of_BBL_indices = list_of_BBL_indices,BBL_range = BBL_range,list_of_BBL_range_indices = list_of_BBL_range_indices, interp_pressure = interp_pressure,oxygen_grid = oxygen_grid,salinity_grid = salinity_grid,consv_temperature_grid = consv_temperature_grid, density_grid = density_grid, eps_pressure = eps_pressure,eps_grid = eps_grid, corrected_eps_wiki_grid = corrected_eps_wiki_grid, corrected_eps_grid = corrected_eps_grid, eps_consv_temperature_grid = eps_consv_temperature_grid, eps_oxygen_grid = eps_oxygen_grid, eps_N_squared_grid = eps_N_squared_grid,eps_density_grid = eps_density_grid, eps_Reynolds_bouyancy_grid =  eps_Reynolds_bouyancy_grid, corrected_eps_Reynolds_bouyancy_grid = corrected_eps_Reynolds_bouyancy_grid,  eps_wiki_Reynolds_bouyancy_grid = eps_wiki_Reynolds_bouyancy_grid, corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_Reynolds_bouyancy_grid)
+        np.savez("/home/ole/share-windows/processed_mss/"+cruisename+"/"+transect_name ,number_of_profiles = number_of_profiles, lat = lat,lon = lon,distance = distance, bathymetrie = bathymetrie,list_of_bathymetrie_indices = list_of_bathymetrie_indices,BBL = BBL,list_of_BBL_indices = list_of_BBL_indices,BBL_range = BBL_range,list_of_BBL_range_indices = list_of_BBL_range_indices, interp_pressure = interp_pressure,oxygen_grid = oxygen_grid,salinity_grid = salinity_grid,consv_temperature_grid = consv_temperature_grid, density_grid = density_grid, eps_pressure = eps_pressure,eps_grid = eps_grid, corrected_eps_wiki_grid = corrected_eps_wiki_grid, corrected_eps_grid = corrected_eps_grid, eps_salinity_grid = eps_salinity_grid, eps_consv_temperature_grid = eps_consv_temperature_grid, eps_oxygen_grid = eps_oxygen_grid, eps_oxygen_sat_grid = eps_oxygen_sat_grid, eps_N_squared_grid = eps_N_squared_grid,eps_density_grid = eps_density_grid, eps_Reynolds_bouyancy_grid =  eps_Reynolds_bouyancy_grid, corrected_eps_Reynolds_bouyancy_grid = corrected_eps_Reynolds_bouyancy_grid,  eps_wiki_Reynolds_bouyancy_grid = eps_wiki_Reynolds_bouyancy_grid, corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_Reynolds_bouyancy_grid)
         
         
         ##########################################################################################################################################################
@@ -225,14 +225,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         f2.set_size_inches(18,10.5)
         f4.set_size_inches(18,10.5)
 
-        colorbar(img1_0).set_label("Oxygen [??]") 
+        colorbar(img1_0).set_label(r"Oxygen [$\mu mol/kg$]") 
         colorbar(img1_1).set_label("salinity [SA]") 
         colorbar(img1_2).set_label("consv_temperature [C]")
         colorbar(img1_3).set_label(r"log10(dissipation) $[m^2 s^{-3}]$")
 
         colorbar(img2_0).set_label(r"density [kg/$m^3$]")
         colorbar(img2_1).set_label(r"$N^2$ $[1/s^2]$")
-        colorbar(img2_2).set_label(r"log10($\epsilon$) [??]")  
+        colorbar(img2_2).set_label(r"log10($\epsilon$) $[m^2 s^{-3}]$")  
         colorbar(img2_3).set_label(r"$Re_b$")
 
         for i in range(4):

@@ -1,3 +1,8 @@
+##################################################
+
+
+#TODO check units of oxygen concentration: micromol per kg to micromol per m^3
+####################################################
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
@@ -101,7 +106,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         distance                        distance in km from the starting point of the transect
         
         interp_pressure                 equidistant 1D pressure array between the highest and the lowest measured pressure value
-        oxygen_grid                     oxygen concentration in in micromol per litre as a grid (number_of_profiles x len(interp_pressure))
+        oxygen_grid                     oxygen concentration in in micromol per kg as a grid (number_of_profiles x len(interp_pressure))
         salinity_grid                   salinity in g/kg as a grid (number_of_profiles x len(interp_pressure)) 
         consv_temperature_grid          conservative temperature in degrees Celsius as a grid (number_of_profiles x len(interp_pressure))
         density_grid                    density in kg/m^3 as a grid (number_of_profiles x len(interp_pressure))
@@ -109,7 +114,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         eps_pressure                    pressure values to the dissipation rate values (the pressure distance between points is bigger than in interp_pressure) 
         eps_grid                        measured dissipation rate values (number_of_profiles x len(eps_pressure))
         eps_consv_temperature_grid      conservative temperature as a grid (number_of_profiles x len(eps_pressure))
-        eps_oxygen_grid                 oxygen concentration in micromol per litre as a grid (number_of_profiles x len(eps_pressure))
+        eps_oxygen_grid                 oxygen concentration in micromol per kg as a grid (number_of_profiles x len(eps_pressure))
+        eps_oxygen_sat_grid             oxygen saturation in percent as a grid (number_of_profiles x len(eps_pressure))
         eps_N_squared_grid              N^2, the Brunt-Vaisala frequency in 1/s^2 as a grid (number_of_profiles x len(eps_pressure))
         eps_density_grid                density in kg/m^3 as a grid (number_of_profiles x len(eps_pressure))
         
@@ -182,11 +188,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #TODO
         turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = 0
         
-        #TODO: Which differention scheme should I use? 
-        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
         oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400
+        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)
                 
         
         Gamma_BB_eps_grid = thesis.BB(eps_Reynolds_bouyancy_grid)
@@ -195,20 +199,17 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #TODO
         turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = 0
         
-        #TODO: Which differention scheme should I use? 
-        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
         oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400
+        oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400*(1000/eps_density_grid)
         
         Gamma_Skif_eps_grid = thesis.Skif(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
         turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = 0
-        #TODO: Which differention scheme should I use? 
-        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
+
         oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400
+        oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
         
         
         
@@ -269,8 +270,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         axarr1[2].set_xlabel(r"Reb")
         axarr1[3].set_xlabel(r"$\Gamma$")
         axarr1[4].set_xlabel("turbulent diffusitivity")
-        axarr1[5].set_xlabel("d 0$_2$ / dz [micromol/(l m)]")
-        axarr1[6].set_xlabel("FO [mmol/(m$^2$*d]")
+        axarr1[5].set_xlabel(r"d 0$_2$ / dz [micromol/(kg m)]")
+        axarr1[6].set_xlabel(r"FO [mmol/(m$^2$*d]")
 
         #axarr1[3].ticklabel_format(axis="x", style="sci", scilimits=(0,0))
         axarr1[0].set_ylim(0,125)
@@ -289,7 +290,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9.5, cmap = cmap_hot)
         img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure,oxygen_flux_Skif_grid.T, cmap = cmap_RdBu, vmin = -20, vmax= 20)  
         
-        colorbar(img2_0).set_label("Oxygen [micromol/l]") 
+        colorbar(img2_0).set_label("Oxygen [micromol/kg]") 
         colorbar(img2_1).set_label(r"Density [kg/m$^3$]") 
         colorbar(img2_2).set_label(r"log10(dissipation) $[m^2 s^{-3}]$")
         colorbar(img2_3).set_label(r"FO [mmol/(m$^2$*d]")

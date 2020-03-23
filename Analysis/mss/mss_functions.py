@@ -24,7 +24,8 @@ def load_clean_and_interpolate_data(datafile_path):
         
         interp_pressure                 equidistant pressure array between the highest and the lowest measured pressure value
         pressure_grid
-        oxygen_grid                     oxygen saturation in percent as a grid (number_of_profiles x len(interp_pressure))
+        oxygen_grid                     
+        oxygen_sat_grid                 oxygen saturation in percent as a grid (number_of_profiles x len(interp_pressure))
         salinity_grid                   salinity in g/kg as a grid (number_of_profiles x len(interp_pressure)) 
         consv_temperature_grid          conservative temperature in degrees Celsius as a grid (number_of_profiles x len(interp_pressure))
         density_grid                    density in kg/m^3 as a grid (number_of_profiles x len(interp_pressure))
@@ -34,7 +35,8 @@ def load_clean_and_interpolate_data(datafile_path):
         eps_grid                        measured dissipation rate values (number_of_profiles x len(eps_pressure))
         eps_salinity_grid               salinity in g/kg as a grid (number_of_profiles x len(eps_pressure)) 
         eps_consv_temperature_grid      conservative temperature as a grid (number_of_profiles x len(eps_pressure))
-        eps_oxygen_grid                 oxygen saturation as a grid (number_of_profiles x len(eps_pressure))
+        eps_oxygen_grid                 
+        eps_oxygen_sat_grid             oxygen saturation as a grid (number_of_profiles x len(eps_pressure))
         eps_N_squared_grid              N^2, the Brunt-Vaisala frequency in 1/s^2 as a grid (number_of_profiles x len(eps_pressure))
         eps_density_grid                density in kg/m^3 as a grid (number_of_profiles x len(eps_pressure))
         
@@ -283,6 +285,7 @@ def load_clean_and_interpolate_data(datafile_path):
     lat_grid = np.reshape(lat,(-1,1)) * np.ones((number_of_profiles,max_size))
     lon_grid = np.reshape(lon,(-1,1)) * np.ones((number_of_profiles,max_size))
     
+    #check if lon grid was correctly created
     assert(np.all(lon_grid[:,0] == lon))
     
     #create grids that have the latitude/longitude values for every depth (size: number_of_profiles x len(eps_pressure))
@@ -313,6 +316,10 @@ def load_clean_and_interpolate_data(datafile_path):
 
 
 def oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat, lon):
+    """
+    tranforms oxygen saturation in percent to oxygen concentration in micro-moles per kg
+    """
+
     import gsw 
     
     maximum_concentration = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat, lon)
