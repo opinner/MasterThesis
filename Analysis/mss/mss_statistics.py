@@ -2,6 +2,8 @@
 #this program loads all profiles from a cruise, removes outliers
 #and compute mean and standard deviation of profiles
 #in choosable longitude intervals
+
+#TODO make plot limits of oxygen flux smaller 
 ##############################################################
 import numpy as np
 import scipy.io as sio
@@ -24,8 +26,8 @@ def colorbar(mappable):
     
 LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/share-windows/processed_mss/emb177"]
 
-averaging_intervals_borders = [20.55,20.62]
-#averaging_intervals_borders = np.linspace(20.48,20.7,9)
+#averaging_intervals_borders = [20.55,20.62]
+averaging_intervals_borders = np.linspace(20.48,20.7,9)
 number_of_intervals = len(averaging_intervals_borders)+1
 
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
@@ -174,39 +176,30 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         Gamma_Osborn_eps_grid = thesis.Osborn(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
-        #TODO
-        turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = 0
-        
-        #TODO: Which differention scheme should I use? 
-        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
+        #remove negative diffusivity 
+        turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = np.nan
         oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)
-                
+        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
+        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)        
         
         Gamma_BB_eps_grid = thesis.BB(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * eps_grid / (eps_N_squared_grid)
-        
-        #TODO
-        turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = 0
-        
-        #TODO: Which differention scheme should I use? 
-        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
+        #remove negative diffusivity    
+        turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = np.nan
         oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(l*s) to mmol/(m^2*d)
+        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
         oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400*(1000/eps_density_grid)
         
         Gamma_Skif_eps_grid = thesis.Skif(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
-        turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = 0
-        #TODO: Which differention scheme should I use? 
-        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
+        #remove negative diffusivity
+        turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = np.nan
         oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(l*s) to mmol/(m^2*d)
+        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
         oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
         
         spread_of_profile_medians = np.nanstd(np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
-        transect_median = np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = None)
+        transect_median = np.nanmean(np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
         print(averaging_intervals_borders)
         count = 0
         for profile in range(number_of_profiles):
@@ -229,7 +222,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 continue
                 
             #check for an outlier profile 
-            if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+2*spread_of_profile_medians):      
+            if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+1.5*spread_of_profile_medians):      
                 #print("\toutlier")
                 count += 1
                 continue
@@ -257,18 +250,19 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         for interval in oxygen_flux_statistic:
             print(np.shape(interval))
         
-        """
+        
         ###############################################################################################
         #Plotting of the outlier check pictures
         ###############################################################################################
+        """
         cmap_hot = plt.get_cmap('hot_r')
         cmap_hot.set_bad(color = 'lightgrey')
         
         f1, axarr1 = plt.subplots(nrows = 2, ncols = 1, sharex = True)
         axarr1[0].plot(lon,np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
         axarr1[0].axhline(transect_median,)
-        axarr1[0].axhline(transect_median+2*spread_of_profile_medians, ls = "--")
-        axarr1[0].axhline(transect_median-2*spread_of_profile_medians, ls = "--")
+        axarr1[0].axhline(transect_median+1.5*spread_of_profile_medians, ls = "--")
+        axarr1[0].axhline(transect_median-1.5*spread_of_profile_medians, ls = "--")
         axarr1[0].set_xlabel("longitude")        
         axarr1[0].set_ylabel(r"median(log10($\epsilon$)")  
                
@@ -364,7 +358,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         dissipation_axarr[index].set_xlabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")    
     
     flux_axarr[0].invert_yaxis()    
-    flux_axarr[0].set_xlim((-20,20))
+    flux_axarr[0].set_xlim((-10,10))
     flux_axarr[0].set_ylabel("pressure [dbar]")
     f_flux.suptitle("Oxygen flux")
        

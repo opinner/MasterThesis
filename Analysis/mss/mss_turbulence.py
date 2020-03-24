@@ -185,32 +185,27 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         Gamma_Osborn_eps_grid = thesis.Osborn(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
-        #TODO
-        turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = 0
-        
+        #remove negative diffusivity 
+        turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = np.nan
         oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)
-                
+        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
+        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)        
         
         Gamma_BB_eps_grid = thesis.BB(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * eps_grid / (eps_N_squared_grid)
-        
-        #TODO
-        turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = 0
-        
+        #remove negative diffusivity    
+        turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = np.nan
         oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(l*s) to mmol/(m^2*d)
+        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
         oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400*(1000/eps_density_grid)
         
         Gamma_Skif_eps_grid = thesis.Skif(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
-        turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = 0
-
+        #remove negative diffusivity
+        turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = np.nan
         oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(l*s) to mmol/(m^2*d)
+        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
         oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
-        
         
         
         #plotting a example profile

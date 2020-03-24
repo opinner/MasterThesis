@@ -39,14 +39,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     print(cruisename)    
     #2 borders = 3 intervals
-    
-
-    salinity_statistic = [None] * number_of_intervals
-    temperature_statistic = [None] * number_of_intervals
-    dissipation_statistic = [None] * number_of_intervals
-    oxygen_statistic = [None] * number_of_intervals
+    oxygen_flux_BB_statistic = [None] * number_of_intervals
+    oxygen_flux_Shih_statistic = [None] * number_of_intervals
+    oxygen_flux_Osborn_statistic = [None] * number_of_intervals
     oxygen_flux_statistic = [None] * number_of_intervals
-
+            
     #go through all files of specified folder and select only files ending with .mat
     for p in path.iterdir():
         all_files_name = str(p.parts[-1])
@@ -71,14 +68,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             continue
             
         print("\n",transect_name)
-    
-        #define the pictures
-        #f1, axarr1 = plt.subplots(nrows = 1, ncols = 7, sharey = True)
-        #f2, axarr2 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
-    
-    
-
-        
+            
         
         data = np.load(datafile_path)
         
@@ -86,13 +76,6 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         lat = data["lat"] #Latitude of the profiles
         lon = data["lon"] #Longitude of the profiles
         distance = data["distance"] #distance from the starting profile (monotonically increasing)
-        
-        bathymetrie = data["bathymetrie"]
-        list_of_bathymetrie_indices = data["list_of_bathymetrie_indices"]
-        BBL = data["BBL"]
-        list_of_BBL_indices = data["list_of_BBL_indices"]
-        BBL_range = data["BBL_range"]
-        list_of_BBL_range_indices = data["list_of_BBL_range_indices"]
         
         interp_pressure = data["interp_pressure"]
         oxygen_grid = data["oxygen_grid"]
@@ -140,19 +123,26 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         eps_wiki_Reynolds_bouyancy_grid
         corrected_eps_wiki_Reynolds_bouyancy_grid 
         
-        bathymetrie                     pressure values of the first NaN value (in most cases this corresponds to the bottom, but is sometimes wrong due to missing data
-        list_of_bathymetrie_indices     corresponding index (eg for interp_pressure or other arrays of the same size)
-        
-        BBL                             pressure values of the calculated Bottom Boundary Layer (exact position depends on the criteria)
-        list_of_BBL_indices             corresponding index (eg for interp_pressure or other arrays of the same size)
-        
-        BBL_range                       pressure values of "height_above_ground" meters. Follows therefore the batyhmetrie. 
-        list_of_BBL_range_indices       corresponding index (eg for interp_pressure or other arrays of the same size)
+
         """
         
         print("Number of profiles:",number_of_profiles)
         
         print(min(eps_pressure),max(eps_pressure),len(eps_pressure))
+        
+        #calculate the idices of the bottom and some meters above that
+        results = thesis.find_bottom_and_bottom_currents(number_of_profiles,eps_pressure,eps_density_grid,eps_oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02)
+        """
+        bathymetrie                     pressure values of the first NaN value (in most cases this corresponds to the bottom, but is sometimes wrong due to missing data
+        list_of_bathymetrie_indices     corresponding index (eg for interp_pressure or other arrays of the same size)
+        BBL                             pressure values of the calculated Bottom Boundary Layer (exact position depends on the criteria)
+        list_of_BBL_indices             corresponding index (eg for interp_pressure or other arrays of the same size)
+        BBL_range                       pressure values of "height_above_ground" meters. Follows therefore the batyhmetrie. 
+        list_of_BBL_range_indices       corresponding index (eg for interp_pressure or other arrays of the same size)
+        """
+        bathymetrie,list_of_bathymetrie_indices = results[0]
+        #BBL,list_of_BBL_indices = results[1] #not needed here
+        BBL_range,list_of_BBL_range_indices = results[2]
         
         eps_N_grid = np.sqrt(eps_N_squared_grid)
         #ozmidov scale
@@ -173,73 +163,41 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #for i in range(number_of_profiles):
         #density_grid[ozmidov_scale_grid,:])))
         
-        
-        """
-        Gamma_Osborn_eps_grid = thesis.Osborn(corrected_eps_Reynolds_bouyancy_grid)
-        turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * corrected_eps_grid / (eps_N_squared_grid)
-        #TODO: Which differention scheme should I use? 
-        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
-        oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
-        #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400/(1000**2)      
-        
-        Gamma_BB_eps_grid = thesis.BB(corrected_eps_Reynolds_bouyancy_grid)
-        turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * corrected_eps_grid / (eps_N_squared_grid)
-        #TODO: Which differention scheme should I use? 
-        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
-        oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
-        #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400/(1000**2)
-        
-        Gamma_Skif_eps_grid = thesis.Skif(corrected_eps_Reynolds_bouyancy_grid)
-        turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * corrected_eps_grid / (eps_N_squared_grid)
-        #TODO: Which differention scheme should I use? 
-        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
-        oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,1:] * np.diff(eps_oxygen_grid)/np.diff(eps_depth)
-        #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400/(1000**2)          
-        """
-        
         Gamma_Osborn_eps_grid = thesis.Osborn(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
-        #TODO
-        turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = 0
-        
-        #TODO: Which differention scheme should I use? 
-        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
+        #remove negative diffusivity 
+        turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = np.nan
         oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400
-                
+        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
+        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)        
         
         Gamma_BB_eps_grid = thesis.BB(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * eps_grid / (eps_N_squared_grid)
-        
-        #TODO
-        turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = 0
-        
-        #TODO: Which differention scheme should I use? 
-        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
+        #remove negative diffusivity    
+        turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = np.nan
         oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400
+        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
+        oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400*(1000/eps_density_grid)
         
         Gamma_Skif_eps_grid = thesis.Skif(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
-        turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = 0
-        #TODO: Which differention scheme should I use? 
-        #Here I remove the uppermost row of the diffusivity to get the same shape (diff removes one row)
+        #remove negative diffusivity
+        turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = np.nan
         oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(l*s) to mmol/(m^2*d)
-        oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400
+        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
+        oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
         
         spread_of_profile_medians = np.nanstd(np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
         transect_median = np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = None)
         print(averaging_intervals_borders)
-        count = 0
+        outlier_count = 0
+        transect_oxygen_flux_statistic = []
+        
         for profile in range(number_of_profiles):
             for index,border in enumerate(averaging_intervals_borders):
                 #print("index",index)
+                
+                #Sort the prifle into tthe intervals
                 if lon[profile]  <= border:
                     interval_number = index
                     break
@@ -259,90 +217,59 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             #check for an outlier profile 
             if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+2*spread_of_profile_medians):      
                 #print("\toutlier")
-                count += 1
+                outlier_count += 1
                 continue
            
 
+            from_index = int(list_of_BBL_range_indices[profile])     
+            to_index = int(list_of_bathymetrie_indices[profile])
+            #print(from_index,to_index)
+
+            min_max_array = np.asarray([[np.nanmin(oxygen_flux_BB_grid[profile,from_index:to_index]),np.nanmax(oxygen_flux_BB_grid[profile,from_index:to_index])]])
+            print(min_max_array)
+
             #if the list is empty
             if np.any(oxygen_flux_statistic[interval_number]) == None:
+  
                 #fill it with a reshaped profile
-                oxygen_flux_statistic[interval_number] = np.reshape(oxygen_flux_BB_grid[profile,:],(1,-1))
-                #salinity_statistic[interval_number] = np.reshape(eps_salinity_grid[profile,:],(1,-1))
-                temperature_statistic[interval_number] = np.reshape(eps_consv_temperature_grid[profile,:],(1,-1)) 
-                dissipation_statistic[interval_number] = np.reshape(eps_grid[profile,:],(1,-1)) 
-                oxygen_statistic[interval_number] = np.reshape(eps_oxygen_grid[profile,:],(1,-1)) 
-                    
+                oxygen_flux_statistic[interval_number] = min_max_array
+           
             else:
                 #concatenate all further profiles to the ones already in the array
-                oxygen_flux_statistic[interval_number] = np.concatenate((oxygen_flux_statistic[interval_number],np.reshape(oxygen_flux_BB_grid[profile,:],(1,-1))),axis=0)
-                #salinity_statistic[interval_number] = np.reshape(eps_salinity_grid[profile,:],(1,-1))
-                temperature_statistic[interval_number] = np.concatenate((temperature_statistic[interval_number],np.reshape(eps_consv_temperature_grid[profile,:],(1,-1))),axis=0)
-                dissipation_statistic[interval_number] =np.concatenate((dissipation_statistic[interval_number],np.reshape(eps_grid[profile,:],(1,-1))),axis=0)
-                oxygen_statistic[interval_number] = np.concatenate((oxygen_statistic[interval_number],np.reshape(eps_oxygen_grid[profile,:],(1,-1))),axis=0)
+                oxygen_flux_statistic[interval_number] = np.concatenate((oxygen_flux_statistic[interval_number],min_max_array),axis=0)
+                
+        transect_oxygen_flux_statistic = np.append(transect_oxygen_flux_statistic,min_max_array[0])
 
-
-        print("removed",count,"profiles as outliers")
+        print("removed",outlier_count,"profiles as outliers")
         for interval in oxygen_flux_statistic:
             print(np.shape(interval))
-        
-        
+        print(np.shape(transect_oxygen_flux_statistic))
+        print(transect_oxygen_flux_statistic)
         ###############################################################################################
-        #Plotting of the outlier check pictures
+        #Plotting of the maximum flux values per transect
         ###############################################################################################
-        cmap_hot = plt.get_cmap('hot_r')
-        cmap_hot.set_bad(color = 'lightgrey')
-        
-        f1, axarr1 = plt.subplots(nrows = 2, ncols = 1, sharex = True)
-        axarr1[0].plot(lon,np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
-        axarr1[0].axhline(transect_median,)
-        axarr1[0].axhline(transect_median+2*spread_of_profile_medians, ls = "--")
-        axarr1[0].axhline(transect_median-2*spread_of_profile_medians, ls = "--")
-        axarr1[0].set_xlabel("longitude")        
-        axarr1[0].set_ylabel(r"median(log10($\epsilon$)")  
-               
-        plotmesh_longitude = np.append(lon,2*lon[-1]-lon[-2])
-        img1_1 = axarr1[1].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9.5, cmap = cmap_hot)
-        
-        #Draw interval borders
-        #for border in averaging_intervals_borders:
-        #    axarr1[1].axvline(border)
-            
-        axarr1[1].invert_yaxis()
-        axarr1[1].set_ylabel("pressure [dbar]")   
-        axarr1[1].set_xlabel("longitude") 
-        colorbar(img1_1).set_label(r"log10(dissipation) $[m^2 s^{-3}]$")     
+        f1, axarr1 = plt.subplots(nrows = 1, ncols = 1, sharex = True)
+        axarr1.plot(lon,transect_oxygen_flux_statistic[:,1])
+        axarr1.set_xlabel("longitude")        
+                   
         f1.set_size_inches(9,5)
         f1.tight_layout()
          
-        f1.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/outlier_visual_check/"+cruisename+"_"+transect_name+"_outlier", DPI = 300)         
-        #plt.show()      
+        f1.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/max_flux_transect/"+cruisename+"_"+transect_name+"_max_flux", DPI = 300)         
+        plt.show()      
         plt.close(fig = "all")
         
         
     ###########################################################################################################################
     #compute mean and std over the saved intervals
-    mean_oxygen_flux = [None] * number_of_intervals
-    std_oxygen_flux = [None] * number_of_intervals
-    #mean_salinity = [None] * number_of_intervals
-    #std_salinity = [None] * number_of_intervals
-    mean_temperature = [None] * number_of_intervals
-    std_temperature = [None] * number_of_intervals
-    mean_dissipation = [None] * number_of_intervals
-    std_dissipation = [None] * number_of_intervals
-    mean_oxygen = [None] * number_of_intervals
-    std_oxygen = [None] * number_of_intervals
+    mean_max_flux = [None] * number_of_intervals
+    std_max_flux = [None] * number_of_intervals
+
         
     for index in range(number_of_intervals):
         mean_oxygen_flux[index] = np.nanmean(oxygen_flux_statistic[index],axis=0)
         std_oxygen_flux[index] = np.nanstd(oxygen_flux_statistic[index],axis=0)
-        #mean_salinity[index] = np.nanmean(
-        #std_salinity[index] = np.nanstd(
-        mean_temperature[index] = np.nanmean(temperature_statistic[index],axis=0)
-        std_temperature[index] = np.nanstd(temperature_statistic[index],axis=0)
-        mean_dissipation[index] = np.nanmean(np.log10(dissipation_statistic[index]),axis=0)
-        std_dissipation[index] = np.nanstd(np.log10(dissipation_statistic[index]),axis=0) 
-        mean_oxygen[index] = np.nanmean(oxygen_statistic[index],axis=0) 
-        std_oxygen[index] = np.nanstd(oxygen_statistic[index],axis=0)
+
             
     ##################################################################################################################################
     ##################################################################################################################################
@@ -354,78 +281,27 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         
        
-    f_flux,flux_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
-    #f_salinity,sal_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
-    f_temperature,temp_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
-    f_dissipation,dissipation_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
-    f_oxygen,oxygen_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
-                    
-    for index in range(number_of_intervals):
+    f_flux,flux_axarr = plt.subplots(nrows = 1, ncols = 1, sharey = True, sharex = True) 
     
-        if index == 0:
-            title = "-"+str(np.round(averaging_intervals_borders[0],2))
-        elif index == number_of_intervals-1:
-            title = str(np.round(averaging_intervals_borders[-1],2))+"-"
-        else:
-            title = str(np.round(averaging_intervals_borders[index-1],2))+"-"+str(np.round(averaging_intervals_borders[index],2))   
+    #append one extra border behind the last border in the mean distance of the borders 
+    plot_longitude = np.append(averaging_intervals_borders,averaging_intervals_borders[-1]+np.mean(np.diff(averaging_intervals_borders)))
+    #shift all plot points by half the border distance  
+    plot_longitude - np.mean(np.diff(averaging_intervals_borders))/2
             
-        flux_axarr[index].plot(mean_oxygen_flux[index],eps_pressure)
-        flux_axarr[index].fill_betweenx(eps_pressure,mean_oxygen_flux[index]-std_oxygen_flux[index],mean_oxygen_flux[index]+std_oxygen_flux[index], alpha = 0.5)
-        flux_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
-        #sal_axarr[index].plot(mean_salinity[index],eps_pressure)
-        #sal_axarr[index].fill_betweenx(eps_pressure,mean_salinity[index]-std_salinity[index],mean_salinity[index]+std_salinity[index], alpha = 0.5)
-        temp_axarr[index].plot(mean_temperature[index],eps_pressure)
-        temp_axarr[index].fill_betweenx(eps_pressure,mean_temperature[index]-std_temperature[index],mean_temperature[index]+std_temperature[index], alpha = 0.5)
-        temp_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
-        dissipation_axarr[index].plot(mean_dissipation[index],eps_pressure)
-        dissipation_axarr[index].fill_betweenx(eps_pressure,mean_dissipation[index]-std_dissipation[index],mean_dissipation[index]+std_dissipation[index], alpha = 0.5)
-        dissipation_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
-        oxygen_axarr[index].plot(mean_oxygen[index],eps_pressure)
-        oxygen_axarr[index].fill_betweenx(eps_pressure,mean_oxygen[index]-std_oxygen[index],mean_oxygen[index]+std_oxygen[index], alpha = 0.5)
-        oxygen_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
-            
-    
+    flux_axarr.plot(plot_longitude,mean_max_flux)
+    flux_axarr.fill_betweenx(plot_longitude,mean_max_flux-std_max_flux,mean_max_flux+std_max_flux, alpha = 0.5)
+
     flux_axarr[0].invert_yaxis()    
     flux_axarr[0].set_xlim((-20,20))
     flux_axarr[0].set_ylabel("pressure [dbar]")
     f_flux.suptitle("Oxygen flux")
-       
-    #salinity_axarr[0].invert_yaxis()
-    
-    f_temperature.suptitle("temperature")
-    temp_axarr[0].invert_yaxis()
-    temp_axarr[0].set_ylabel("pressure [dbar]")
-    
-    f_dissipation.suptitle("dissipation")
-    dissipation_axarr[0].invert_yaxis()
-    dissipation_axarr[0].set_ylabel("pressure [dbar]")
-    f_oxygen.suptitle("Oxygen")
-    oxygen_axarr[0].invert_yaxis()
-    oxygen_axarr[0].set_ylabel("pressure [dbar]")    
 
     f_flux.set_size_inches(18,10.5)
     f_flux.tight_layout() 
     f_flux.subplots_adjust(top=0.91)
     f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_oxygen_flux")
     
-    f_temperature.set_size_inches(18,10.5)
-    f_temperature.tight_layout() 
-    f_temperature.subplots_adjust(top=0.91)
-    f_temperature.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_temperature")
-    
-    f_dissipation.set_size_inches(18,10.5)
-    f_dissipation.tight_layout() 
-    f_dissipation.subplots_adjust(top=0.91)
-    f_dissipation.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_dissipation")
-    
-    f_oxygen.set_size_inches(18,10.5)
-    f_oxygen.tight_layout() 
-    f_oxygen.subplots_adjust(top=0.91)
-    f_oxygen.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_oxygen")
 
-    #f_salinity.set_size_inches(18,10.5)
-    #f_salinity.tight_layout() 
-    #f_salinity.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_oxygen_flux_"+str(number_of_intervals)+"intervals")
     
     plt.show()
     
