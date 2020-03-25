@@ -251,7 +251,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         axarr1[6].plot(oxygen_flux_osborn_grid[-5,:],eps_pressure[:], label = "Osborn")
         axarr1[6].plot(oxygen_flux_BB_grid[-5,:],eps_pressure[:], label = "BB")
         axarr1[6].plot(oxygen_flux_Skif_grid[-5,:],eps_pressure[:], label = "Skif")        
-        
+        axarr1[6].set_xlim(-20,20)
+                
         #axarr1[6].set_xlim((np.nanmin(oxygen_flux_Skif_grid[-5,:])-0.1*np.nanmax(oxygen_flux_Skif_grid[-5,:]),1.1*np.nanmax(oxygen_flux_Skif_grid[-5,:])))
         axarr1[6].ticklabel_format(axis="x", style="sci", scilimits=(0,0))
         

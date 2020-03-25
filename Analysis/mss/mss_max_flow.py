@@ -2,6 +2,8 @@
 #this program loads all profiles from a cruise, removes outliers
 #and retrieves the maximum oxyen flux in the lowermost meters 
 #of the water column in choosable longitude intervals
+
+#TODO plot mean dissipation per transect
 ##############################################################
 import numpy as np
 import scipy.io as sio
@@ -12,22 +14,24 @@ import gsw.conversions as gsw
 import pathlib
 import mss_functions as thesis
 import numpy.ma as ma
-
-def colorbar(mappable):
-    ax = mappable.axes
-    fig = ax.figure
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="2%", pad=0.05)
-    #cax.set_label('Temperature / Celsius')
-    return fig.colorbar(mappable, cax=cax)
-    
+import matplotlib.lines as mlines
+import matplotlib.patches as mpatches
+import warnings
+warnings.filterwarnings('ignore')
     
 LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/share-windows/processed_mss/emb177"]
 
 #averaging_intervals_borders = [20.55,20.62]
-averaging_intervals_borders = np.linspace(20.48,20.7,9)
-number_of_intervals = len(averaging_intervals_borders)+1
+averaging_intervals_borders = np.linspace(20.48,20.7,39)
+height_above_ground = 10
+maximum_reasonable_flux = 150
+acceptable_slope = 20 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
+flux_percentile = 67 #percentile which is displayed as the error bar (variable spread)
+second_flux_percentile = 95
+dissip_percentile = 67 #percentile which is displayed as the error bar (variable spread)
+second_dissip_percentile = 95
 
+number_of_intervals = len(averaging_intervals_borders)+1   
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     path = pathlib.Path(FOLDERNAME)
     DATAFILENAMES = []
@@ -37,13 +41,18 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     #get the cruise name from the folder name
     cruisename = splitted_foldername[-1]
     
-    print(cruisename)    
+    print(cruisename)
+    print(averaging_intervals_borders)
+             
     #2 borders = 3 intervals
     oxygen_flux_BB_statistic = [None] * number_of_intervals
     oxygen_flux_Shih_statistic = [None] * number_of_intervals
     oxygen_flux_Osborn_statistic = [None] * number_of_intervals
     oxygen_flux_statistic = [None] * number_of_intervals
-            
+
+    bathymetrie_statistic = [None] * number_of_intervals
+    dissipation_statistic = [None] * number_of_intervals
+        
     #go through all files of specified folder and select only files ending with .mat
     for p in path.iterdir():
         all_files_name = str(p.parts[-1])
@@ -131,7 +140,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         print(min(eps_pressure),max(eps_pressure),len(eps_pressure))
         
         #calculate the idices of the bottom and some meters above that
-        results = thesis.find_bottom_and_bottom_currents(number_of_profiles,eps_pressure,eps_density_grid,eps_oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02)
+        results = thesis.find_bottom_and_bottom_currents(number_of_profiles,eps_pressure,eps_density_grid,eps_oxygen_grid,height_above_ground = height_above_ground)
         """
         bathymetrie                     pressure values of the first NaN value (in most cases this corresponds to the bottom, but is sometimes wrong due to missing data
         list_of_bathymetrie_indices     corresponding index (eg for interp_pressure or other arrays of the same size)
@@ -187,17 +196,23 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #convert from m*micromol/(kg*s) to mmol/(m^2*d)
         oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
         
+        
         spread_of_profile_medians = np.nanstd(np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
         transect_median = np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = None)
-        print(averaging_intervals_borders)
         outlier_count = 0
+        lon_without_outliers = []
+        bathymetrie_without_outliers = []
+        
         transect_oxygen_flux_statistic = []
+        
+        was_the_last_profile_removed = False
+        count_of_short_profiles = 0
         
         for profile in range(number_of_profiles):
             for index,border in enumerate(averaging_intervals_borders):
                 #print("index",index)
                 
-                #Sort the prifle into tthe intervals
+                #Sort the prifle into the intervals
                 if lon[profile]  <= border:
                     interval_number = index
                     break
@@ -220,57 +235,173 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 outlier_count += 1
                 continue
            
-
+            try:
+                slope = (bathymetrie[profile]-bathymetrie[profile+1])    
+                next_slope = (bathymetrie[profile]-bathymetrie[profile+2])
+            except IndexError:
+                slope = (bathymetrie[profile]-bathymetrie[profile-1])
+                next_slope = (bathymetrie[profile]-bathymetrie[profile-2])
+                           
+            #only remove a profile if the slope to the next and to the overnext point is too high and the last profile was not removed
+            if abs(slope)>acceptable_slope and abs(next_slope)>acceptable_slope and not was_the_last_profile_removed:
+                was_the_last_profile_removed = True
+                count_of_short_profiles +=1
+                print("removed a short profile")
+                continue
+            else:
+                was_the_last_profile_removed = False
+                
             from_index = int(list_of_BBL_range_indices[profile])     
             to_index = int(list_of_bathymetrie_indices[profile])
-            #print(from_index,to_index)
+            
+            #print(eps_pressure[from_index],eps_pressure[to_index],from_index,to_index)
 
-            min_max_array = np.asarray([[np.nanmin(oxygen_flux_BB_grid[profile,from_index:to_index]),np.nanmax(oxygen_flux_BB_grid[profile,from_index:to_index])]])
-            print(min_max_array)
+            max_flux = np.nanmax(oxygen_flux_BB_grid[profile,from_index:to_index])
+            
+            #if the flux is not reasonable, that means too high, replace it with the highest flux below the threshold
+            if max_flux>maximum_reasonable_flux:
+                temp_array = oxygen_flux_BB_grid[profile,from_index:to_index]
+                temp_array[temp_array>maximum_reasonable_flux] = np.nan
+                temp_array = temp_array[~np.isnan(temp_array)]
+                max_flux = np.max(temp_array)
 
+            #same but for the minimum flux
+            min_flux = np.nanmin(oxygen_flux_BB_grid[profile,from_index:to_index])              
+            if min_flux< (-maximum_reasonable_flux):
+                temp_array = oxygen_flux_BB_grid[profile,from_index:to_index]
+                temp_array[temp_array<(-maximum_reasonable_flux)] = np.nan
+                temp_array = temp_array[~np.isnan(temp_array)]
+                min_flux = np.min(temp_array)         
+            
+            min_max_array = np.asarray([[min_flux,max_flux]])
+            #print(min_max_array)
+            
+            if len(transect_oxygen_flux_statistic) ==0:
+                transect_oxygen_flux_statistic = min_max_array   
+            else:
+                transect_oxygen_flux_statistic = np.concatenate((transect_oxygen_flux_statistic,min_max_array),axis=0)
+               
+            lon_without_outliers.append(lon[profile])
+            bathymetrie_without_outliers.append(bathymetrie[profile])
+            
+            #Sort the profiles into the intervals
             #if the list is empty
             if np.any(oxygen_flux_statistic[interval_number]) == None:
   
                 #fill it with a reshaped profile
                 oxygen_flux_statistic[interval_number] = min_max_array
-           
+                bathymetrie_statistic[interval_number] = [bathymetrie[profile]]
+                dissipation_statistic[interval_number] = [np.nanmean(eps_grid[profile,from_index:to_index])]
+                
             else:
                 #concatenate all further profiles to the ones already in the array
                 oxygen_flux_statistic[interval_number] = np.concatenate((oxygen_flux_statistic[interval_number],min_max_array),axis=0)
-                
-        transect_oxygen_flux_statistic = np.append(transect_oxygen_flux_statistic,min_max_array[0])
+                bathymetrie_statistic[interval_number].append(bathymetrie[profile])
+                dissipation_statistic[interval_number].append(np.nanmean(eps_grid[profile,from_index:to_index]))
 
         print("removed",outlier_count,"profiles as outliers")
-        for interval in oxygen_flux_statistic:
-            print(np.shape(interval))
-        print(np.shape(transect_oxygen_flux_statistic))
-        print(transect_oxygen_flux_statistic)
+        print("removed",count_of_short_profiles,"profiles as they did not reach the sea floor")
+
         ###############################################################################################
         #Plotting of the maximum flux values per transect
         ###############################################################################################
         f1, axarr1 = plt.subplots(nrows = 1, ncols = 1, sharex = True)
-        axarr1.plot(lon,transect_oxygen_flux_statistic[:,1])
+        
+        bathymetrie_axes = axarr1.twinx()
+        bathymetrie_axes.set_ylim((min(bathymetrie_without_outliers)-5,max(bathymetrie_without_outliers)))
+        bathymetrie_axes.invert_yaxis()
+        bathymetrie_axes.fill_between(lon_without_outliers,bathymetrie_without_outliers, np.ones(len(lon_without_outliers))*max(bathymetrie_without_outliers),color = "lightgrey", alpha = 0.8)
+    
+        axarr1.set_xlabel("longitude [degree]")    
+        axarr1.set_ylabel(r"BB oxygen flux [mmol/(m$^2$*d]")
+        bathymetrie_axes.set_ylabel("pressure [dbar]")
+        #plot maximum flux
+        axarr1.plot(lon_without_outliers,transect_oxygen_flux_statistic[:,1])
+        
+        #plot minimum flux
+        axarr1.plot(lon_without_outliers,transect_oxygen_flux_statistic[:,0])
         axarr1.set_xlabel("longitude")        
                    
         f1.set_size_inches(9,5)
         f1.tight_layout()
-         
-        f1.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/max_flux_transect/"+cruisename+"_"+transect_name+"_max_flux", DPI = 300)         
-        plt.show()      
+        f1.subplots_adjust(top=0.95)
+        f1.suptitle("max oxygen flux "+cruisename+" "+transect_name+" "+str(len(lon_without_outliers))+" profiles")
+             
+        f1.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/max_flux_transects/"+cruisename+"_"+transect_name+"_max_flux", DPI = 300)         
+        #plt.show()      
         plt.close(fig = "all")
         
         
     ###########################################################################################################################
+    
+    print("\n\nSorting result:")
+    for index,interval in enumerate(oxygen_flux_statistic):
+        if index == 0:
+            title = "-"+str(np.round(averaging_intervals_borders[0],2))
+        elif index == number_of_intervals-1:
+            title = str(np.round(averaging_intervals_borders[-1],2))+"-"
+        else:
+            title = str(np.round(averaging_intervals_borders[index-1],2))+"-"+str(np.round(averaging_intervals_borders[index],2))  
+            
+        print(title,np.shape(interval)[0],"profiles")
+            
+    
     #compute mean and std over the saved intervals
     mean_max_flux = [None] * number_of_intervals
-    std_max_flux = [None] * number_of_intervals
+    median_max_flux = [None] * number_of_intervals
+    upper_percentile_max_flux = [None] * number_of_intervals
+    lower_percentile_max_flux = [None] * number_of_intervals  
+      
+    mean_min_flux = [None] * number_of_intervals
+    median_min_flux = [None] * number_of_intervals
+    upper_percentile_min_flux = [None] * number_of_intervals
+    lower_percentile_min_flux = [None] * number_of_intervals  
+    second_upper_percentile_max_flux = [None] * number_of_intervals
+    second_lower_percentile_min_flux = [None] * number_of_intervals  
+        
+    bathymetrie_mean = [None] * number_of_intervals
+    
+    mean_dissipation = [None] * number_of_intervals
+    median_dissipation = [None] * number_of_intervals
+    std_dissipation = [None] * number_of_intervals
+    lower_percentile_dissip = [None] * number_of_intervals
+    upper_percentile_dissip = [None] * number_of_intervals
 
+    second_lower_percentile_dissip = [None] * number_of_intervals
+    second_upper_percentile_dissip = [None] * number_of_intervals
         
     for index in range(number_of_intervals):
-        mean_oxygen_flux[index] = np.nanmean(oxygen_flux_statistic[index],axis=0)
-        std_oxygen_flux[index] = np.nanstd(oxygen_flux_statistic[index],axis=0)
+        mean_max_flux[index] = np.nanmean(oxygen_flux_statistic[index][:,1],axis=0)
+        median_max_flux[index] = np.nanmedian(oxygen_flux_statistic[index][:,1],axis=0)
+        
+        upper_percentile_max_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,1], flux_percentile)
+        lower_percentile_max_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,1], 100-flux_percentile)
+        
+        mean_min_flux[index] = np.nanmean(oxygen_flux_statistic[index][:,0],axis=0)
+        median_min_flux[index] = np.nanmedian(oxygen_flux_statistic[index][:,0],axis=0)
 
-            
+        upper_percentile_min_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,0], flux_percentile)
+        lower_percentile_min_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,0], 100-flux_percentile)
+        
+        second_upper_percentile_max_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,1], second_flux_percentile)
+        second_lower_percentile_min_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,0], 100-second_flux_percentile)
+                
+        bathymetrie_mean[index] = np.nanmean(bathymetrie_statistic[index])
+        
+        mean_dissipation[index] = np.nanmean(np.log10(dissipation_statistic[index]),axis=0)
+        median_dissipation[index] = np.nanmedian(np.log10(dissipation_statistic[index]),axis=0)
+        std_dissipation[index] = np.nanstd(np.log10(dissipation_statistic[index]),axis=0) 
+        upper_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), dissip_percentile)
+        lower_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), 100-dissip_percentile)
+        
+        second_upper_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), second_dissip_percentile)
+        second_lower_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), 100-second_dissip_percentile)
+                       
+    mean_max_flux = np.asarray(mean_max_flux)
+    median_max_flux = np.asarray(median_max_flux)  
+    
+    mean_dissipation = np.asarray(mean_dissipation)
+    std_dissipation = np.asarray(std_dissipation)
     ##################################################################################################################################
     ##################################################################################################################################
     ##################################################################################################################################
@@ -282,26 +413,93 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
        
     f_flux,flux_axarr = plt.subplots(nrows = 1, ncols = 1, sharey = True, sharex = True) 
+    bathymetrie_axes = flux_axarr.twinx()
     
+    #define flux_axarr as the foreground
+    flux_axarr.set_zorder(10)
+    flux_axarr.patch.set_visible(False)
+        
     #append one extra border behind the last border in the mean distance of the borders 
     plot_longitude = np.append(averaging_intervals_borders,averaging_intervals_borders[-1]+np.mean(np.diff(averaging_intervals_borders)))
     #shift all plot points by half the border distance  
     plot_longitude - np.mean(np.diff(averaging_intervals_borders))/2
-            
-    flux_axarr.plot(plot_longitude,mean_max_flux)
-    flux_axarr.fill_betweenx(plot_longitude,mean_max_flux-std_max_flux,mean_max_flux+std_max_flux, alpha = 0.5)
-
-    flux_axarr[0].invert_yaxis()    
-    flux_axarr[0].set_xlim((-20,20))
-    flux_axarr[0].set_ylabel("pressure [dbar]")
-    f_flux.suptitle("Oxygen flux")
+                      
+    flux_axarr.plot(plot_longitude,mean_max_flux, zorder = 3,c = "k")#"tab:blue")
+    flux_axarr.plot(plot_longitude,median_max_flux,ls = "--",c = "k")#"tab:blue")
+    
+    flux_axarr.fill_between(plot_longitude,upper_percentile_max_flux,lower_percentile_max_flux, color = "tab:blue", zorder = 2, alpha = 0.7)
+    flux_axarr.fill_between(plot_longitude,upper_percentile_max_flux,second_upper_percentile_max_flux, color = "tab:blue", zorder = 2, alpha = 0.4)
+    
+    flux_axarr.plot(plot_longitude,mean_min_flux, color = "k")#"tab:green", zorder = 3)
+    flux_axarr.plot(plot_longitude,median_min_flux,ls = "--",c = "k")#"tab:green")
+    flux_axarr.fill_between(plot_longitude,upper_percentile_min_flux,lower_percentile_min_flux, color = "tab:green", zorder = 2, alpha = 0.6)   
+    flux_axarr.fill_between(plot_longitude,second_lower_percentile_min_flux,lower_percentile_min_flux, color = "tab:green", zorder = 2, alpha = 0.4)  
+    
+    bathymetrie_axes.set_ylim((min(bathymetrie_mean)-5,max(bathymetrie_mean)))
+    bathymetrie_axes.invert_yaxis()
+    bathymetrie_axes.set_ylabel("pressure [dbar]")
+        
+    bathymetrie_axes.fill_between(plot_longitude,bathymetrie_mean, np.ones(len(bathymetrie_mean))*max(bathymetrie_mean),color = "lightgrey", zorder = 1, alpha = 0.8)
+    
+    mean_label = mlines.Line2D([], [], color='k', label='mean')
+    median_label = mlines.Line2D([], [], ls = "--", color='k', label='median')
+    down_label = mlines.Line2D([], [], color='tab:blue', label='maximum downwards BB flux')
+    up_label = mlines.Line2D([], [], color='tab:green', label='maximum upwards BB flux')
+    
+    max_flux_label =  mpatches.Patch(color='tab:blue', alpha = 0.6,label='downwards flux '+str(flux_percentile)+"% percentile")
+    min_flux_label =  mpatches.Patch(color='tab:green', alpha = 0.6, label='upwards flux '+str(flux_percentile)+"% percentile")
+    second_max_flux_label =  mpatches.Patch(color='tab:blue', alpha = 0.4,label='downwards flux '+str(second_flux_percentile)+"% percentile")
+    second_min_flux_label =  mpatches.Patch(color='tab:green', alpha = 0.4, label='upwards flux '+str(second_flux_percentile)+"% percentile")
+       
+    bathymetrie_label =  mpatches.Patch(color='lightgrey', label='bathymetrie')
+    flux_axarr.legend(handles=[mean_label,median_label,down_label,up_label,max_flux_label, second_max_flux_label, min_flux_label, second_min_flux_label,bathymetrie_label], loc = 8)
+    
+    flux_axarr.set_ylim((-55,55))
+    flux_axarr.set_xlabel("longitude [degree]")    
+    flux_axarr.set_ylabel(r"oxygen flux [mmol/(m$^2$*d]")
+    f_flux.suptitle(cruisename+": maximum up- and downwards BB oxygen flux in the lowermost "+str(height_above_ground)+" meters above ground")
 
     f_flux.set_size_inches(18,10.5)
     f_flux.tight_layout() 
-    f_flux.subplots_adjust(top=0.91)
-    f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_oxygen_flux")
+    f_flux.subplots_adjust(top=0.95)
+    f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_max_oxygen_flux")
     
+    ###############################################################################################################
+    
+    f_dissip,dissip_axarr = plt.subplots(nrows = 1, ncols = 1, sharey = True, sharex = True) 
+     #define dissip_axarr as the foreground
+    dissip_axarr.set_zorder(10)
+    dissip_axarr.patch.set_visible(False)
+    
+    bathymetrie_axes2 = dissip_axarr.twinx()
+    bathymetrie_axes2.set_ylim((min(bathymetrie_mean)-5,max(bathymetrie_mean)))
+    bathymetrie_axes2.invert_yaxis()
+    bathymetrie_axes2.set_ylabel("pressure [dbar]")
+        
+    bathymetrie_axes2.fill_between(plot_longitude,bathymetrie_mean, np.ones(len(bathymetrie_mean))*max(bathymetrie_mean),color = "lightgrey", zorder = 1, label = "bathymetrie")
+    
+    dissip_axarr.plot(plot_longitude,mean_dissipation, "k", label ="mean dissipation")
+    dissip_axarr.plot(plot_longitude,median_dissipation, "k--", label ="median dissipation")
+    #dissip_axarr.fill_between(plot_longitude,mean_dissipation-std_dissipation,mean_dissipation+std_dissipation, alpha = 0.5)
+    dissip_axarr.fill_between(plot_longitude,upper_percentile_dissip,lower_percentile_dissip, color = "tab:blue", alpha = 0.7)  
+    dissip_axarr.fill_between(plot_longitude,upper_percentile_dissip,second_upper_percentile_dissip, color = "tab:blue", alpha = 0.4) 
+    dissip_axarr.fill_between(plot_longitude,lower_percentile_dissip,second_lower_percentile_dissip, color = "tab:blue", alpha = 0.4) 
+                
+    dissip_axarr.set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
+    dissip_axarr.set_xlabel("longitude [degree]")             
+    bathymetrie_label =  mpatches.Patch(color='lightgrey', label='bathymetrie')
+    dissip_mean_label = mlines.Line2D([], [], color= "k", label='mean dissipation $\epsilon$') #tab:blue
+    dissip_median_label = mlines.Line2D([], [], color = "k", ls = "--", label='median dissipation $\epsilon$')
+    dissip_percent_label =  mpatches.Patch(color='tab:blue', label=str(dissip_percentile)+"% percentile")
+    dissip_second_percent_label =  mpatches.Patch(color='tab:blue', alpha = 0.4, label=str(second_dissip_percentile)+"% percentile")           
+    dissip_axarr.legend(handles=[dissip_mean_label,dissip_median_label,dissip_percent_label,dissip_second_percent_label,bathymetrie_label])
+    
+    f_dissip.suptitle(cruisename+": mean dissipation in the lowermost "+str(height_above_ground)+" meters above ground")
 
+    f_dissip.set_size_inches(18,10.5)
+    f_dissip.tight_layout() 
+    f_dissip.subplots_adjust(top=0.95)
+    f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_mean_dissipation")
     
     plt.show()
     

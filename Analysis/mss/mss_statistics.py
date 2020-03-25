@@ -3,7 +3,6 @@
 #and compute mean and standard deviation of profiles
 #in choosable longitude intervals
 
-#TODO make plot limits of oxygen flux smaller 
 ##############################################################
 import numpy as np
 import scipy.io as sio
@@ -14,6 +13,8 @@ import gsw.conversions as gsw
 import pathlib
 import mss_functions as thesis
 import numpy.ma as ma
+import warnings
+warnings.filterwarnings('ignore') #ignoring warnings, specially numpy warnings
 
 def colorbar(mappable):
     ax = mappable.axes
@@ -41,7 +42,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     print(cruisename)    
     #2 borders = 3 intervals
-    
+    print(averaging_intervals_borders)
 
     salinity_statistic = [None] * number_of_intervals
     temperature_statistic = [None] * number_of_intervals
@@ -49,6 +50,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     oxygen_sat_statistic = [None] * number_of_intervals
     oxygen_flux_statistic = [None] * number_of_intervals
 
+        
     #go through all files of specified folder and select only files ending with .mat
     for p in path.iterdir():
         all_files_name = str(p.parts[-1])
@@ -200,8 +202,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         spread_of_profile_medians = np.nanstd(np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
         transect_median = np.nanmean(np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
-        print(averaging_intervals_borders)
-        count = 0
+        count_outliers = 0
+        
         for profile in range(number_of_profiles):
             for index,border in enumerate(averaging_intervals_borders):
                 #print("index",index)
@@ -224,10 +226,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             #check for an outlier profile 
             if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+1.5*spread_of_profile_medians):      
                 #print("\toutlier")
-                count += 1
+                count_outliers += 1
                 continue
            
-
+                
             #if the list is empty
             if np.any(oxygen_flux_statistic[interval_number]) == None:
                 #fill it with a reshaped profile
@@ -242,13 +244,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 oxygen_flux_statistic[interval_number] = np.concatenate((oxygen_flux_statistic[interval_number],np.reshape(oxygen_flux_BB_grid[profile,:],(1,-1))),axis=0)
                 salinity_statistic[interval_number] = np.concatenate((salinity_statistic[interval_number],np.reshape(eps_salinity_grid[profile,:],(1,-1))),axis=0)
                 temperature_statistic[interval_number] = np.concatenate((temperature_statistic[interval_number],np.reshape(eps_consv_temperature_grid[profile,:],(1,-1))),axis=0)
-                dissipation_statistic[interval_number] =np.concatenate((dissipation_statistic[interval_number],np.reshape(eps_grid[profile,:],(1,-1))),axis=0)
+                dissipation_statistic[interval_number] = np.concatenate((dissipation_statistic[interval_number],np.reshape(eps_grid[profile,:],(1,-1))),axis=0)
                 oxygen_sat_statistic[interval_number] = np.concatenate((oxygen_sat_statistic[interval_number],np.reshape(eps_oxygen_sat_grid[profile,:],(1,-1))),axis=0)
 
 
-        print("removed",count,"profiles as outliers")
-        for interval in oxygen_flux_statistic:
-            print(np.shape(interval))
+        print("removed",count_outliers,"profiles as outliers")
         
         
         ###############################################################################################
@@ -286,6 +286,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         """
         
     ###########################################################################################################################
+    
+    for interval in oxygen_flux_statistic:
+        print(np.shape(interval))
+            
     #compute mean and std over the saved intervals
     mean_oxygen_flux = [None] * number_of_intervals
     std_oxygen_flux = [None] * number_of_intervals
