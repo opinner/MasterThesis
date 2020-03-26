@@ -27,8 +27,8 @@ def colorbar(mappable):
     
 LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/share-windows/processed_mss/emb177"]
 
-#averaging_intervals_borders = [20.55,20.62]
-averaging_intervals_borders = np.linspace(20.48,20.7,9)
+averaging_intervals_borders = [20.55,20.62]
+#averaging_intervals_borders = np.linspace(20.48,20.7,9)
 number_of_intervals = len(averaging_intervals_borders)+1
 
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
@@ -297,8 +297,16 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     std_salinity = [None] * number_of_intervals
     mean_temperature = [None] * number_of_intervals
     std_temperature = [None] * number_of_intervals
+    log_mean_dissipation = [None] * number_of_intervals
+    log_std_dissipation = [None] * number_of_intervals
+    
     mean_dissipation = [None] * number_of_intervals
     std_dissipation = [None] * number_of_intervals
+    upper_percentile_dissipation = [None] * number_of_intervals
+    lower_percentile_dissipation = [None] * number_of_intervals
+    second_upper_percentile_dissipation = [None] * number_of_intervals
+    second_lower_percentile_dissipation = [None] * number_of_intervals
+            
     mean_oxygen_sat = [None] * number_of_intervals
     std_oxygen_sat = [None] * number_of_intervals
         
@@ -309,8 +317,18 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         std_salinity[index] = np.nanstd(salinity_statistic[index],axis=0)
         mean_temperature[index] = np.nanmean(temperature_statistic[index],axis=0)
         std_temperature[index] = np.nanstd(temperature_statistic[index],axis=0)
-        mean_dissipation[index] = np.nanmean(np.log10(dissipation_statistic[index]),axis=0)
-        std_dissipation[index] = np.nanstd(np.log10(dissipation_statistic[index]),axis=0) 
+        log_mean_dissipation[index] = np.nanmean(np.log10(dissipation_statistic[index]),axis=0)
+        log_std_dissipation[index] = np.nanstd(np.log10(dissipation_statistic[index]),axis=0) 
+        
+        mean_dissipation[index] = np.log10(np.nanmean(dissipation_statistic[index],axis=0))
+        std_dissipation[index] = np.log10(np.nanstd(dissipation_statistic[index],axis=0)) 
+        
+        upper_percentile_dissipation[index] = np.log10(np.nanpercentile(dissipation_statistic[index], 84.13, axis = 0))
+        lower_percentile_dissipation[index] = np.log10(np.nanpercentile(dissipation_statistic[index], 100-84.13, axis = 0))
+
+        second_upper_percentile_dissipation[index] = np.log10(np.nanpercentile(dissipation_statistic[index], 97.72, axis = 0))
+        second_lower_percentile_dissipation[index] = np.log10(np.nanpercentile(dissipation_statistic[index], 100-97.72, axis = 0))
+                
         mean_oxygen_sat[index] = np.nanmean(oxygen_sat_statistic[index],axis=0) 
         std_oxygen_sat[index] = np.nanstd(oxygen_sat_statistic[index],axis=0)
             
@@ -348,8 +366,16 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         temp_axarr[index].plot(mean_temperature[index],eps_pressure)
         temp_axarr[index].fill_betweenx(eps_pressure,mean_temperature[index]-std_temperature[index],mean_temperature[index]+std_temperature[index], alpha = 0.5)
         temp_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
-        dissipation_axarr[index].plot(mean_dissipation[index],eps_pressure)
-        dissipation_axarr[index].fill_betweenx(eps_pressure,mean_dissipation[index]-std_dissipation[index],mean_dissipation[index]+std_dissipation[index], alpha = 0.5)
+        dissipation_axarr[index].plot(mean_dissipation[index],eps_pressure, label = "log of means")
+        #dissipation_axarr[index].fill_betweenx(eps_pressure,mean_dissipation[index]-std_dissipation[index],mean_dissipation[index]+std_dissipation[index], alpha = 0.5)
+        dissipation_axarr[index].fill_betweenx(eps_pressure,upper_percentile_dissipation[index],lower_percentile_dissipation[index], alpha = 0.6, label = "84.13% percentile")
+        dissipation_axarr[index].fill_betweenx(eps_pressure,second_upper_percentile_dissipation[index],upper_percentile_dissipation[index], alpha = 0.4, color = "tab:blue",label = "97.72% percentile")
+        dissipation_axarr[index].fill_betweenx(eps_pressure,second_lower_percentile_dissipation[index],lower_percentile_dissipation[index], alpha = 0.4, color = "tab:blue")
+                        
+        dissipation_axarr[index].plot(log_mean_dissipation[index],eps_pressure, label = "mean of logs")
+        dissipation_axarr[index].fill_betweenx(eps_pressure,log_mean_dissipation[index]-log_std_dissipation[index],log_mean_dissipation[index]+log_std_dissipation[index], alpha = 0.4, label = "std")
+        dissipation_axarr[index].legend()
+        
         dissipation_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
         oxygen_axarr[index].plot(mean_oxygen_sat[index],eps_pressure)
         oxygen_axarr[index].fill_betweenx(eps_pressure,mean_oxygen_sat[index]-std_oxygen_sat[index],mean_oxygen_sat[index]+std_oxygen_sat[index], alpha = 0.5)
@@ -375,7 +401,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     temp_axarr[0].set_ylabel("pressure [dbar]")
     
     f_dissipation.suptitle("dissipation")
-    dissipation_axarr[0].set_xlim((-10,-5))
+    #dissipation_axarr[0].set_xlim((-10,-5))
     dissipation_axarr[0].invert_yaxis()
     dissipation_axarr[0].set_ylabel("pressure [dbar]")
     
@@ -408,7 +434,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     f_salinity.subplots_adjust(top=0.91)
     f_salinity.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_salinity")
     
-    #plt.show()
+    plt.show()
     
     
     
