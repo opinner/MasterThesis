@@ -22,7 +22,7 @@ warnings.filterwarnings('ignore')
 LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/share-windows/processed_mss/emb177"]
 
 #averaging_intervals_borders = [20.55,20.62]
-averaging_intervals_borders = np.linspace(20.48,20.7,39)
+averaging_intervals_borders = np.linspace(20.48,20.7,49)
 height_above_ground = 10
 maximum_reasonable_flux = 150
 acceptable_slope = 20 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
@@ -213,7 +213,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         for profile in range(number_of_profiles):
         
             profile_count+=1
-        
+            from_index = np.argmin(abs(eps_pressure-67))        #int(list_of_BBL_range_indices[profile])     
+            to_index = np.argmin(abs(eps_pressure-77))          #int(list_of_bathymetrie_indices[profile])
+            
             for index,border in enumerate(averaging_intervals_borders):
                 #print("index",index)
                 
@@ -230,7 +232,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                        
 
             #if the profile contains only nan values, profile is skipped
-            if np.all(np.isnan(oxygen_flux_BB_grid[profile,:])):
+            if np.all(np.isnan(oxygen_flux_BB_grid[profile,:])): #from_index:to_index
                 print("NaN profile")
                 continue
                 
@@ -256,8 +258,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             else:
                 was_the_last_profile_removed = False
                 
-            from_index = np.argmin(abs(eps_pressure-67))        #int(list_of_BBL_range_indices[profile])     
-            to_index = np.argmin(abs(eps_pressure-77))          #int(list_of_bathymetrie_indices[profile])
+
             
             print(eps_pressure[from_index],eps_pressure[to_index],from_index,to_index)
 
@@ -356,7 +357,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         else:
             title = str(np.round(averaging_intervals_borders[index-1],2))+"-"+str(np.round(averaging_intervals_borders[index],2))  
             
-        print(title,np.shape(interval)[0],"profiles")
+        print(title,np.shape(interval),"profiles")
             
     
     #compute mean and std over the saved intervals
@@ -384,32 +385,58 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     second_upper_percentile_dissip = [None] * number_of_intervals
     
     for index in range(number_of_intervals):
-        mean_max_flux[index] = np.nanmean(oxygen_flux_statistic[index][:,1],axis=0)
-        median_max_flux[index] = np.nanmedian(oxygen_flux_statistic[index][:,1],axis=0)
-        
-        upper_percentile_max_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,1], flux_percentile)
-        lower_percentile_max_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,1], 100-flux_percentile)
-        
-        mean_min_flux[index] = np.nanmean(oxygen_flux_statistic[index][:,0],axis=0)
-        median_min_flux[index] = np.nanmedian(oxygen_flux_statistic[index][:,0],axis=0)
+        try:
+            mean_max_flux[index] = np.nanmean(oxygen_flux_statistic[index][:,1],axis=0)
+            median_max_flux[index] = np.nanmedian(oxygen_flux_statistic[index][:,1],axis=0)
+            
+            upper_percentile_max_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,1], flux_percentile)
+            lower_percentile_max_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,1], 100-flux_percentile)
+            
+            mean_min_flux[index] = np.nanmean(oxygen_flux_statistic[index][:,0],axis=0)
+            median_min_flux[index] = np.nanmedian(oxygen_flux_statistic[index][:,0],axis=0)
 
-        upper_percentile_min_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,0], flux_percentile)
-        lower_percentile_min_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,0], 100-flux_percentile)
-        
-        second_upper_percentile_max_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,1], second_flux_percentile)
-        second_lower_percentile_min_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,0], 100-second_flux_percentile)
-                
-        bathymetrie_mean[index] = np.nanmean(bathymetrie_statistic[index])
-        
-        mean_dissipation[index] = np.nanmean(np.log10(dissipation_statistic[index]),axis=0)
-        median_dissipation[index] = np.nanmedian(np.log10(dissipation_statistic[index]),axis=0)
-        std_dissipation[index] = np.nanstd(np.log10(dissipation_statistic[index]),axis=0) 
-        upper_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), dissip_percentile)
-        lower_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), 100-dissip_percentile)
-        
-        second_upper_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), second_dissip_percentile)
-        second_lower_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), 100-second_dissip_percentile)
-       
+            upper_percentile_min_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,0], flux_percentile)
+            lower_percentile_min_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,0], 100-flux_percentile)
+            
+            second_upper_percentile_max_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,1], second_flux_percentile)
+            second_lower_percentile_min_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,0], 100-second_flux_percentile)
+                    
+            bathymetrie_mean[index] = np.nanmean(bathymetrie_statistic[index])
+            
+            mean_dissipation[index] = np.nanmean(np.log10(dissipation_statistic[index]),axis=0)
+            median_dissipation[index] = np.nanmedian(np.log10(dissipation_statistic[index]),axis=0)
+            std_dissipation[index] = np.nanstd(np.log10(dissipation_statistic[index]),axis=0) 
+            upper_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), dissip_percentile)
+            lower_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), 100-dissip_percentile)
+            
+            second_upper_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), second_dissip_percentile)
+            second_lower_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), 100-second_dissip_percentile)
+        except TypeError:
+            mean_max_flux[index] = np.nan
+            median_max_flux[index] = np.nan
+            
+            upper_percentile_max_flux[index] = np.nan
+            lower_percentile_max_flux[index] = np.nan
+            
+            mean_min_flux[index] = np.nan
+            median_min_flux[index] = np.nan
+
+            upper_percentile_min_flux[index] = np.nan
+            lower_percentile_min_flux[index] = np.nan
+            
+            second_upper_percentile_max_flux[index] = np.nan
+            second_lower_percentile_min_flux[index] = np.nan
+                    
+            bathymetrie_mean[index] = np.nan
+            
+            mean_dissipation[index] = np.nan
+            median_dissipation[index] = np.nan
+            std_dissipation[index] = np.nan
+            upper_percentile_dissip[index] = np.nan
+            lower_percentile_dissip[index] = np.nan
+            
+            second_upper_percentile_dissip[index] = np.nan
+            second_lower_percentile_dissip[index] = np.nan
                        
     mean_max_flux = np.asarray(mean_max_flux)
     median_max_flux = np.asarray(median_max_flux)  
@@ -472,7 +499,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     flux_axarr.set_xlabel("longitude [degree]")    
     flux_axarr.set_ylabel(r"oxygen flux [mmol/(m$^2$*d]")
     #f_flux.suptitle(cruisename+": maximum up- and downwards BB oxygen flux in the lowermost "+str(height_above_ground)+" meters above ground")
-    f_flux.suptitle(cruisename+": maximum up- and downwards BB oxygen flux around the halocline (67-77dbar)")
+    f_flux.suptitle(cruisename+": maximum up- and downwards BB oxygen flux around the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
     
     f_flux.set_size_inches(18,10.5)
     f_flux.tight_layout() 
@@ -511,7 +538,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     dissip_axarr.legend(handles=[dissip_mean_label,dissip_median_label,dissip_percent_label,dissip_second_percent_label,bathymetrie_label])
     
     #f_dissip.suptitle(cruisename+": mean dissipation in the lowermost "+str(height_above_ground)+" meters above ground")
-    f_dissip.suptitle(cruisename+": mean dissipation around the halocline (67-77dbar)")
+    f_dissip.suptitle(cruisename+": mean dissipation around the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
 
     f_dissip.set_size_inches(18,10.5)
     f_dissip.tight_layout() 
@@ -528,8 +555,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print("profile_count",profile_count)
     print(np.shape(all_dissipation_statistic))
     hist_axarr.hist(np.log10(all_dissipation_statistic),bins = 40,edgecolor='black', linewidth=1.2)
-        
-    hist_dissip.suptitle(cruisename+": normalized dissipation distribution around the halocline (67-77dbar)")
+    hist_axarr.axvline(np.nanmean(np.log10(all_dissipation_statistic)), linewidth=2.4, c = "tab:red", label = "mean of logs")
+    hist_axarr.axvline(np.log10(np.nanmean(all_dissipation_statistic)), linewidth=2.4, c = "tab:green", label = "log of means")
+    hist_axarr.axvline(np.nanmedian(np.log10(all_dissipation_statistic)), linewidth=2.4, ls = "-", c = "tab:orange", label = "median of logs")
+    hist_axarr.axvline(np.log10(np.nanmedian(all_dissipation_statistic)), linewidth=2.4, ls = ":", c = "k", label = "log of median")
+    
+    hist_axarr.legend()
+                
+    hist_dissip.suptitle(cruisename+": dissipation distribution around the halocline (67-77dbar)")
     hist_dissip.set_size_inches(18,10.5)
     hist_dissip.tight_layout() 
     hist_dissip.subplots_adjust(top=0.95)
