@@ -9,14 +9,16 @@ import matplotlib.dates as mdates
 def SA_from_C(C, t, p, lon, lat):
     SP = gsw.conversions.SP_from_C(C, t, p)
     return gsw.SA_from_SP_Baltic(SP, lon, lat)
-    
+
+#Ubuntu laptop    
 #LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/Seabird/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/Seabird/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/Seabird/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/Seabird/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/Seabird/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/seabird/data"]
+#LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/Seabird/data"]
 
-LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/Seabird/data"]
-
+#virtual machine
+LIST_OF_FOLDERS = ["/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_flach/Seabird/data","/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_tief/Seabird/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-flach/Seabird/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-tief/Seabird/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/Seabird/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Tief/seabird/data"]
 
 #depths of all the sensors, used for labeling in the plots
-sensor_positions_path = "/home/ole/thesis/Preprocessing_TC_stations/Seabird/seabird_properties"
+sensor_positions_path = "/home/ole/windows/Preprocessing_TC_stations/Seabird/seabird_properties"
 sensor_positions = np.genfromtxt(sensor_positions_path,skip_header= 1, usecols = (0,1,2,3,4,5,6), dtype = "str")
 
 
@@ -64,7 +66,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
             print("--------------------------------------\nfile:")
         print(datafile_path[25:])
         
-        if (datafile_path == "/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/Seabird/data/emb177_TC-tief_SC1614.txt"):
+        if (datafile_path == "/home/ole/windows/all_data/emb177/deployments/moorings/TC-tief/Seabird/data/emb177_TC-tief_SC1614.txt"):
             print("emb177_TC-tief_SC1614.txt is skipped, because its length doesn't fit to the other data")
             continue  
         else:   
@@ -166,8 +168,8 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     salinity_from_all_sensors = np.asarray(salinity_from_all_sensors)
     
     #TODO save the data  
-    np.savez("/home/ole/thesis/Preprocessing_TC_stations/Seabird/data/seabird_"+cruisename+"_"+flach_or_tief+"_temperature", temperature = temperature_from_all_sensors, label_list = label_list, utc = utc)       
-    np.savez("/home/ole/thesis/Preprocessing_TC_stations/Seabird/data/seabird_"+cruisename+"_"+flach_or_tief+"_salinity", salinity = salinity_from_all_sensors, label_list = label_list, utc = utc)
+    np.savez("/home/ole/windows/Preprocessing_TC_stations/Seabird/data/seabird_"+cruisename+"_"+flach_or_tief+"_temperature", temperature = temperature_from_all_sensors, label_list = label_list, utc = utc)       
+    np.savez("/home/ole/windows/Preprocessing_TC_stations/Seabird/data/seabird_"+cruisename+"_"+flach_or_tief+"_salinity", salinity = salinity_from_all_sensors, label_list = label_list, utc = utc)
         
     #theoretically only the year from the last datafile, but all of them belong to the same measurements
     axarr1[2].set_xlabel(utc[0].strftime("%Y")) 
@@ -176,7 +178,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     axarr1[0].set_ylabel("temperature [C]")
     axarr1[1].set_ylabel("conductivity [mS/cm]")
     axarr1[1].set_ylabel("salinity [SA]")
-    axarr1[2].set_ylabel("compuedt salinitz [SA]")
+    axarr1[2].set_ylabel("computed salinity [SA]")
 
     title_fig1 = "Seabird "+cruisename+" "+flach_or_tief+" temperature and salinity"
     title_fig1_2 = "Seabird "+cruisename+" "+flach_or_tief+" trimmed data comparison"
@@ -193,8 +195,14 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     
     f1.set_size_inches(12,7)
 
-    plot1_name = "/home/ole/thesis/Preprocessing_TC_stations/Seabird/pictures/"+"seabird_"+cruisename+"_"+flach_or_tief+" temperature"
-    f1.savefig(plot1_name)
+    #plot1_name = "/home/ole/thesis/Preprocessing_TC_stations/Seabird/pictures/"+"seabird_"+cruisename+"_"+flach_or_tief+" temperature"
+    #f1.savefig(plot1_name)
+    
+    plot1_save_windows_name = "/home/ole/windows/Preprocessing_TC_stations/Seabird/pictures/"+"seabird_"+cruisename+"_"+flach_or_tief+"_temperature"
+    plot1_save_ubuntu_name =  "/home/ole/Thesis/Preprocessing_TC_stations/Seabird/pictures/"+"seabird_"+cruisename+"_"+flach_or_tief+"_temperature"
+        
+    f1.savefig(plot1_save_windows_name)
+    f1.savefig(plot1_save_ubuntu_name)
     
     #figure 2
     axarr2[0].set_ylabel("temperature")
@@ -207,7 +215,13 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     axarr2[0].legend()
     f2.set_size_inches(12,7)
 
-    plot2_name = "/home/ole/thesis/Preprocessing_TC_stations/Seabird/pictures/"+"Seabird_"+cruisename+"_"+flach_or_tief+" untrimmed data comparison"
-    f2.savefig(plot2_name)
+    #plot2_name = "/home/ole/thesis/Preprocessing_TC_stations/Seabird/pictures/"+"Seabird_"+cruisename+"_"+flach_or_tief+" untrimmed data comparison"
+    #f2.savefig(plot2_name)
 
+    plot2_save_windows_name = "/home/ole/windows/Preprocessing_TC_stations/Seabird/pictures/"+"seabird_"+cruisename+"_"+flach_or_tief+"_untrimmed_data_comparison"
+    plot2_save_ubuntu_name =  "/home/ole/Thesis/Preprocessing_TC_stations/Seabird/pictures/"+"seabird_"+cruisename+"_"+flach_or_tief+"_untrimmed_data_comparison"
+        
+    f2.savefig(plot2_save_windows_name)
+    f2.savefig(plot2_save_ubuntu_name)
+    
 plt.show()          

@@ -11,12 +11,16 @@ import pylab as pl
 import datetime as dt
 import matplotlib.dates as mdates
 
-LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/PME/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/PME/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/PME/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/PME/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/PME/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/PME/data"]
 
+#LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/PME/data","/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/PME/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-flach/PME/data","/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/PME/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/PME/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/PME/data"]
 #LIST_OF_FOLDERS = ["/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_tief/PME/data"]
 
+#virtual machine
+LIST_OF_FOLDERS = ["/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_flach/PME/data","/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_tief/PME/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-flach/PME/data","/home/ole/windows/all_data/emb177/deployments/moorings/TC-tief/PME/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/PME/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Tief/PME/data"]
+#LIST_OF_FOLDERS = ["/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/PME/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Tief/PME/data"]
+
 #File with SensorID, Depth and measurement period information
-sensor_positions_path = "/home/ole/thesis/Preprocessing_TC_stations/PME/pme_properties"
+sensor_positions_path = "/home/ole/windows/Preprocessing_TC_stations/PME/pme_properties"
 sensor_positions = np.genfromtxt(sensor_positions_path,skip_header= 1, usecols = (0,1,2,3,4,5,6), dtype = "str")
 
 
@@ -59,21 +63,21 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         
         if DATAFILENAME == DATAFILENAMES[0]:
             print("####################################################\nfile:")
-            print(datafile_path[25:])
+            print(datafile_path[27:])
         else:
             print("----------------------------------------------------\nfile:")
-            print(datafile_path[25:])
+            print(datafile_path[27:])
         
         #exeption because of a different data structure
-        if (datafile_path == "/home/ole/thesis/all_data/emb169/deployments/moorings/Peter_TC_flach/PME/data/EMB169_TC2_PME041954.TXT"):
+        if (datafile_path == "/home/ole/windows/all_data/emb169/deployments/moorings/Peter_TC_flach/PME/data/EMB169_TC2_PME041954.TXT"):
             temporary_data = np.genfromtxt(datafile_path,skip_header= 9, usecols = (0,5,6), delimiter = ",", encoding="iso8859_15")    
         
-        elif (datafile_path == "/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/PME/data/EMB177_tc-tief_PME299629.txt"):
+        elif (datafile_path == "/home/ole/windows/all_data/emb177/deployments/moorings/TC-tief/PME/data/EMB177_tc-tief_PME299629.txt"):
             print("EMB177_tc-tief_PME299629.txt is skipped, because its length doesn't fit to the other data")
             continue  
                 
         #data from emb217 has a different coloumn structure
-        elif FOLDERNAME in ["/home/ole/thesis/all_data/emb177/deployments/moorings/TC-tief/PME/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/PME/data"]:
+        elif FOLDERNAME in ["/home/ole/windows/all_data/emb177/deployments/moorings/TC-tief/PME/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Tief/PME/data"]:
             temporary_data = np.genfromtxt(datafile_path,skip_header= 9, usecols = (0,5,6), delimiter = ",", encoding="iso8859_15")
             
         else:
@@ -123,7 +127,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
         
         """
         #calibration through linear stretching of the data
-        if FOLDERNAME in ["/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Tief/PME/data","/home/ole/thesis/all_data/emb217/deployments/moorings/TC_Flach/PME/data"]:
+        if FOLDERNAME in ["/home/ole/windows/all_data/emb217/deployments/moorings/TC_Tief/PME/data","/home/ole/windows/all_data/emb217/deployments/moorings/TC_Flach/PME/data"]:
             #Assumption that during the calibration measurement the lowest 
             #measurement corresponds to 0 saturationand the highest to 100  
             max_saturation = np.max(temporary_data[:start_index,2])
@@ -165,7 +169,7 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     
 
     #save the trimmed data for easier analysis afterwards
-    np.savez("/home/ole/thesis/Preprocessing_TC_stations/PME/data/PME_"+cruisename+"_"+flach_or_tief+"_oxygen", concentration = np.asarray(concentration_from_all_sensors), saturation = np.asarray(saturation_from_all_sensors),  label_list = label_list, utc = utc)
+    np.savez("/home/ole/windows/Preprocessing_TC_stations/PME/data/PME_"+cruisename+"_"+flach_or_tief+"_oxygen", concentration = np.asarray(concentration_from_all_sensors), saturation = np.asarray(saturation_from_all_sensors),  label_list = label_list, utc = utc)
     
     
     #set the xticks (dateformat and tick location)
@@ -188,9 +192,12 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     axarr1[1].legend()
     f1.set_size_inches(12,7)
 
-    plot1_name = "/home/ole/thesis/Preprocessing_TC_stations/PME/pictures/"+"PME_"+cruisename+"_"+flach_or_tief+" oxygen"
-    f1.savefig(plot1_name)
-    
+    plot1_save_windows_name = "/home/ole/windows/Preprocessing_TC_stations/PME/pictures/"+"PME_"+cruisename+"_"+flach_or_tief+" oxygen"
+    plot1_save_ubuntu_name =  "/home/ole/Thesis/Preprocessing_TC_stations/PME/pictures/"+"PME_"+cruisename+"_"+flach_or_tief+" oxygen"
+        
+    f1.savefig(plot1_save_windows_name)
+    f1.savefig(plot1_save_ubuntu_name)
+        
     #figure 2
     axarr2[0].set_ylabel("dissolved oxygen [mg/l]")
     axarr2[0].set_xlabel(utc[0].strftime("%Y")) #label the axis with the corresponding year
@@ -202,7 +209,10 @@ for FOLDERNAME in LIST_OF_FOLDERS:
     axarr2[0].legend()
     f2.set_size_inches(12,7)
 
-    plot2_name = "/home/ole/thesis/Preprocessing_TC_stations/PME/pictures/"+"PME_"+cruisename+"_"+flach_or_tief+" untrimmed data comparison"
-    f2.savefig(plot2_name)
+    plot2_save_windows_name = "/home/ole/windows/Preprocessing_TC_stations/PME/pictures/"+"PME_"+cruisename+"_"+flach_or_tief+" untrimmed data comparison"
+    plot2_save_ubuntu_name =  "/home/ole/Thesis/Preprocessing_TC_stations/PME/pictures/"+"PME_"+cruisename+"_"+flach_or_tief+" untrimmed data comparison"
+    
+    f2.savefig(plot2_save_windows_name)
+    f2.savefig(plot2_save_ubuntu_name)
       
-plt.show()    
+#plt.show()    
