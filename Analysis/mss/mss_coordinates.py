@@ -10,7 +10,7 @@ import matplotlib.cm as cm
 import geopy.distance as geo #https://pypi.org/project/geopy/
 
 #contains the MSS Data
-LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb217_mss_data","/home/ole/share-windows/emb177_mss_data/","/home/ole/share-windows/emb169_mss_data/MSS055/matlab/","/home/ole/share-windows/emb169_mss_data/MSS038/matlab/"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb217_mss_data"]#,"/home/ole/share-windows/emb177_mss_data/","/home/ole/share-windows/emb169_mss_data/MSS055/matlab/","/home/ole/share-windows/emb169_mss_data/MSS038/matlab/"]
 
 #TODO
 #define the figure
@@ -53,6 +53,12 @@ print("emb177_flach",emb177_flach)
 
 emb177_tief = [coord2float2(57,19.232),coord2float2(20,36.011)]
 print("emb177_tief",emb177_tief)
+
+emb217_flach = [57.3200,20.6150]
+print("emb217_flach",emb217_flach)
+
+emb217_tief = [57.3200,20.600]
+print("emb217_tief",emb217_tief)
 
 aspect_ratio = XT_I.size/YT_J.size
 
@@ -105,11 +111,12 @@ bathymetrie[bathymetrie == -1.000e+34] = np.nan
 axis.contourf(long, lat, bathymetrie, 15, extend = "min", vmin = -300, vmax = 0)
 
 #axis.plot(emb169_lars[1],emb169_lars[0],"m.")
-axis.plot(emb169_flach[1],emb169_flach[0],"gD")
-axis.plot(emb169_tief[1],emb169_tief[0],"gD")
+#axis.plot(emb169_flach[1],emb169_flach[0],"gD")
+#axis.plot(emb169_tief[1],emb169_tief[0],"gD")
 #axis.plot(emb177_flach[1],emb177_flach[0],"k.")
 #axis.plot(emb177_tief[1],emb177_tief[0],"k.")
-
+axis.plot(emb217_flach[1],emb217_flach[0],"k.")
+axis.plot(emb217_tief[1],emb217_tief[0],"k.")
 
 #print(longitude_list)
 #print(latitude_list)
@@ -232,7 +239,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             axis.plot(lon,lat,"k")
             axis.plot(lon,lat,"kx")       
 
-axis.plot(longitude_list,latitude_list,"kD")           
+#axis.plot(longitude_list,latitude_list,"kD")           
 plt.show()          
             
             

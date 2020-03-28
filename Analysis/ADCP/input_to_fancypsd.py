@@ -4,7 +4,7 @@
 
 #Warning: This program is heavily hardcoded for emb169,emb177 and emb217
 ###################################################################
-#TODO: Refactor the code?
+#TODO: pad EMB217 flach to the same length
 ##################################################################
 import pathlib
 import numpy as np
@@ -342,6 +342,9 @@ for mooring in  mooring_names:
     f2.set_size_inches(1.618*7.2,7.2)
     plot2_name = plot_name = "/home/ole/share-windows/adcp_slices/"+mooring+"_cut_positions"
     f2.savefig(plot2_name)
+    plot2_name_local = plot_name = "./pictures/"+mooring+"_cut_positions"
+    f2.savefig(plot2_name_local)
+
     
     SAVEFILENAME = "/home/ole/share-windows/adcp_slices/ADCP_horizontal_slice_"+mooring+".mat" 
     matlab_dictionary = {}

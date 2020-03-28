@@ -81,7 +81,9 @@ for DATAFILENAME in DATAFILENAMES:
     #print(sorted_depth)
     number_of_depth_bins = depth.size
     
-    plot_edges_depth = np.insert(sorted_depth,0,0) #Prepend a 0 to he beginning (index 0)
+    #Prepend a 0 to the beginning (index 0)
+    #for the lowermost plot edge needed for pcolormesh
+    plot_edges_depth = np.insert(sorted_depth,0,0) 
     
     print(label_list)
     print(np.reshape(label_list[:,1],(number_of_depth_bins,1)))
