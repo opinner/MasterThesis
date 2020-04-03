@@ -8,6 +8,17 @@
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
+#matplotlib preferences:
+SMALL_SIZE = 12
+MEDIUM_SIZE = 14
+BIGGER_SIZE = 16
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 import geopy.distance as geo
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import gsw.conversions as gsw
@@ -22,7 +33,7 @@ warnings.filterwarnings('ignore')
 LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/share-windows/processed_mss/emb177"]
 
 #averaging_intervals_borders = [20.55,20.62]
-averaging_intervals_borders = np.linspace(20.48,20.7,49)
+averaging_intervals_borders = np.linspace(20.48,20.7,44)
 height_above_ground = 10
 maximum_reasonable_flux = 150
 acceptable_slope = 20 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
@@ -235,13 +246,15 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             if np.all(np.isnan(oxygen_flux_BB_grid[profile,:])): #from_index:to_index
                 print("NaN profile")
                 continue
-                
+
+                               
             #check for an outlier profile 
             if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+2*spread_of_profile_medians):      
                 #print("\toutlier")
                 outlier_count += 1
                 continue
            
+            #check if the profile was stopped too early by comparing it to the predecessor and succesor. If yes, skipt it
             try:
                 slope = (bathymetrie[profile]-bathymetrie[profile+1])    
                 next_slope = (bathymetrie[profile]-bathymetrie[profile+2])
@@ -259,7 +272,16 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 was_the_last_profile_removed = False
                 
 
-            
+            #if the water colum portion contains only nan values, save only the bathymetrie then skip it
+            if np.all(np.isnan(oxygen_flux_BB_grid[profile,from_index:to_index])):
+                #if the list is empty
+                if np.any(bathymetrie_statistic[interval_number]) == None:
+                    bathymetrie_statistic[interval_number] = [bathymetrie[profile]]            
+                else:
+                    #concatenate all further profiles to the ones already in the array
+                    bathymetrie_statistic[interval_number].append(bathymetrie[profile])
+                continue
+   
             print(eps_pressure[from_index],eps_pressure[to_index],from_index,to_index)
 
             max_flux = np.nanmax(oxygen_flux_BB_grid[profile,from_index:to_index])
@@ -304,14 +326,21 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
   
                 #fill it with a reshaped profile
                 oxygen_flux_statistic[interval_number] = min_max_array
-                bathymetrie_statistic[interval_number] = [bathymetrie[profile]]
                 dissipation_statistic[interval_number] = [np.nanmean(eps_grid[profile,from_index:to_index])]
                                 
             else:
                 #concatenate all further profiles to the ones already in the array
                 oxygen_flux_statistic[interval_number] = np.concatenate((oxygen_flux_statistic[interval_number],min_max_array),axis=0)
-                bathymetrie_statistic[interval_number].append(bathymetrie[profile])
                 dissipation_statistic[interval_number].append(np.nanmean(eps_grid[profile,from_index:to_index]))
+
+            #sort the bathymetrie data into the intervals
+            if np.any(bathymetrie_statistic[interval_number]) == None:
+                bathymetrie_statistic[interval_number] = [bathymetrie[profile]]            
+            else:
+                #concatenate all further profiles to the ones already in the array
+                bathymetrie_statistic[interval_number].append(bathymetrie[profile])
+                    
+
 
         print("removed",outlier_count,"profiles as outliers")
         print("removed",count_of_short_profiles,"profiles as they did not reach the sea floor")
@@ -383,7 +412,17 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
     second_lower_percentile_dissip = [None] * number_of_intervals
     second_upper_percentile_dissip = [None] * number_of_intervals
-    
+
+    for index in range(number_of_intervals):
+        #print(np.shape(bathymetrie_statistic[index]))
+        try:
+            bathymetrie_mean[index] = np.nanmean(bathymetrie_statistic[index])
+        except (TypeError,AttributeError):
+            #print("error")
+            bathymetrie_mean[index] = np.nan
+                       
+                       
+                           
     for index in range(number_of_intervals):
         try:
             mean_max_flux[index] = np.nanmean(oxygen_flux_statistic[index][:,1],axis=0)
@@ -401,7 +440,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             second_upper_percentile_max_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,1], second_flux_percentile)
             second_lower_percentile_min_flux[index] = np.nanpercentile(oxygen_flux_statistic[index][:,0], 100-second_flux_percentile)
                     
-            bathymetrie_mean[index] = np.nanmean(bathymetrie_statistic[index])
+            #bathymetrie_mean[index] = np.nanmean(bathymetrie_statistic[index])
             
             mean_dissipation[index] = np.nanmean(np.log10(dissipation_statistic[index]),axis=0)
             median_dissipation[index] = np.nanmedian(np.log10(dissipation_statistic[index]),axis=0)
@@ -411,7 +450,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
             second_upper_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), second_dissip_percentile)
             second_lower_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), 100-second_dissip_percentile)
-        except TypeError:
+        except (TypeError,AttributeError):
             mean_max_flux[index] = np.nan
             median_max_flux[index] = np.nan
             
@@ -427,7 +466,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             second_upper_percentile_max_flux[index] = np.nan
             second_lower_percentile_min_flux[index] = np.nan
                     
-            bathymetrie_mean[index] = np.nan
+            #bathymetrie_mean[index] = np.nan
             
             mean_dissipation[index] = np.nan
             median_dissipation[index] = np.nan
@@ -476,7 +515,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     flux_axarr.fill_between(plot_longitude,upper_percentile_min_flux,lower_percentile_min_flux, color = "tab:green", zorder = 2, alpha = 0.6)   
     flux_axarr.fill_between(plot_longitude,second_lower_percentile_min_flux,lower_percentile_min_flux, color = "tab:green", zorder = 2, alpha = 0.4)  
     
-    bathymetrie_axes.set_ylim((min(bathymetrie_mean)-5,max(bathymetrie_mean)))
+    bathymetrie_axes.set_ylim((np.nanmin(bathymetrie_mean)-5,np.nanmax(bathymetrie_mean)))
     bathymetrie_axes.invert_yaxis()
     bathymetrie_axes.set_ylabel("pressure [dbar]")
         
@@ -515,7 +554,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     dissip_axarr.patch.set_visible(False)
     
     bathymetrie_axes2 = dissip_axarr.twinx()
-    bathymetrie_axes2.set_ylim((min(bathymetrie_mean)-5,max(bathymetrie_mean)))
+    bathymetrie_axes2.set_ylim((np.nanmin(bathymetrie_mean)-5,np.nanmax(bathymetrie_mean)))
     bathymetrie_axes2.invert_yaxis()
     bathymetrie_axes2.set_ylabel("pressure [dbar]")
         
@@ -549,7 +588,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     """
     hist_dissip,hist_axarr = plt.subplots(nrows = 1, ncols = 1, sharey = True, sharex = True) 
     
-    flat_list = [item for sublist in dissipation_statistic for item in sublist]
+    filtered_list = list(filter(None, dissipation_statistic))
+    flat_list = [item for sublist in filtered_list for item in sublist]
     flattened_array = np.asarray(flat_list).flatten()
     
     print("profile_count",profile_count)
@@ -561,6 +601,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     hist_axarr.axvline(np.log10(np.nanmedian(all_dissipation_statistic)), linewidth=2.4, ls = ":", c = "k", label = "log of median")
     
     hist_axarr.legend()
+    
+    hist_axarr.set_xlabel(r"log10($\epsilon$) $[m^2 s^{-3}]$") 
+    hist_axarr.set_ylabel("frequency [#]")
                 
     hist_dissip.suptitle(cruisename+": dissipation distribution around the halocline (67-77dbar)")
     hist_dissip.set_size_inches(18,10.5)

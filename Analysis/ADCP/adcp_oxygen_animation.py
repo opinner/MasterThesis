@@ -3,7 +3,6 @@
 
 #TODO Change projection for scale display
 #---------------------------------------------------------------------------#
-
 import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,7 +14,19 @@ from scipy.optimize import curve_fit
 from mpl_toolkits.basemap import Basemap
 from matplotlib import animation
 from matplotlib.gridspec import GridSpec
+#matplotlib preferences:
+SMALL_SIZE = 12
+MEDIUM_SIZE = 14
+BIGGER_SIZE = 16
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
+#parameters
 offset = 3500 #4350#
 max_frames = 4000 #3000
 displayed_depth = 75
