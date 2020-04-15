@@ -432,7 +432,6 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         dissipation_axarr[index].plot(log_mean_dissipation[index],eps_pressure, "k", label = "mean of logs")
         #dissipation_axarr[index].fill_betweenx(eps_pressure,log_mean_dissipation[index]-log_std_dissipation[index],log_mean_dissipation[index]+log_std_dissipation[index], alpha = 0.4, label = "std")
         dissipation_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
-        
          
         skew_axarr[2*index].plot(skew_dissipation[index],eps_pressure, "k-",label = "skew")
         skew_axarr[2*index].plot(kurtosis_dissipation[index],eps_pressure, "-", color = "tab:green", label = "kurtosis") 
