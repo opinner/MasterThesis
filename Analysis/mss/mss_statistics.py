@@ -24,6 +24,7 @@ import gsw.conversions as gsw
 import pathlib
 import mss_functions as thesis
 import numpy.ma as ma
+import scipy.stats as ss
 import warnings
 warnings.filterwarnings('ignore') #ignoring warnings, specially numpy warnings
 
@@ -41,6 +42,7 @@ LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/processed_mss/emb217"]#,"/home/o
 averaging_intervals_borders = [20.55,20.62]
 #averaging_intervals_borders = np.linspace(20.48,20.7,9)
 number_of_intervals = len(averaging_intervals_borders)+1
+first_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
 
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     path = pathlib.Path(FOLDERNAME)
@@ -60,7 +62,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     dissipation_statistic = [None] * number_of_intervals
     oxygen_sat_statistic = [None] * number_of_intervals
     oxygen_flux_statistic = [None] * number_of_intervals
-
+    all_dissipation_statistic = np.asarray([])
         
     #go through all files of specified folder and select only files ending with .mat
     for p in path.iterdir():
@@ -229,6 +231,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             #print(np.round(lon[profile],3),interval_number),np.round(np.nanmedian(np.log10(eps_grid[profile,30:-30])),3),np.shape(np.reshape(oxygen_flux_BB_grid[profile,:],(1,-1))))
                        
 
+            
+
             #if the profile contains only nan values, profile is skipped
             if np.all(np.isnan(oxygen_flux_BB_grid[profile,:])):
                 print("NaN profile")
@@ -240,6 +244,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 count_outliers += 1
                 continue
            
+            
+            all_dissipation_statistic = np.append(all_dissipation_statistic,eps_grid[profile])
                 
             #if the list is empty
             if np.any(oxygen_flux_statistic[interval_number]) == None:
@@ -303,46 +309,77 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
     #compute mean and std over the saved intervals
     mean_oxygen_flux = [None] * number_of_intervals
-    std_oxygen_flux = [None] * number_of_intervals
+    median_oxygen_flux = [None] * number_of_intervals
+    upper_percentile_oxygen_flux = [None] * number_of_intervals
+    lower_percentile_oxygen_flux = [None] * number_of_intervals
+    max_oxygen_flux = [None] * number_of_intervals
+    min_oxygen_flux = [None] * number_of_intervals
+        
     mean_salinity = [None] * number_of_intervals
-    std_salinity = [None] * number_of_intervals
+    median_salinity = [None] * number_of_intervals
+    upper_percentile_salinity = [None] * number_of_intervals
+    lower_percentile_salinity = [None] * number_of_intervals
+    
     mean_temperature = [None] * number_of_intervals
-    std_temperature = [None] * number_of_intervals
+    median_temperature = [None] * number_of_intervals
+    upper_percentile_temperature = [None] * number_of_intervals
+    lower_percentile_temperature = [None] * number_of_intervals
+    
     log_mean_dissipation = [None] * number_of_intervals
-    log_std_dissipation = [None] * number_of_intervals
+    log_median_dissipation = [None] * number_of_intervals
     
     mean_dissipation = [None] * number_of_intervals
-    std_dissipation = [None] * number_of_intervals
+    median_dissipation = [None] * number_of_intervals
     upper_percentile_dissipation = [None] * number_of_intervals
     lower_percentile_dissipation = [None] * number_of_intervals
     second_upper_percentile_dissipation = [None] * number_of_intervals
     second_lower_percentile_dissipation = [None] * number_of_intervals
+    
+    skew_dissipation = [None] * number_of_intervals
+    kurtosis_dissipation = [None] * number_of_intervals
             
     mean_oxygen_sat = [None] * number_of_intervals
-    std_oxygen_sat = [None] * number_of_intervals
-        
+    median_oxygen_sat = [None] * number_of_intervals
+    upper_percentile_oxygen_sat = [None] * number_of_intervals
+    lower_percentile_oxygen_sat = [None] * number_of_intervals
+            
     for index in range(number_of_intervals):
         mean_oxygen_flux[index] = np.nanmean(oxygen_flux_statistic[index],axis=0)
-        std_oxygen_flux[index] = np.nanstd(oxygen_flux_statistic[index],axis=0)
+        median_oxygen_flux[index] = np.nanmedian(oxygen_flux_statistic[index],axis=0)
+        upper_percentile_oxygen_flux[index] = np.nanpercentile(oxygen_flux_statistic[index], first_percentile, axis = 0)
+        lower_percentile_oxygen_flux[index] = np.nanpercentile(oxygen_flux_statistic[index], 100 - first_percentile, axis = 0)
+        max_oxygen_flux[index] = np.nanpercentile(oxygen_flux_statistic[index], 97.72, axis = 0)
+        min_oxygen_flux[index] = np.nanpercentile(oxygen_flux_statistic[index], 100-97.72, axis = 0)
+            
         mean_salinity[index] = np.nanmean(salinity_statistic[index],axis=0)
-        std_salinity[index] = np.nanstd(salinity_statistic[index],axis=0)
+        median_salinity[index] = np.nanmedian(salinity_statistic[index],axis=0)
+        upper_percentile_salinity[index] = np.nanpercentile(salinity_statistic[index], first_percentile, axis = 0)
+        lower_percentile_salinity[index] = np.nanpercentile(salinity_statistic[index], 100-first_percentile, axis = 0)
+        
         mean_temperature[index] = np.nanmean(temperature_statistic[index],axis=0)
-        std_temperature[index] = np.nanstd(temperature_statistic[index],axis=0)
+        median_temperature[index] = np.nanmedian(temperature_statistic[index],axis=0)
+        upper_percentile_temperature[index] = np.nanpercentile(temperature_statistic[index], first_percentile, axis = 0)
+        lower_percentile_temperature[index] = np.nanpercentile(temperature_statistic[index], 100-first_percentile, axis = 0)
+        
         log_mean_dissipation[index] = np.nanmean(np.log10(dissipation_statistic[index]),axis=0)
-        log_std_dissipation[index] = np.nanstd(np.log10(dissipation_statistic[index]),axis=0) 
-        
+        log_median_dissipation[index] = np.nanmedian(np.log10(dissipation_statistic[index]),axis=0) 
         mean_dissipation[index] = np.log10(np.nanmean(dissipation_statistic[index],axis=0))
-        std_dissipation[index] = np.log10(np.nanstd(dissipation_statistic[index],axis=0)) 
-        
-        upper_percentile_dissipation[index] = np.log10(np.nanpercentile(dissipation_statistic[index], 84.13, axis = 0))
-        lower_percentile_dissipation[index] = np.log10(np.nanpercentile(dissipation_statistic[index], 100-84.13, axis = 0))
+        median_dissipation[index] = np.log10(np.nanmedian(dissipation_statistic[index],axis=0)) 
+    
+        upper_percentile_dissipation[index] = np.log10(np.nanpercentile(dissipation_statistic[index], first_percentile, axis = 0))
+        lower_percentile_dissipation[index] = np.log10(np.nanpercentile(dissipation_statistic[index], 100-first_percentile, axis = 0))
 
         second_upper_percentile_dissipation[index] = np.log10(np.nanpercentile(dissipation_statistic[index], 97.72, axis = 0))
         second_lower_percentile_dissipation[index] = np.log10(np.nanpercentile(dissipation_statistic[index], 100-97.72, axis = 0))
+        
+        skew_dissipation[index] = ss.skew(np.log10(dissipation_statistic[index]),axis=0, nan_policy = "omit")
+        kurtosis_dissipation[index] = ss.kurtosis(np.log10(dissipation_statistic[index]),axis=0, nan_policy = "omit")
                 
         mean_oxygen_sat[index] = np.nanmean(oxygen_sat_statistic[index],axis=0) 
-        std_oxygen_sat[index] = np.nanstd(oxygen_sat_statistic[index],axis=0)
-            
+        median_oxygen_sat[index] = np.nanmedian(oxygen_sat_statistic[index],axis=0)
+        upper_percentile_oxygen_sat[index] = np.nanpercentile(oxygen_sat_statistic[index], first_percentile, axis = 0)
+        lower_percentile_oxygen_sat[index] = np.nanpercentile(oxygen_sat_statistic[index], 100-first_percentile, axis = 0)
+          
     ##################################################################################################################################
     ##################################################################################################################################
     ##################################################################################################################################
@@ -351,100 +388,180 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     ##################################################################################################################################
     ##################################################################################################################################     
         
-        
-       
+          
     f_flux,flux_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
     f_salinity,sal_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
     f_temperature,temp_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
     f_dissipation,dissipation_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
+    f_skew,skew_axarr = plt.subplots(nrows = 1, ncols = 2*number_of_intervals, sharey = True) 
     f_oxygen,oxygen_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
                     
     for index in range(number_of_intervals):
     
         if index == 0:
-            title = "-"+str(np.round(averaging_intervals_borders[0],2))
+            title = "[-"+str(np.round(averaging_intervals_borders[0],2))+"]"
         elif index == number_of_intervals-1:
-            title = str(np.round(averaging_intervals_borders[-1],2))+"-"
+            title = "["+str(np.round(averaging_intervals_borders[-1],2))+"-]"
         else:
-            title = str(np.round(averaging_intervals_borders[index-1],2))+"-"+str(np.round(averaging_intervals_borders[index],2))   
+            title = "["+str(np.round(averaging_intervals_borders[index-1],2))+"-"+str(np.round(averaging_intervals_borders[index],2))+"]"  
             
-        flux_axarr[index].plot(mean_oxygen_flux[index],eps_pressure)
-        flux_axarr[index].fill_betweenx(eps_pressure,mean_oxygen_flux[index]-std_oxygen_flux[index],mean_oxygen_flux[index]+std_oxygen_flux[index], alpha = 0.5)
+        flux_axarr[index].plot(mean_oxygen_flux[index],eps_pressure,"k", label = "mean")
+        #flux_axarr[index].plot(median_oxygen_flux[index],eps_pressure, "--", color = "tab:blue")
+        #flux_axarr[index].fill_betweenx(eps_pressure,mean_oxygen_flux[index]-std_oxygen_flux[index],mean_oxygen_flux[index]+std_oxygen_flux[index], alpha = 0.5)
         flux_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
-        sal_axarr[index].plot(mean_salinity[index],eps_pressure)
-        sal_axarr[index].fill_betweenx(eps_pressure,mean_salinity[index]-std_salinity[index],mean_salinity[index]+std_salinity[index], alpha = 0.5)
+        flux_axarr[index].fill_betweenx(eps_pressure,upper_percentile_oxygen_flux[index],lower_percentile_oxygen_flux[index], alpha = 1, color = "tab:blue", label = "84.13% percentile")
+        flux_axarr[index].fill_betweenx(eps_pressure,upper_percentile_oxygen_flux[index],max_oxygen_flux[index], alpha = 0.4, color = "tab:blue",label = "97.72% percentile")
+        flux_axarr[index].fill_betweenx(eps_pressure,min_oxygen_flux[index],lower_percentile_oxygen_flux[index], alpha = 0.4, color = "tab:blue")
+                        
+        sal_axarr[index].plot(mean_salinity[index],eps_pressure, "k", label = "mean")
+        #sal_axarr[index].fill_betweenx(eps_pressure,mean_salinity[index]-std_salinity[index],mean_salinity[index]+std_salinity[index], alpha = 0.5)
         sal_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
-        temp_axarr[index].plot(mean_temperature[index],eps_pressure)
-        temp_axarr[index].fill_betweenx(eps_pressure,mean_temperature[index]-std_temperature[index],mean_temperature[index]+std_temperature[index], alpha = 0.5)
+        sal_axarr[index].fill_betweenx(eps_pressure,upper_percentile_salinity[index],lower_percentile_salinity[index], alpha = 0.6, label = "84.13% percentile")
+        
+        temp_axarr[index].plot(mean_temperature[index],eps_pressure, "k", label = "mean")
+        #temp_axarr[index].fill_betweenx(eps_pressure,mean_temperature[index]-std_temperature[index],mean_temperature[index]+std_temperature[index], alpha = 0.5)
         temp_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
-        dissipation_axarr[index].plot(mean_dissipation[index],eps_pressure, label = "log of means")
+        temp_axarr[index].fill_betweenx(eps_pressure,upper_percentile_temperature[index],lower_percentile_temperature[index], alpha = 0.6, label = "84.13% percentile")
+        
+        #dissipation_axarr[index].plot(mean_dissipation[index],eps_pressure, label = "log of means")
         #dissipation_axarr[index].fill_betweenx(eps_pressure,mean_dissipation[index]-std_dissipation[index],mean_dissipation[index]+std_dissipation[index], alpha = 0.5)
         dissipation_axarr[index].fill_betweenx(eps_pressure,upper_percentile_dissipation[index],lower_percentile_dissipation[index], alpha = 0.6, label = "84.13% percentile")
         dissipation_axarr[index].fill_betweenx(eps_pressure,second_upper_percentile_dissipation[index],upper_percentile_dissipation[index], alpha = 0.4, color = "tab:blue",label = "97.72% percentile")
         dissipation_axarr[index].fill_betweenx(eps_pressure,second_lower_percentile_dissipation[index],lower_percentile_dissipation[index], alpha = 0.4, color = "tab:blue")
                         
-        dissipation_axarr[index].plot(log_mean_dissipation[index],eps_pressure, label = "mean of logs")
-        dissipation_axarr[index].fill_betweenx(eps_pressure,log_mean_dissipation[index]-log_std_dissipation[index],log_mean_dissipation[index]+log_std_dissipation[index], alpha = 0.4, label = "std")
-        dissipation_axarr[index].legend()
-        
+        dissipation_axarr[index].plot(log_mean_dissipation[index],eps_pressure, "k", label = "mean of logs")
+        #dissipation_axarr[index].fill_betweenx(eps_pressure,log_mean_dissipation[index]-log_std_dissipation[index],log_mean_dissipation[index]+log_std_dissipation[index], alpha = 0.4, label = "std")
         dissipation_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
-        oxygen_axarr[index].plot(mean_oxygen_sat[index],eps_pressure)
-        oxygen_axarr[index].fill_betweenx(eps_pressure,mean_oxygen_sat[index]-std_oxygen_sat[index],mean_oxygen_sat[index]+std_oxygen_sat[index], alpha = 0.5)
-        oxygen_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
         
-        flux_axarr[index].set_xlabel(r"FO [mmol/(m$^2$*d]")
+         
+        skew_axarr[2*index].plot(skew_dissipation[index],eps_pressure, "k-",label = "skew")
+        skew_axarr[2*index].plot(kurtosis_dissipation[index],eps_pressure, "-", color = "tab:green", label = "kurtosis") 
+        skew_axarr[2*index+1].fill_betweenx(eps_pressure,upper_percentile_dissipation[index],lower_percentile_dissipation[index], alpha = 0.6, label = "84.13% percentile")
+        skew_axarr[2*index+1].fill_betweenx(eps_pressure,second_upper_percentile_dissipation[index],upper_percentile_dissipation[index], alpha = 0.4, color = "tab:blue",label = "97.72% percentile")
+        skew_axarr[2*index+1].fill_betweenx(eps_pressure,second_lower_percentile_dissipation[index],lower_percentile_dissipation[index], alpha = 0.4, color = "tab:blue")
+                        
+        skew_axarr[2*index+1].plot(log_mean_dissipation[index],eps_pressure, "k", label = "mean of logs")
+        skew_axarr[2*index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
+        skew_axarr[2*index+1].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
+                
+        oxygen_axarr[index].plot(mean_oxygen_sat[index],eps_pressure,"k", label = "mean")
+        #oxygen_axarr[index].fill_betweenx(eps_pressure,mean_oxygen_sat[index]-std_oxygen_sat[index],mean_oxygen_sat[index]+std_oxygen_sat[index], alpha = 0.5)
+        oxygen_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
+        oxygen_axarr[index].fill_betweenx(eps_pressure,upper_percentile_oxygen_sat[index],lower_percentile_oxygen_sat[index], alpha = 0.6, label = "84.13% percentile")
+                
+        flux_axarr[index].set_xlabel(r"FO [mmol/(m$^2$d]")
         oxygen_axarr[index].set_xlabel(r"O$_2$ saturation [$\%$]") 
         sal_axarr[index].set_xlabel("salinity [SA]") 
         temp_axarr[index].set_xlabel("consv_temperature [C]")
-        dissipation_axarr[index].set_xlabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")    
-    
-    flux_axarr[0].invert_yaxis()    
-    flux_axarr[0].set_xlim((-10,10))
+        dissipation_axarr[index].set_xlabel(r"log10($\epsilon$) [m$^2$ s$^{-3}$]")    
+        skew_axarr[2*index+1].set_xlabel(r"log10($\epsilon$) [m$^2$ s$^{-3}$]")    
+        
+        flux_axarr[index].legend()
+        oxygen_axarr[index].legend()
+        sal_axarr[index].legend()
+        temp_axarr[index].legend()
+        dissipation_axarr[index].legend()
+        skew_axarr[index].legend()
+        skew_axarr[index+1].legend()
+        
+    import matplotlib.ticker as ticker
+    tick_spacing = 10
+        
+    flux_axarr[0].invert_yaxis()   
+    flux_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
+    flux_axarr[0].set_xlim((-6,6))
     flux_axarr[0].set_ylabel("pressure [dbar]")
     f_flux.suptitle("Oxygen flux")
        
     f_salinity.suptitle("Salinity")
     sal_axarr[0].invert_yaxis()
+    sal_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
     sal_axarr[0].set_ylabel("pressure [dbar]")
         
     f_temperature.suptitle("temperature")
     temp_axarr[0].invert_yaxis()
+    temp_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
     temp_axarr[0].set_ylabel("pressure [dbar]")
     
     f_dissipation.suptitle("dissipation")
     #dissipation_axarr[0].set_xlim((-10,-5))
     dissipation_axarr[0].invert_yaxis()
+    dissipation_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
     dissipation_axarr[0].set_ylabel("pressure [dbar]")
     
     f_oxygen.suptitle("Oxygen saturation")
     oxygen_axarr[0].invert_yaxis()
+    oxygen_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
     oxygen_axarr[0].set_ylabel("pressure [dbar]")    
 
+    f_skew.suptitle("Properties of the disspation distribution")
+    skew_axarr[0].invert_yaxis()
+    skew_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
+    skew_axarr[0].set_ylabel("pressure [dbar]")
+    
     f_flux.set_size_inches(18,10.5)
     f_flux.tight_layout() 
-    f_flux.subplots_adjust(top=0.91)
-    f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_oxygen_flux")
+    f_flux.subplots_adjust(top=0.9)
+    f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_oxygen_flux",dpi=300)
     
     f_temperature.set_size_inches(18,10.5)
     f_temperature.tight_layout() 
-    f_temperature.subplots_adjust(top=0.91)
-    f_temperature.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_temperature")
+    f_temperature.subplots_adjust(top=0.9)
+    f_temperature.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_temperature",dpi=300)
     
     f_dissipation.set_size_inches(18,10.5)
     f_dissipation.tight_layout() 
-    f_dissipation.subplots_adjust(top=0.91)
-    f_dissipation.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_dissipation")
+    f_dissipation.subplots_adjust(top=0.9)
+    f_dissipation.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_dissipation",dpi=300)
     
     f_oxygen.set_size_inches(18,10.5)
     f_oxygen.tight_layout() 
-    f_oxygen.subplots_adjust(top=0.91)
-    f_oxygen.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_oxygen")
+    f_oxygen.subplots_adjust(top=0.9)
+    f_oxygen.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_oxygen",dpi=300)
 
     f_salinity.set_size_inches(18,10.5)
     f_salinity.tight_layout() 
-    f_salinity.subplots_adjust(top=0.91)
-    f_salinity.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_salinity")
+    f_salinity.subplots_adjust(top=0.94)
+    f_salinity.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_salinity",dpi=300)
+
+    f_skew.set_size_inches(18,10.5)
+    f_skew.tight_layout() 
+    f_skew.subplots_adjust(top=0.9)
+    f_skew.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_skew_dissipation",dpi=300)
     
+    """    
+    hist_dissip,hist_axarr = plt.subplots(nrows = 1, ncols = 1, sharey = True, sharex = True) 
+    
+    #filtered_list = list(filter(None, dissipation_statistic))
+    #flat_list = [item for sublist in filtered_list for item in sublist]
+    #flattened_array = np.asarray(flat_list).flatten()
+    
+    #print("profile_count",profile_count)
+    print(np.shape(all_dissipation_statistic))
+    hist_axarr.hist(np.log10(all_dissipation_statistic),bins = 40,edgecolor='black', linewidth=1.2, log = False)
+    hist_axarr.axvline(np.nanmean(np.log10(all_dissipation_statistic)), linewidth=2.4, c = "tab:red", label = "mean of logs")
+    hist_axarr.axvline(np.log10(np.nanmean(all_dissipation_statistic)), linewidth=2.4, c = "tab:green", label = "log of means")
+    hist_axarr.axvline(np.nanmedian(np.log10(all_dissipation_statistic)), linewidth=2.4, ls = "-", c = "tab:orange", label = "median of logs")
+    hist_axarr.axvline(np.log10(np.nanmedian(all_dissipation_statistic)), linewidth=2.4, ls = ":", c = "k", label = "log of median")
+    
+    hist_axarr.legend()
+    
+    
+    textstr = "Properties of the raw distribution:\nSkew = "+str(np.round(ss.skew(all_dissipation_statistic,nan_policy = "omit"),3))+"\n"+"Excess Kurtosis = "+str(np.round(ss.kurtosis(all_dissipation_statistic, nan_policy = "omit"),3))+"\n\nProperties of the logarithmic distribution:\nSkew = "+str(np.round(ss.skew(np.log10(all_dissipation_statistic),nan_policy = "omit"),3))+"\n"+"Excess Kurtosis = "+str(np.round(ss.kurtosis(np.log10(all_dissipation_statistic), nan_policy = "omit"),3))       
+    
+    props = dict(boxstyle='square', facecolor = "white")
+    hist_axarr.text(0.3, 0.97, textstr, transform=hist_axarr.transAxes, fontsize=14,
+        verticalalignment='top', bbox=props)
+         
+    hist_axarr.set_xlabel(r"log10($\epsilon$) $[m^2 s^{-3}]$") 
+    hist_axarr.set_ylabel("frequency [#]")
+                
+    hist_dissip.suptitle(cruisename+": dissipation distribution")
+    hist_dissip.set_size_inches(18,10.5)
+    hist_dissip.tight_layout() 
+    hist_dissip.subplots_adjust(top=0.94)
+    hist_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_dissipation_hist",dpi=300)
+    """
     plt.show()
     
     
