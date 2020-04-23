@@ -6,12 +6,26 @@
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
+#matplotlib preferences:
+SMALL_SIZE = 12
+MEDIUM_SIZE = 14
+BIGGER_SIZE = 16
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+plt.rc('savefig', dpi=300)
 import geopy.distance as geo
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import gsw.conversions as gsw
 import pathlib
 import mss_functions as thesis
 import numpy.ma as ma
+import warnings
+#warnings.filterwarnings('ignore')
 
 def colorbar(mappable):
     ax = mappable.axes
@@ -310,7 +324,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         f2.savefig("/home/ole/Thesis/Analysis/mss/pictures/oxygen_fluxes/"+cruisename+"_"+transect_name+"_transects", DPI = 300)
         
 
-        #plt.show()
+        plt.show()
         
         #close the pictures after saving
         plt.close(fig = "all")

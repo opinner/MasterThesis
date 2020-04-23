@@ -19,8 +19,7 @@ plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
-import geopy.distance as geo
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 import gsw.conversions as gsw
 import pathlib
 import mss_functions as thesis
@@ -34,13 +33,18 @@ LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/processed_mss/emb217"]#,"/home/o
 
 #averaging_intervals_borders = [20.55,20.62]
 averaging_intervals_borders = np.linspace(20.48,20.7,44)
-height_above_ground = 10
-maximum_reasonable_flux = 150
+
+flux_through_halocline = True #set to True if the flux trough the Halocline instead of the BBL should be computed 
+height_above_ground = 10 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
+maximum_reasonable_flux = 150 #Fluxes above this value will be discarded
 acceptable_slope = 20 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
+
 flux_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
 second_flux_percentile = 97.72
 dissip_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
 second_dissip_percentile = 97.72
+
+number_of_dissipation_subplots = 2 #Decide if both the mean and the median subplots is shown or only the mean
 
 number_of_intervals = len(averaging_intervals_borders)+1   
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
@@ -62,7 +66,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     oxygen_flux_statistic = [None] * number_of_intervals
 
     bathymetrie_statistic = [None] * number_of_intervals
-    dissipation_statistic = [None] * number_of_intervals
+    median_dissipation_statistic = [None] * number_of_intervals
+    mean_dissipation_statistic = [None] * number_of_intervals
     all_dissipation_statistic = np.asarray([])
     
     #go through all files of specified folder and select only files ending with .mat
@@ -224,8 +229,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         for profile in range(number_of_profiles):
         
             profile_count+=1
-            from_index = np.argmin(abs(eps_pressure-67))        #int(list_of_BBL_range_indices[profile])     
-            to_index = np.argmin(abs(eps_pressure-77))          #int(list_of_bathymetrie_indices[profile])
+            from_index = int(list_of_BBL_range_indices[profile]) 
+            to_index = int(list_of_bathymetrie_indices[profile])
+            
+            if flux_through_halocline == True:
+                from_index =  np.argmin(abs(eps_pressure-67))     
+                to_index = np.argmin(abs(eps_pressure-77))
             
             for index,border in enumerate(averaging_intervals_borders):
                 #print("index",index)
@@ -248,31 +257,36 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 continue
 
                                
-            #check for an outlier profile 
+            #check for an outlier profile, ergo too high dissipation rates compared with the surrounding
             if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+2*spread_of_profile_medians):      
                 #print("\toutlier")
                 outlier_count += 1
                 continue
-           
+          
+                
             #check if the profile was stopped too early by comparing it to the predecessor and succesor. If yes, skipt it
             try:
                 slope = (bathymetrie[profile]-bathymetrie[profile+1])    
-                next_slope = (bathymetrie[profile]-bathymetrie[profile+2])
+                next_slope = (bathymetrie[profile]-bathymetrie[profile-1])
             except IndexError:
-                slope = (bathymetrie[profile]-bathymetrie[profile-1])
-                next_slope = (bathymetrie[profile]-bathymetrie[profile-2])
+                try:
+                    slope = (bathymetrie[profile]-bathymetrie[profile+1])    
+                    next_slope = (bathymetrie[profile]-bathymetrie[profile+2])
+                except IndexError:
+                    slope = (bathymetrie[profile]-bathymetrie[profile-1])
+                    next_slope = (bathymetrie[profile]-bathymetrie[profile-2])
                            
             #only remove a profile if the slope to the next and to the overnext point is too high and the last profile was not removed
-            if abs(slope)>acceptable_slope and abs(next_slope)>acceptable_slope and not was_the_last_profile_removed:
-                was_the_last_profile_removed = True
-                count_of_short_profiles +=1
-                print("removed a short profile")
-                continue
-            else:
-                was_the_last_profile_removed = False
+            if abs(slope)>acceptable_slope and abs(next_slope)>acceptable_slope: 
                 
-
+                #as the short profiles were stopped earlier, their bathymetrie value has to be smaller
+                if slope <= 0 and next_slope <= 0:
+                    count_of_short_profiles +=1
+                    print("removed a short profile")
+                    continue
+                
             #if the water colum portion contains only nan values, save only the bathymetrie then skip it
+            #useful if the interval to average over is deper than the current bathymetrie
             if np.all(np.isnan(oxygen_flux_BB_grid[profile,from_index:to_index])):
                 #if the list is empty
                 if np.any(bathymetrie_statistic[interval_number]) == None:
@@ -326,12 +340,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
   
                 #fill it with a reshaped profile
                 oxygen_flux_statistic[interval_number] = min_max_array
-                dissipation_statistic[interval_number] = [np.nanmean(eps_grid[profile,from_index:to_index])]
-                                
+                median_dissipation_statistic[interval_number] = [np.nanmedian(eps_grid[profile,from_index:to_index])]
+                mean_dissipation_statistic[interval_number] = [np.nanmean(eps_grid[profile,from_index:to_index])]                
             else:
                 #concatenate all further profiles to the ones already in the array
                 oxygen_flux_statistic[interval_number] = np.concatenate((oxygen_flux_statistic[interval_number],min_max_array),axis=0)
-                dissipation_statistic[interval_number].append(np.nanmean(eps_grid[profile,from_index:to_index]))
+                median_dissipation_statistic[interval_number].append(np.nanmedian(eps_grid[profile,from_index:to_index]))
+                mean_dissipation_statistic[interval_number].append(np.nanmean(eps_grid[profile,from_index:to_index]))
 
             #sort the bathymetrie data into the intervals
             if np.any(bathymetrie_statistic[interval_number]) == None:
@@ -369,8 +384,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         f1.tight_layout()
         f1.subplots_adjust(top=0.95)
         f1.suptitle("max oxygen flux "+cruisename+" "+transect_name+" "+str(len(lon_without_outliers))+" profiles")
-             
-        f1.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/max_flux_transects/"+cruisename+"_"+transect_name+"_halocline", DPI = 300)         
+        
+        if flux_through_halocline == True:
+            f1.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/max_flux_transects/"+cruisename+"_"+transect_name+"_halocline", DPI = 300)   
+        else: 
+            f1.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/max_flux_transects/"+cruisename+"_"+transect_name+"_BBL", DPI = 300)        
         #plt.show()      
         plt.close(fig = "all")
         
@@ -378,7 +396,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     ###########################################################################################################################
     
     print("\n\nSorting result:")
-    for index,interval in enumerate(dissipation_statistic):
+    for index,interval in enumerate(mean_dissipation_statistic):
         if index == 0:
             title = "-"+str(np.round(averaging_intervals_borders[0],2))
         elif index == number_of_intervals-1:
@@ -403,15 +421,25 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     second_lower_percentile_min_flux = [None] * number_of_intervals  
         
     bathymetrie_mean = [None] * number_of_intervals
+    bathymetrie_percentile = [None] * number_of_intervals
     
     mean_dissipation = [None] * number_of_intervals
     median_dissipation = [None] * number_of_intervals
-    std_dissipation = [None] * number_of_intervals
+    #std_dissipation = [None] * number_of_intervals
     lower_percentile_dissip = [None] * number_of_intervals
     upper_percentile_dissip = [None] * number_of_intervals
 
     second_lower_percentile_dissip = [None] * number_of_intervals
     second_upper_percentile_dissip = [None] * number_of_intervals
+
+    mean_dissipation_med = [None] * number_of_intervals
+    median_dissipation_med = [None] * number_of_intervals
+    #std_dissipation_med = [None] * number_of_intervals
+    lower_percentile_dissip_med = [None] * number_of_intervals
+    upper_percentile_dissip_med = [None] * number_of_intervals
+
+    second_lower_percentile_dissip_med = [None] * number_of_intervals
+    second_upper_percentile_dissip_med = [None] * number_of_intervals
 
     for index in range(number_of_intervals):
         #print(np.shape(bathymetrie_statistic[index]))
@@ -442,14 +470,24 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     
             #bathymetrie_mean[index] = np.nanmean(bathymetrie_statistic[index])
             
-            mean_dissipation[index] = np.nanmean(np.log10(dissipation_statistic[index]),axis=0)
-            median_dissipation[index] = np.nanmedian(np.log10(dissipation_statistic[index]),axis=0)
-            std_dissipation[index] = np.nanstd(np.log10(dissipation_statistic[index]),axis=0) 
-            upper_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), dissip_percentile)
-            lower_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), 100-dissip_percentile)
+            mean_dissipation[index] = np.nanmean(np.log10(mean_dissipation_statistic[index]),axis=0)
+            median_dissipation[index] = np.nanmedian(np.log10(mean_dissipation_statistic[index]),axis=0)
+            #std_dissipation[index] = np.nanstd(np.log10(mean_dissipation_statistic[index]),axis=0) 
+            upper_percentile_dissip[index] = np.nanpercentile(np.log10(mean_dissipation_statistic[index]), dissip_percentile)
+            lower_percentile_dissip[index] = np.nanpercentile(np.log10(mean_dissipation_statistic[index]), 100-dissip_percentile)
             
-            second_upper_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), second_dissip_percentile)
-            second_lower_percentile_dissip[index] = np.nanpercentile(np.log10(dissipation_statistic[index]), 100-second_dissip_percentile)
+            second_upper_percentile_dissip[index] = np.nanpercentile(np.log10(mean_dissipation_statistic[index]), second_dissip_percentile)
+            second_lower_percentile_dissip[index] = np.nanpercentile(np.log10(mean_dissipation_statistic[index]), 100-second_dissip_percentile)
+            
+            mean_dissipation_med[index] = np.nanmean(np.log10(median_dissipation_statistic[index]),axis=0)
+            median_dissipation_med[index] = np.nanmedian(np.log10(median_dissipation_statistic[index]),axis=0)
+            #std_dissipation_med[index] = np.nanstd(np.log10(mean_dissipation_statistic[index]),axis=0) 
+            upper_percentile_dissip_med[index] = np.nanpercentile(np.log10(median_dissipation_statistic[index]), dissip_percentile)
+            lower_percentile_dissip_med[index] = np.nanpercentile(np.log10(median_dissipation_statistic[index]), 100-dissip_percentile)
+            
+            second_upper_percentile_dissip_med[index] = np.nanpercentile(np.log10(median_dissipation_statistic[index]), second_dissip_percentile)
+            second_lower_percentile_dissip_med[index] = np.nanpercentile(np.log10(median_dissipation_statistic[index]), 100-second_dissip_percentile)
+            
         except (TypeError,AttributeError):
             mean_max_flux[index] = np.nan
             median_max_flux[index] = np.nan
@@ -470,18 +508,24 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
             mean_dissipation[index] = np.nan
             median_dissipation[index] = np.nan
-            std_dissipation[index] = np.nan
             upper_percentile_dissip[index] = np.nan
             lower_percentile_dissip[index] = np.nan
             
             second_upper_percentile_dissip[index] = np.nan
             second_lower_percentile_dissip[index] = np.nan
+            
+            mean_dissipation_med[index] = np.nan
+            median_dissipation_med[index] = np.nan
+            upper_percentile_dissip_med[index] = np.nan
+            lower_percentile_dissip_med[index] = np.nan
+            second_upper_percentile_dissip_med[index] = np.nan
+            second_lower_percentile_dissip_med[index] = np.nan
                        
     mean_max_flux = np.asarray(mean_max_flux)
     median_max_flux = np.asarray(median_max_flux)  
     
     mean_dissipation = np.asarray(mean_dissipation)
-    std_dissipation = np.asarray(std_dissipation)
+    #std_dissipation = np.asarray(std_dissipation)
     ##################################################################################################################################
     ##################################################################################################################################
     ##################################################################################################################################
@@ -537,61 +581,134 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     #flux_axarr.set_ylim((-55,55))
     flux_axarr.set_xlabel("longitude [degree]")    
     flux_axarr.set_ylabel(r"oxygen flux [mmol/(m$^2$*d]")
-    #f_flux.suptitle(cruisename+": maximum up- and downwards BB oxygen flux in the lowermost "+str(height_above_ground)+" meters above ground")
-    f_flux.suptitle(cruisename+": maximum up- and downwards BB oxygen flux around the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
-    
+
     f_flux.set_size_inches(18,10.5)
     f_flux.tight_layout() 
     f_flux.subplots_adjust(top=0.95)
-    #f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_max_oxygen_flux")
-    f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_halocline_flux")
+    
+    if flux_through_halocline == True:
+        f_flux.suptitle(cruisename+": maximum up- and downwards BB oxygen flux around the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
+        f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_halocline_flux")
+    else:
+        f_flux.suptitle(cruisename+": maximum up- and downwards BB oxygen flux in the lowermost "+str(height_above_ground)+" meters above ground")
+        f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_max_oxygen_flux_"+str(height_above_ground)+"dbar")
+    
+    
         
     ###############################################################################################################
     
-    f_dissip,dissip_axarr = plt.subplots(nrows = 1, ncols = 1, sharey = True, sharex = True) 
-     #define dissip_axarr as the foreground
-    dissip_axarr.set_zorder(10)
-    dissip_axarr.patch.set_visible(False)
-    
-    bathymetrie_axes2 = dissip_axarr.twinx()
-    bathymetrie_axes2.set_ylim((np.nanmin(bathymetrie_mean)-5,np.nanmax(bathymetrie_mean)))
-    bathymetrie_axes2.invert_yaxis()
-    bathymetrie_axes2.set_ylabel("pressure [dbar]")
+    if number_of_dissipation_subplots ==1 :
+        f_dissip,dissip_axarr = plt.subplots(nrows = 1, ncols = 1, sharey = True, sharex = True) 
+         #define dissip_axarr as the foreground
+        dissip_axarr.set_zorder(10)
+        dissip_axarr.patch.set_visible(False)
         
-    bathymetrie_axes2.fill_between(plot_longitude,bathymetrie_mean, np.ones(len(bathymetrie_mean))*max(bathymetrie_mean),color = "lightgrey", zorder = 1, label = "bathymetrie")
-    
-    dissip_axarr.plot(plot_longitude,mean_dissipation, "k", label ="mean dissipation")
-    dissip_axarr.plot(plot_longitude,median_dissipation, "k--", label ="median dissipation")
-    #dissip_axarr.fill_between(plot_longitude,mean_dissipation-std_dissipation,mean_dissipation+std_dissipation, alpha = 0.5)
-    dissip_axarr.fill_between(plot_longitude,upper_percentile_dissip,lower_percentile_dissip, color = "tab:blue", alpha = 0.7)  
-    dissip_axarr.fill_between(plot_longitude,upper_percentile_dissip,second_upper_percentile_dissip, color = "tab:blue", alpha = 0.4) 
-    dissip_axarr.fill_between(plot_longitude,lower_percentile_dissip,second_lower_percentile_dissip, color = "tab:blue", alpha = 0.4) 
-                
-    dissip_axarr.set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
-    dissip_axarr.set_xlabel("longitude [degree]")             
-    bathymetrie_label =  mpatches.Patch(color='lightgrey', label='bathymetrie')
-    dissip_mean_label = mlines.Line2D([], [], color= "k", label='mean dissipation $\epsilon$') #tab:blue
-    dissip_median_label = mlines.Line2D([], [], color = "k", ls = "--", label='median dissipation $\epsilon$')
-    dissip_percent_label =  mpatches.Patch(color='tab:blue', label=str(dissip_percentile)+"% percentile")
-    dissip_second_percent_label =  mpatches.Patch(color='tab:blue', alpha = 0.4, label=str(second_dissip_percentile)+"% percentile")           
-    dissip_axarr.legend(handles=[dissip_mean_label,dissip_median_label,dissip_percent_label,dissip_second_percent_label,bathymetrie_label])
-    
-    #f_dissip.suptitle(cruisename+": mean dissipation in the lowermost "+str(height_above_ground)+" meters above ground")
-    f_dissip.suptitle(cruisename+": mean dissipation around the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
+        bathymetrie_axes2 = dissip_axarr.twinx()
+        bathymetrie_axes2.set_ylim((np.nanmin(bathymetrie_mean)-5,np.nanmax(bathymetrie_mean)))
+        bathymetrie_axes2.invert_yaxis()
+        bathymetrie_axes2.set_ylabel("pressure [dbar]")
+            
+        bathymetrie_axes2.fill_between(plot_longitude,bathymetrie_mean, np.ones(len(bathymetrie_mean))*max(bathymetrie_mean),color = "lightgrey", zorder = 1, label = "bathymetrie")
+        
+        dissip_axarr.plot(plot_longitude,mean_dissipation, "k", label ="mean dissipation")
+        dissip_axarr.plot(plot_longitude,median_dissipation, "k--", label ="median dissipation")
+        #dissip_axarr.fill_between(plot_longitude,mean_dissipation-std_dissipation,mean_dissipation+std_dissipation, alpha = 0.5)
+        dissip_axarr.fill_between(plot_longitude,upper_percentile_dissip,lower_percentile_dissip, color = "tab:blue", alpha = 0.7)  
+        dissip_axarr.fill_between(plot_longitude,upper_percentile_dissip,second_upper_percentile_dissip, color = "tab:blue", alpha = 0.4) 
+        dissip_axarr.fill_between(plot_longitude,lower_percentile_dissip,second_lower_percentile_dissip, color = "tab:blue", alpha = 0.4) 
+                    
+        dissip_axarr.set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
+        dissip_axarr.set_xlabel("longitude [degree]")             
+        bathymetrie_label =  mpatches.Patch(color='lightgrey', label='bathymetrie')
+        dissip_mean_label = mlines.Line2D([], [], color= "k", label='mean dissipation $\epsilon$') #tab:blue
+        dissip_median_label = mlines.Line2D([], [], color = "k", ls = "--", label='median dissipation $\epsilon$')
+        dissip_percent_label =  mpatches.Patch(color='tab:blue', label=str(dissip_percentile)+"% percentile")
+        dissip_second_percent_label =  mpatches.Patch(color='tab:blue', alpha = 0.4, label=str(second_dissip_percentile)+"% percentile")           
+        dissip_axarr.legend(handles=[dissip_mean_label,dissip_median_label,dissip_percent_label,dissip_second_percent_label,bathymetrie_label])
+        
+        #f_dissip.suptitle(cruisename+": mean dissipation in the lowermost "+str(height_above_ground)+" meters above ground")
+        f_dissip.suptitle(cruisename+": mean dissipation around the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
 
-    f_dissip.set_size_inches(18,10.5)
-    f_dissip.tight_layout() 
-    f_dissip.subplots_adjust(top=0.95)
-    #f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_mean_dissipation")
-    f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_halocline_mean_dissipation")
+        f_dissip.set_size_inches(18,10.5)
+        f_dissip.tight_layout() 
+        f_dissip.subplots_adjust(top=0.95)
+        #f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_mean_dissipation")
+        f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_halocline_mean_dissipation", dpi = 300)
+    
+    elif number_of_dissipation_subplots == 2:
+        f_dissip,dissip_axarr = plt.subplots(nrows = 2, ncols = 1, sharey = True, sharex = True) 
+        #define dissip_axarr as the foreground
+        for i in range(2):
+            dissip_axarr[i].set_zorder(10)
+            dissip_axarr[i].patch.set_visible(False)
+        
+        bathymetrie_axes1 = dissip_axarr[0].twinx()
+        bathymetrie_axes1.set_ylim((np.nanmin(bathymetrie_mean)-5,np.nanmax(bathymetrie_mean)))
+        bathymetrie_axes1.invert_yaxis()
+        bathymetrie_axes1.set_ylabel("pressure [dbar]")
+            
+        bathymetrie_axes1.fill_between(plot_longitude,bathymetrie_mean, np.ones(len(bathymetrie_mean))*max(bathymetrie_mean),color = "lightgrey", zorder = 1, label = "bathymetrie")
+        
+        bathymetrie_axes2 = dissip_axarr[1].twinx()
+        bathymetrie_axes2.set_ylim((np.nanmin(bathymetrie_mean)-5,np.nanmax(bathymetrie_mean)))
+        bathymetrie_axes2.invert_yaxis()
+        bathymetrie_axes2.set_ylabel("pressure [dbar]")
+            
+        bathymetrie_axes2.fill_between(plot_longitude,bathymetrie_mean, np.ones(len(bathymetrie_mean))*max(bathymetrie_mean),color = "lightgrey", zorder = 1, label = "bathymetrie")
+        
+        
+        dissip_axarr[0].plot(plot_longitude,mean_dissipation, "k", label ="mean dissipation")
+        dissip_axarr[0].plot(plot_longitude,median_dissipation, "k--", label ="median dissipation")
+        #dissip_axarr[0].fill_between(plot_longitude,mean_dissipation-std_dissipation,mean_dissipation+std_dissipation, alpha = 0.5)
+        dissip_axarr[0].fill_between(plot_longitude,upper_percentile_dissip,lower_percentile_dissip, color = "tab:blue", alpha = 0.7)  
+        dissip_axarr[0].fill_between(plot_longitude,upper_percentile_dissip,second_upper_percentile_dissip, color = "tab:blue", alpha = 0.4) 
+        dissip_axarr[0].fill_between(plot_longitude,lower_percentile_dissip,second_lower_percentile_dissip, color = "tab:blue", alpha = 0.4) 
+                    
+        dissip_axarr[0].set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
+        dissip_axarr[0].set_xlabel("longitude [degree]")    
+        
+        dissip_axarr[1].plot(plot_longitude,mean_dissipation_med, "k", label ="mean dissipation")
+        dissip_axarr[1].plot(plot_longitude,median_dissipation_med, "k--", label ="median dissipation")
+        #dissip_axarr[1].fill_between(plot_longitude,mean_dissipation-std_dissipation,mean_dissipation+std_dissipation, alpha = 0.5)
+        dissip_axarr[1].fill_between(plot_longitude,upper_percentile_dissip_med,lower_percentile_dissip_med, color = "tab:blue", alpha = 0.7)  
+        dissip_axarr[1].fill_between(plot_longitude,upper_percentile_dissip_med,second_upper_percentile_dissip_med, color = "tab:blue", alpha = 0.4) 
+        dissip_axarr[1].fill_between(plot_longitude,lower_percentile_dissip_med,second_lower_percentile_dissip_med, color = "tab:blue", alpha = 0.4) 
+                    
+        dissip_axarr[1].set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
+        dissip_axarr[1].set_xlabel("longitude [degree]")    
+                 
+        bathymetrie_label =  mpatches.Patch(color='lightgrey', label='bathymetrie')
+        dissip_mean_label = mlines.Line2D([], [], color= "k", label='mean dissipation $\epsilon$') #tab:blue
+        dissip_median_label = mlines.Line2D([], [], color = "k", ls = "--", label='median dissipation $\epsilon$')
+        dissip_percent_label =  mpatches.Patch(color='tab:blue', label=str(dissip_percentile)+"% percentile")
+        dissip_second_percent_label =  mpatches.Patch(color='tab:blue', alpha = 0.4, label=str(second_dissip_percentile)+"% percentile")           
+        dissip_axarr[0].legend(handles=[dissip_mean_label,dissip_median_label,dissip_percent_label,dissip_second_percent_label,bathymetrie_label])
+        dissip_axarr[1].legend(handles=[dissip_mean_label,dissip_median_label,dissip_percent_label,dissip_second_percent_label,bathymetrie_label])
+       
+        
+        f_dissip.set_size_inches(18,10.5)
+        f_dissip.tight_layout() 
+        f_dissip.subplots_adjust(top=0.92,bottom=0.064,left=0.047,right=0.953,hspace=0.19,wspace=0.2)
+        
+        if flux_through_halocline == True:
+            dissip_axarr[0].set_title("mean over each halocline")
+            dissip_axarr[1].set_title("median over each halocline")
+            f_dissip.suptitle(cruisename+": mean dissipation around the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
+            f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_halocline_dissipation_2_averaging_types", dpi = 300)
+        else:
+            dissip_axarr[0].set_title("mean over the last "+str(height_above_ground)+" dbar")
+            dissip_axarr[1].set_title("median over the last "+str(height_above_ground)+" dbar")
+            f_dissip.suptitle(cruisename+": mean dissipation in the lowermost "+str(height_above_ground)+" meters above ground")
+            f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_BBL_dissipation_2_averaging_types", dpi = 300)
+    
     
     
     """
     hist_dissip,hist_axarr = plt.subplots(nrows = 1, ncols = 1, sharey = True, sharex = True) 
     
-    filtered_list = list(filter(None, dissipation_statistic))
-    flat_list = [item for sublist in filtered_list for item in sublist]
-    flattened_array = np.asarray(flat_list).flatten()
+    #filtered_list = list(filter(None, dissipation_statistic))
+    #flat_list = [item for sublist in filtered_list for item in sublist]
+    #flattened_array = np.asarray(flat_list).flatten()
     
     print("profile_count",profile_count)
     print(np.shape(all_dissipation_statistic))

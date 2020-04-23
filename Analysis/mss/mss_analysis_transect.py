@@ -141,7 +141,7 @@ def experimental_BBL(number_of_profiles,interp_pressure,density_grid,oxygen_grid
             
 
 
-datafile_path = "/home/ole/share-windows/emb217_mss_data/TR1-4.mat"
+#datafile_path = "/home/ole/share-windows/emb217_mss_data/TR1-4.mat"
 datafile_path = "/home/ole/share-windows/emb217_mss_data/TR1-4.mat"
 
 splitted_filename = datafile_path.split("/")

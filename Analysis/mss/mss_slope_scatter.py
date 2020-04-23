@@ -19,8 +19,9 @@ plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+plt.rc('savefig', dpi=300)
+
 import geopy.distance as geo
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import gsw.conversions as gsw
 import pathlib
 import mss_functions as thesis
@@ -34,7 +35,7 @@ LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/processed_mss/emb217"]#,"/home/o
 
 height_above_ground = 10
 maximum_reasonable_flux = 150
-acceptable_slope = 20 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
+acceptable_slope = 5 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
 flux_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
 second_flux_percentile = 97.72
 dissip_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
@@ -74,6 +75,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     oxygen_flux_statistic = [None] * number_of_transects
 
     slope_statistic = [None] * number_of_transects
+    bathymetrie_statistic = [None] * number_of_transects
     dissipation_statistic = [None] * number_of_transects
     lon_statistic = [None] * number_of_transects
     list_of_transect_names = [None] * number_of_transects
@@ -223,19 +225,25 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 
         for profile in range(number_of_profiles):
             #check if the profile was stopped too early by comparing it to the predecessor and succesor. If yes, skipt it
+
             try:
                 slope = (bathymetrie[profile]-bathymetrie[profile+1])    
-                next_slope = (bathymetrie[profile]-bathymetrie[profile+2])
+                next_slope = (bathymetrie[profile]-bathymetrie[profile-1])
             except IndexError:
-                slope = (bathymetrie[profile]-bathymetrie[profile-1])
-                next_slope = (bathymetrie[profile]-bathymetrie[profile-2])
+                try:
+                    slope = (bathymetrie[profile]-bathymetrie[profile+1])    
+                    next_slope = (bathymetrie[profile]-bathymetrie[profile+2])
+                except IndexError:
+                    slope = (bathymetrie[profile]-bathymetrie[profile-1])
+                    next_slope = (bathymetrie[profile]-bathymetrie[profile-2])
                            
             #only remove a profile if the slope to the next and to the overnext point is too high and the last profile was not removed
-            if abs(slope)>acceptable_slope and abs(next_slope)>acceptable_slope and not was_the_last_profile_removed:
-                was_the_last_profile_removed = True
-                count_of_short_profiles +=1
-                print("removed a short profile")
-                list_of_short_profiles.append(profile)
+            if abs(slope)>acceptable_slope and abs(next_slope)>acceptable_slope: 
+                
+                #as the short profiles were stopped earlier, their bathymetrie value has to be smaller
+                if slope <= 0 and next_slope <= 0:
+                    count_of_short_profiles +=1
+                    list_of_short_profiles.append(profile)
                 
             else:
                 was_the_last_profile_removed = False
@@ -262,6 +270,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
             #if the current profile is too short, skip it
             if profile in list_of_short_profiles:
+                print(str(lon[profile])+": short profile")
                 continue
             
             index_profile_before = profile-1
@@ -369,19 +378,20 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
   
                 #fill it with a reshaped profile
                 oxygen_flux_statistic[transect_index] = min_max_array
-                dissipation_statistic[transect_index] = [np.nanmedian(eps_grid[profile,from_index:to_index])]
+                dissipation_statistic[transect_index] = [np.nanmean(eps_grid[profile,from_index:to_index])]
                 #dissipation_statistic[transect_index] = [eps_grid[profile,from_index:to_index]]
                 slope_statistic[transect_index] = [slope] 
                 lon_statistic[transect_index] = [lon[profile]] 
+                bathymetrie_statistic[transect_index] = [bathymetrie[profile]]
                                                  
             else:
                 #concatenate all further profiles to the ones already in the array
                 oxygen_flux_statistic[transect_index] = np.concatenate((oxygen_flux_statistic[transect_index],min_max_array),axis=0)
-                dissipation_statistic[transect_index].append(np.nanmedian(eps_grid[profile,from_index:to_index]))
+                dissipation_statistic[transect_index].append(np.nanmean(eps_grid[profile,from_index:to_index]))
                 #dissipation_statistic[transect_index] = np.concatenate((dissipation_statistic[transect_index],eps_grid[profile,from_index:to_index]),axis=0)
                 slope_statistic[transect_index].append(slope)
                 lon_statistic[transect_index].append(lon[profile])               
-
+                bathymetrie_statistic[transect_index].append(bathymetrie[profile])
                     
 
 
@@ -408,18 +418,31 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #errorbars_up = 
         #error
         #dissip_axarr.errorbar()
-        #dissip_axarr.semilogy(slope_statistic[index],dissipation_statistic[index],".", label = list_of_transect_names[index])
-        dissip_axarr.semilogy(lon_statistic[index],dissipation_statistic[index], label = list_of_transect_names[index])
+        dissip_axarr.semilogy(slope_statistic[index],dissipation_statistic[index],".", label = list_of_transect_names[index])
+        #dissip_axarr.semilogy(lon_statistic[index],dissipation_statistic[index], label = list_of_transect_names[index])
+        #dissip_axarr.plot(lon_statistic[index],np.asarray(bathymetrie_statistic[index]),"k.", label = list_of_transect_names[index])
         #break
-                
+    
+  
+               
     dissip_axarr.set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
     dissip_axarr.set_xlabel("slope [%]")             
     dissip_axarr.legend(loc = "upper left")
+
+    
     #f_dissip.suptitle(cruisename+": mean dissipation in the lowermost "+str(height_above_ground)+" meters above ground")
     #f_dissip.suptitle(cruisename+": mean dissipation around the halocline (67-77dbar) ("+str(number_of_transects)+" intervals)")
-
-    f_dissip.set_size_inches(18,10.5)
-    f_dissip.tight_layout() 
+    
+    f_dissip.suptitle("Length of all valid MSS profiles measured during "+cruisename)
+    #dissip_axarr.invert_yaxis()
+    #dissip_axarr.set_ylabel(r"pressure [dbar]")   
+    #dissip_axarr.set_xlabel("longitude [degree]") 
+    
+    f_dissip.set_size_inches(7.2,7.2/1.61)
+            
+    #f_dissip.set_size_inches(18,10.5)
+    f_dissip.tight_layout()
+    f_dissip.subplots_adjust(top=0.925)
     #f_dissip.subplots_adjust(top=0.95)
     #f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_transects)+"_intervals_mean_dissipation")
     #f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+"slope_dissipation")
