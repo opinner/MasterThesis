@@ -672,7 +672,35 @@ def correct_dissipation(dissipation_1D,Reb_1D, a = 1.3):
     
 
 
+def get_oxygen_flux_osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid):
+    Gamma_Osborn_eps_grid = Osborn(eps_Reynolds_bouyancy_grid)
+    turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
+    #remove negative diffusivity 
+    turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = np.nan
+    oxygen_flux_osborn_grid = - turbulent_diffusivity_Osborn_grid[:,:] * central_differences(eps_oxygen_grid)/central_differences(eps_depth)
+    #convert from m*micromol/(kg*s) to mmol/(m^2*d)
+    oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)        
+    return oxygen_flux_osborn_grid
 
-
+def get_oxygen_flux_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid):        
+    Gamma_BB_eps_grid = BB(eps_Reynolds_bouyancy_grid)
+    turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * eps_grid / (eps_N_squared_grid)
+    #remove negative diffusivity    
+    turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = np.nan
+    oxygen_flux_BB_grid = - turbulent_diffusivity_BB_grid[:,:] * central_differences(eps_oxygen_grid)/central_differences(eps_depth)
+    #convert from m*micromol/(kg*s) to mmol/(m^2*d)
+    oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400*(1000/eps_density_grid)
+    return oxygen_flux_BB_grid
+    
+def get_oxygen_flux_skif(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid):         
+    Gamma_Skif_eps_grid = Skif(eps_Reynolds_bouyancy_grid)
+    turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
+    #remove negative diffusivity
+    turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = np.nan
+    oxygen_flux_Skif_grid = - turbulent_diffusivity_Skif_grid[:,:] * central_differences(eps_oxygen_grid)/central_differences(eps_depth)
+    #convert from m*micromol/(kg*s) to mmol/(m^2*d)
+    oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
+    return oxygen_flux_Skif_grid   
+        
 
       

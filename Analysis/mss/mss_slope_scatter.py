@@ -192,11 +192,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #for i in range(number_of_profiles):
         #density_grid[ozmidov_scale_grid,:])))
         
+        """
         Gamma_Osborn_eps_grid = thesis.Osborn(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
         #remove negative diffusivity 
         turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = np.nan
-        oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
+        oxygen_flux_osborn_grid = - turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(kg*s) to mmol/(m^2*d)
         oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)        
         
@@ -204,7 +205,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * eps_grid / (eps_N_squared_grid)
         #remove negative diffusivity    
         turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = np.nan
-        oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
+        oxygen_flux_BB_grid = - turbulent_diffusivity_BB_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(kg*s) to mmol/(m^2*d)
         oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400*(1000/eps_density_grid)
         
@@ -212,11 +213,15 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
         #remove negative diffusivity
         turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = np.nan
-        oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
+        oxygen_flux_Skif_grid = - turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(kg*s) to mmol/(m^2*d)
         oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
+        """
         
-       
+        oxygen_flux_osborn_grid = thesis.get_oxygen_flux_osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
+        oxygen_flux_BB_grid = thesis.get_oxygen_flux_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
+        oxygen_flux_Skif_grid = thesis.get_oxygen_flux_skif(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
+
         
         was_the_last_profile_removed = False
 
@@ -418,25 +423,25 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #errorbars_up = 
         #error
         #dissip_axarr.errorbar()
-        dissip_axarr.semilogy(slope_statistic[index],dissipation_statistic[index],".", label = list_of_transect_names[index])
+        #dissip_axarr.semilogy(slope_statistic[index],dissipation_statistic[index],".", label = list_of_transect_names[index])
         #dissip_axarr.semilogy(lon_statistic[index],dissipation_statistic[index], label = list_of_transect_names[index])
-        #dissip_axarr.plot(lon_statistic[index],np.asarray(bathymetrie_statistic[index]),"k.", label = list_of_transect_names[index])
+        dissip_axarr.plot(lon_statistic[index],np.asarray(bathymetrie_statistic[index]),"k.", label = list_of_transect_names[index])
         #break
     
   
-               
+    """           
     dissip_axarr.set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
     dissip_axarr.set_xlabel("slope [%]")             
     dissip_axarr.legend(loc = "upper left")
-
+    """
     
     #f_dissip.suptitle(cruisename+": mean dissipation in the lowermost "+str(height_above_ground)+" meters above ground")
     #f_dissip.suptitle(cruisename+": mean dissipation around the halocline (67-77dbar) ("+str(number_of_transects)+" intervals)")
     
-    f_dissip.suptitle("Length of all valid MSS profiles measured during "+cruisename)
-    #dissip_axarr.invert_yaxis()
-    #dissip_axarr.set_ylabel(r"pressure [dbar]")   
-    #dissip_axarr.set_xlabel("longitude [degree]") 
+    f_dissip.suptitle("Depth of all valid MSS profiles measured during "+cruisename)
+    dissip_axarr.invert_yaxis()
+    dissip_axarr.set_ylabel(r"pressure [dbar]")   
+    dissip_axarr.set_xlabel(r'Longitude [$^\circ$E]')
     
     f_dissip.set_size_inches(7.2,7.2/1.61)
             

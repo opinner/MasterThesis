@@ -327,7 +327,7 @@ colorbar(img1_3).set_label("log10(dissipation) [??]")
 
 colorbar(img2_0).set_label(r"density [kg/$m^3$]")
 colorbar(img2_1).set_label(r"$N^2$ $[1/s^2]$")
-colorbar(img2_2).set_label(r"log10($\epsilon$) [??]")  
+colorbar(img2_2).set_label(r"log10($\epsilon$) $[m^2 s^{-3}]$")
 colorbar(img2_3).set_label(r"$Re_b$")
 
 colorbar(img3_0)

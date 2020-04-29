@@ -188,7 +188,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #distance_from_ground_grid = eps_depth_grid - np.reshape(bathymetrie_in_m,(-1,1))
         #boundary_check_grid = ~(distance_from_ground_grid < ozmidov_scale_grid)
             
-        
+        """
         Gamma_Osborn_eps_grid = thesis.Osborn(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
         #remove negative diffusivity 
@@ -212,6 +212,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(kg*s) to mmol/(m^2*d)
         oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
+        """
+        
+        oxygen_flux_osborn_grid = thesis.get_oxygen_flux_osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
+        oxygen_flux_BB_grid = thesis.get_oxygen_flux_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
+        oxygen_flux_Skif_grid = thesis.get_oxygen_flux_skif(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
         
         spread_of_profile_medians = np.nanstd(np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
         transect_median = np.nanmean(np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
@@ -463,6 +468,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         skew_axarr[index].legend()
         skew_axarr[index+1].legend()
         
+        #if index ==1:
+        #    np.savez("averaged_oxygen_flux", flux = mean_oxygen_flux[index],eps_pressure = eps_pressure)
+        
+        
     import matplotlib.ticker as ticker
     tick_spacing = 10
         
@@ -520,7 +529,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
     f_salinity.set_size_inches(18,10.5)
     f_salinity.tight_layout() 
-    f_salinity.subplots_adjust(top=0.94)
+    f_salinity.subplots_adjust(top=0.9)
     f_salinity.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_salinity",dpi=300)
 
     f_skew.set_size_inches(18,10.5)

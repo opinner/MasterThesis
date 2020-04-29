@@ -190,11 +190,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #for i in range(number_of_profiles):
         #density_grid[ozmidov_scale_grid,:])))
         
+        """
         Gamma_Osborn_eps_grid = thesis.Osborn(eps_Reynolds_bouyancy_grid)
         turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
         #remove negative diffusivity 
         turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = np.nan
-        oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
+        oxygen_flux_osborn_grid = - turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(kg*s) to mmol/(m^2*d)
         oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)        
         
@@ -202,7 +203,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * eps_grid / (eps_N_squared_grid)
         #remove negative diffusivity    
         turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = np.nan
-        oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
+        oxygen_flux_BB_grid = - turbulent_diffusivity_BB_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(kg*s) to mmol/(m^2*d)
         oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400*(1000/eps_density_grid)
         
@@ -210,10 +211,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
         #remove negative diffusivity
         turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = np.nan
-        oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
+        oxygen_flux_Skif_grid = - turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
         #convert from m*micromol/(kg*s) to mmol/(m^2*d)
         oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
+        """
         
+        oxygen_flux_osborn_grid = thesis.get_oxygen_flux_osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
+        oxygen_flux_BB_grid = thesis.get_oxygen_flux_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
+        oxygen_flux_Skif_grid = thesis.get_oxygen_flux_skif(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
         
         spread_of_profile_medians = np.nanstd(np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
         transect_median = np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = None)
@@ -567,13 +572,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     mean_label = mlines.Line2D([], [], color='k', label='mean')
     median_label = mlines.Line2D([], [], ls = "--", color='k', label='median')
-    down_label = mlines.Line2D([], [], color='tab:blue', label='maximum downwards BB flux')
-    up_label = mlines.Line2D([], [], color='tab:green', label='maximum upwards BB flux')
+    down_label = mlines.Line2D([], [], color='tab:green', label='maximum downwards BB flux')
+    up_label = mlines.Line2D([], [], color='tab:blue', label='maximum upwards BB flux')
     
-    max_flux_label =  mpatches.Patch(color='tab:blue', alpha = 0.6,label='downwards flux '+str(flux_percentile)+"% percentile")
-    min_flux_label =  mpatches.Patch(color='tab:green', alpha = 0.6, label='upwards flux '+str(flux_percentile)+"% percentile")
-    second_max_flux_label =  mpatches.Patch(color='tab:blue', alpha = 0.4,label='downwards flux '+str(second_flux_percentile)+"% percentile")
-    second_min_flux_label =  mpatches.Patch(color='tab:green', alpha = 0.4, label='upwards flux '+str(second_flux_percentile)+"% percentile")
+    max_flux_label =  mpatches.Patch(color='tab:green', alpha = 0.6,label='downwards flux '+str(flux_percentile)+"% percentile")
+    min_flux_label =  mpatches.Patch(color='tab:blue', alpha = 0.6, label='upwards flux '+str(flux_percentile)+"% percentile")
+    second_max_flux_label =  mpatches.Patch(color='tab:green', alpha = 0.4,label='downwards flux '+str(second_flux_percentile)+"% percentile")
+    second_min_flux_label =  mpatches.Patch(color='tab:blue', alpha = 0.4, label='upwards flux '+str(second_flux_percentile)+"% percentile")
        
     bathymetrie_label =  mpatches.Patch(color='lightgrey', label='bathymetrie')
     flux_axarr.legend(handles=[mean_label,median_label,down_label,up_label,max_flux_label, second_max_flux_label, min_flux_label, second_min_flux_label,bathymetrie_label]) #loc=8
