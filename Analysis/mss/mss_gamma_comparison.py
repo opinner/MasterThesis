@@ -110,7 +110,7 @@ oxygen_flux_Skif_grid = - turbulent_diffusivity_Skif_grid[:,:] * thesis.central_
 #convert from m*micromol/(kg*s) to mmol/(m^2*d)
 oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
 
-
+#compare with the imported functions
 oxygen_flux_osborn_grid2 = thesis.get_oxygen_flux_osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
 np.testing.assert_equal(oxygen_flux_osborn_grid,oxygen_flux_osborn_grid2)
 oxygen_flux_BB_grid2 = thesis.get_oxygen_flux_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)

@@ -36,7 +36,7 @@ averaging_intervals_borders = np.linspace(20.48,20.7,44)
 
 flux_through_halocline = True #set to True if the flux trough the Halocline instead of the BBL should be computed 
 height_above_ground = 10 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
-maximum_reasonable_flux = 150 #Fluxes above this value will be discarded
+maximum_reasonable_flux = 200 #Fluxes above this value will be discarded
 acceptable_slope = 20 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
 
 flux_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
@@ -46,8 +46,12 @@ second_dissip_percentile = 97.72
 
 number_of_dissipation_subplots = 2 #Decide if both the mean and the median subplots is shown or only the mean
 
-number_of_intervals = len(averaging_intervals_borders)+1   
+number_of_intervals = len(averaging_intervals_borders)+1  
+ 
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
+    number_of_fluxes_over_the_threshold = 0
+    total_number_of_fluxes = 0
+        
     path = pathlib.Path(FOLDERNAME)
     DATAFILENAMES = []
 
@@ -228,7 +232,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         transect_oxygen_flux_statistic = []
         
-        was_the_last_profile_removed = False
+
         count_of_short_profiles = 0
         
         for profile in range(number_of_profiles):
@@ -305,9 +309,17 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
             max_flux = np.nanmax(oxygen_flux_BB_grid[profile,from_index:to_index])
             
+            
+
+            total_number_of_fluxes += oxygen_flux_BB_grid[profile,from_index:to_index].size
+        
             #if the flux is not reasonable, that means too high, replace it with the highest flux below the threshold
             if max_flux>maximum_reasonable_flux:
                 temp_array = oxygen_flux_BB_grid[profile,from_index:to_index]
+                for flux in temp_array:
+                    if flux > maximum_reasonable_flux:
+                        number_of_fluxes_over_the_threshold+=1  
+                
                 temp_array[temp_array>maximum_reasonable_flux] = np.nan
                 temp_array = temp_array[~np.isnan(temp_array)]
                 max_flux = np.max(temp_array)
@@ -319,6 +331,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             min_flux = np.nanmin(oxygen_flux_BB_grid[profile,from_index:to_index])              
             if min_flux< (-maximum_reasonable_flux):
                 temp_array = oxygen_flux_BB_grid[profile,from_index:to_index]
+                for flux in temp_array:
+                    if min_flux< (-maximum_reasonable_flux):
+                        number_of_fluxes_over_the_threshold+=1  
                 temp_array[temp_array<(-maximum_reasonable_flux)] = np.nan
                 temp_array = temp_array[~np.isnan(temp_array)]
                 min_flux = np.min(temp_array)         
@@ -530,7 +545,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     median_max_flux = np.asarray(median_max_flux)  
     
     mean_dissipation = np.asarray(mean_dissipation)
-    #std_dissipation = np.asarray(std_dissipation)
+    
+    print("number_of_fluxes_over_the_threshold\ttotal_number_of_fluxes\tratio")
+    print(number_of_fluxes_over_the_threshold,total_number_of_fluxes,number_of_fluxes_over_the_threshold/total_number_of_fluxes)
+    
     ##################################################################################################################################
     ##################################################################################################################################
     ##################################################################################################################################
