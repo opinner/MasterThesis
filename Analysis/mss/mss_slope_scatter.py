@@ -222,15 +222,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         oxygen_flux_BB_grid = thesis.get_oxygen_flux_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
         oxygen_flux_Skif_grid = thesis.get_oxygen_flux_skif(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
 
-        
-        was_the_last_profile_removed = False
-
+        """
         list_of_short_profiles = []
         count_of_short_profiles = 0
                 
         for profile in range(number_of_profiles):
-            #check if the profile was stopped too early by comparing it to the predecessor and succesor. If yes, skipt it
-
+            #check if the profile was stopped too early by comparing it to the predecessor and succesor. If yes, skip it
             try:
                 slope = (bathymetrie[profile]-bathymetrie[profile+1])    
                 next_slope = (bathymetrie[profile]-bathymetrie[profile-1])
@@ -249,10 +246,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 if slope <= 0 and next_slope <= 0:
                     count_of_short_profiles +=1
                     list_of_short_profiles.append(profile)
+        """        
                 
-            else:
-                was_the_last_profile_removed = False
-                
+        list_of_short_profiles = thesis.get_list_of_short_profiles(number_of_profiles,bathymetrie,acceptable_slope)
+        count_of_short_profiles = len(list_of_short_profiles)
         
         
         spread_of_profile_medians = np.nanstd(np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
