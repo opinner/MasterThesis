@@ -644,8 +644,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     bathymetrie_axes.invert_yaxis()
     bathymetrie_axes.set_ylabel("pressure [dbar]")
     
-    bathymetrie_axes.plot(bathymetry_longitude_list,bathymetry_list)
-    bathymetrie_axes.fill_between(bathymetry_longitude_list,bathymetry_list, np.ones(len(bathymetry_list))*max(bathymetry_list),color = "lightgrey", zorder = 1, alpha = 0.8)
+    #bathymetrie_axes.plot(bathymetry_longitude_list,bathymetry_list)
+    bathymetrie_axes.fill_between(bathymetry_longitude_list,bathymetry_list, np.ones(len(bathymetry_list))*max(bathymetry_list),color = "lightgrey", zorder = 1, alpha = 0.8, label = "bathymetry")
     
     
     """
@@ -671,6 +671,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     f_flux.tight_layout() 
     f_flux.subplots_adjust(top=0.95)
     
+    f_flux.suptitle(cruisename+": rolling mean BB oxygen flux (over "+str(rolling_window_size)+" points) around the halocline (67-77dbar)") 
+    
     """
     if flux_through_halocline == True:
         f_flux.suptitle(cruisename+": maximum up- and downwards BB oxygen flux around the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
@@ -694,14 +696,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     bathymetrie_axes2.invert_yaxis()
     bathymetrie_axes2.set_ylabel("pressure [dbar]")
     
-    bathymetrie_axes2.plot(bathymetry_longitude_list,bathymetry_list)    
-    bathymetrie_axes2.fill_between(bathymetry_longitude_list,bathymetry_list, np.ones(len(bathymetry_list))*max(bathymetry_list),color = "lightgrey", zorder = 1, alpha = 0.8)
+    #bathymetrie_axes2.plot(bathymetry_longitude_list,bathymetry_list)    
+    bathymetrie_axes2.fill_between(bathymetry_longitude_list,bathymetry_list, np.ones(len(bathymetry_list))*max(bathymetry_list),color = "lightgrey", zorder = 1, alpha = 0.8, label = "bathymetry")
     
-    dissip_axarr.plot(longitude_list,rolling_log_mean_dissipation, "k", label ="log mean dissipation")
-    dissip_axarr.plot(longitude_list,rolling_arith_mean_dissipation, "k--", label ="arithmic mean dissipation")
+    dissip_axarr.plot(longitude_list,rolling_log_mean_dissipation, "k", label ="logarithmic mean")
+    dissip_axarr.plot(longitude_list,rolling_arith_mean_dissipation, "k--", label ="arithmic mean")
 
-    dissip_axarr.fill_between(longitude_list,rolling_upper_percentile_dissip,rolling_lower_percentile_dissip, color = "tab:blue", alpha = 0.7)  
-    dissip_axarr.fill_between(longitude_list,rolling_upper_percentile_dissip,rolling_second_upper_percentile_dissip, color = "tab:blue", alpha = 0.4) 
+    dissip_axarr.fill_between(longitude_list,rolling_upper_percentile_dissip,rolling_lower_percentile_dissip, color = "tab:blue", alpha = 0.7, label=str(dissip_percentile)+"% percentile") 
+    dissip_axarr.fill_between(longitude_list,rolling_upper_percentile_dissip,rolling_second_upper_percentile_dissip, color = "tab:blue", alpha = 0.4, label=str(second_dissip_percentile)+"% percentile")
     dissip_axarr.fill_between(longitude_list,rolling_lower_percentile_dissip,rolling_second_lower_percentile_dissip, color = "tab:blue", alpha = 0.4) 
 
                 
@@ -718,6 +720,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     #f_dissip.suptitle(cruisename+": mean dissipation in the lowermost "+str(height_above_ground)+" meters above ground")
     #f_dissip.suptitle(cruisename+": mean dissipation around the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
 
+    dissip_axarr.legend()
+    f_dissip.suptitle(cruisename+": rolling mean dissipation (over "+str(rolling_window_size)+" points) around the halocline (67-77dbar)") 
     f_dissip.set_size_inches(18,10.5)
     f_dissip.tight_layout() 
     f_dissip.subplots_adjust(top=0.95)

@@ -17,7 +17,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import gsw 
 import pathlib
 import mss_functions as thesis
-
+import warnings
+warnings.filterwarnings('ignore') #ignoring warnings, specially numpy warnings
 
 def colorbar(mappable):
     ax = mappable.axes
@@ -31,6 +32,8 @@ def colorbar(mappable):
 
 #contains the MSS Data
 LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb217_mss_data","/home/ole/share-windows/emb177_mss_data/","/home/ole/share-windows/emb169_mss_data/MSS055/matlab","/home/ole/share-windows/emb169_mss_data/MSS038/matlab/"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb177_mss_data/"]
+#LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb217_mss_data"]
  
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     path = pathlib.Path(FOLDERNAME)
@@ -76,8 +79,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             print(cruisename,DATAFILENAME[:-4],"is skipped!")
             continue
      
-     
-
+        #oxygen saturation should be positive definite
+        #assert(np.all(oxygen_sat_grid>0))
+        #assert(np.all(oxygen_grid>0))        
+        assert(False)
 
         #calculate the viscosity (2 different formula)
         eps_wiki_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_density_grid,"Wikipedia")

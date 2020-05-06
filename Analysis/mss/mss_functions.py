@@ -73,12 +73,20 @@ def load_clean_and_interpolate_data(datafile_path):
     lon = STA_substructure["LON"][0]
 
     pressure = CTD_substructure["P"][0]
-    oxygen_sat = CTD_substructure["O2"][0]
     absolute_salinity = CTD_substructure["SA"][0] #is this unit sufficient
     consv_temperature = CTD_substructure["CT"][0] #TODO better use conservative temperature?
     alpha = CTD_substructure["ALPHA"][0]
     beta = CTD_substructure["BETA"][0]
-
+    
+    if cruisename == "emb217":
+            oxygen_sat = CTD_substructure["O2"][0]
+    elif cruisename == "emb177":
+        pass
+    elif cruisename == "emb169":
+        pass
+    else:
+        raise AssertionError
+        
     eps = MIX_substructure["eps"][0]
     eps_pressure = MIX_substructure["P"][0]
 
@@ -321,12 +329,21 @@ def oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temp
     """
 
     import gsw 
+    assert(not np.any(oxygen_sat_grid<0))
+    
     
     maximum_concentration = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat, lon)
 
 
+    #print(maximum_concentration[maximum_concentration<0])
+    #assert(not np.any(maximum_concentration<0))
+    
+    
     oxygen_concentration = (oxygen_sat_grid / 100 ) * maximum_concentration
-
+    
+    
+    #assert(not np.any(oxygen_sat_grid<0))
+    #assert(np.all(oxygen_concentration>0))
 
     return oxygen_concentration
         
