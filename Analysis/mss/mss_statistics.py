@@ -37,12 +37,15 @@ def colorbar(mappable):
     return fig.colorbar(mappable, cax=cax)
     
     
-LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/share-windows/processed_mss/emb177"]
-
+#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/share-windows/processed_mss/emb177"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177"]
 averaging_intervals_borders = [20.55,20.62]
 #averaging_intervals_borders = np.linspace(20.48,20.7,9)
 number_of_intervals = len(averaging_intervals_borders)+1
 first_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
+
+outlier_factor = 1.5
+#TODO change dependent on the cruise?
 
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     path = pathlib.Path(FOLDERNAME)
@@ -57,6 +60,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     #2 borders = 3 intervals
     print(averaging_intervals_borders)
 
+    density_statistic = [None] * number_of_intervals
     salinity_statistic = [None] * number_of_intervals
     temperature_statistic = [None] * number_of_intervals
     dissipation_statistic = [None] * number_of_intervals
@@ -188,32 +192,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #distance_from_ground_grid = eps_depth_grid - np.reshape(bathymetrie_in_m,(-1,1))
         #boundary_check_grid = ~(distance_from_ground_grid < ozmidov_scale_grid)
             
-        """
-        Gamma_Osborn_eps_grid = thesis.Osborn(eps_Reynolds_bouyancy_grid)
-        turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
-        #remove negative diffusivity 
-        turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = np.nan
-        oxygen_flux_osborn_grid = turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
-        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)        
-        
-        Gamma_BB_eps_grid = thesis.BB(eps_Reynolds_bouyancy_grid)
-        turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * eps_grid / (eps_N_squared_grid)
-        #remove negative diffusivity    
-        turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = np.nan
-        oxygen_flux_BB_grid = turbulent_diffusivity_BB_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
-        oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400*(1000/eps_density_grid)
-        
-        Gamma_Skif_eps_grid = thesis.Skif(eps_Reynolds_bouyancy_grid)
-        turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
-        #remove negative diffusivity
-        turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = np.nan
-        oxygen_flux_Skif_grid = turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
-        oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
-        """
-        
+       
+        #compute the 3 oxygen fluxes with different parametrizations
         oxygen_flux_osborn_grid = thesis.get_oxygen_flux_osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
         oxygen_flux_BB_grid = thesis.get_oxygen_flux_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
         oxygen_flux_Skif_grid = thesis.get_oxygen_flux_skif(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
@@ -244,7 +224,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 continue
                 
             #check for an outlier profile 
-            if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+1.5*spread_of_profile_medians):      
+            if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+outlier_factor*spread_of_profile_medians):      
                 #print("\toutlier")
                 count_outliers += 1
                 continue
@@ -260,7 +240,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 temperature_statistic[interval_number] = np.reshape(eps_consv_temperature_grid[profile,:],(1,-1)) 
                 dissipation_statistic[interval_number] = np.reshape(eps_grid[profile,:],(1,-1)) 
                 oxygen_sat_statistic[interval_number] = np.reshape(eps_oxygen_sat_grid[profile,:],(1,-1)) 
-                    
+                density_statistic[interval_number] = np.reshape(density_grid[profile,:],(1,-1)) 
             else:
                 #concatenate all further profiles to the ones already in the array
                 oxygen_flux_statistic[interval_number] = np.concatenate((oxygen_flux_statistic[interval_number],np.reshape(oxygen_flux_BB_grid[profile,:],(1,-1))),axis=0)
@@ -268,7 +248,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 temperature_statistic[interval_number] = np.concatenate((temperature_statistic[interval_number],np.reshape(eps_consv_temperature_grid[profile,:],(1,-1))),axis=0)
                 dissipation_statistic[interval_number] = np.concatenate((dissipation_statistic[interval_number],np.reshape(eps_grid[profile,:],(1,-1))),axis=0)
                 oxygen_sat_statistic[interval_number] = np.concatenate((oxygen_sat_statistic[interval_number],np.reshape(eps_oxygen_sat_grid[profile,:],(1,-1))),axis=0)
-
+                density_statistic[interval_number] = np.concatenate((density_statistic[interval_number],np.reshape(density_grid[profile,:],(1,-1))),axis=0)
 
         print("removed",count_outliers,"profiles as outliers")
         
@@ -276,15 +256,15 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         ###############################################################################################
         #Plotting of the outlier check pictures
         ###############################################################################################
-        """
+
         cmap_hot = plt.get_cmap('hot_r')
         cmap_hot.set_bad(color = 'lightgrey')
         
         f1, axarr1 = plt.subplots(nrows = 2, ncols = 1, sharex = True)
         axarr1[0].plot(lon,np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
         axarr1[0].axhline(transect_median,)
-        axarr1[0].axhline(transect_median+1.5*spread_of_profile_medians, ls = "--")
-        axarr1[0].axhline(transect_median-1.5*spread_of_profile_medians, ls = "--")
+        axarr1[0].axhline(transect_median+outlier_factor*spread_of_profile_medians, ls = "--")
+        axarr1[0].axhline(transect_median-outlier_factor*spread_of_profile_medians, ls = "--")
         axarr1[0].set_xlabel("longitude")        
         axarr1[0].set_ylabel(r"median(log10($\epsilon$)")  
                
@@ -305,7 +285,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         f1.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/outlier_visual_check/"+cruisename+"_"+transect_name+"_outlier", DPI = 300)         
         #plt.show()      
         plt.close(fig = "all")
-        """
+
         
     ###########################################################################################################################
     
@@ -347,6 +327,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     median_oxygen_sat = [None] * number_of_intervals
     upper_percentile_oxygen_sat = [None] * number_of_intervals
     lower_percentile_oxygen_sat = [None] * number_of_intervals
+    
+    mean_density = [None] * number_of_intervals
+    upper_percentile_density = [None] * number_of_intervals
+    lower_percentile_density = [None] * number_of_intervals
             
     for index in range(number_of_intervals):
         mean_oxygen_flux[index] = np.nanmean(oxygen_flux_statistic[index],axis=0)
@@ -384,7 +368,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         median_oxygen_sat[index] = np.nanmedian(oxygen_sat_statistic[index],axis=0)
         upper_percentile_oxygen_sat[index] = np.nanpercentile(oxygen_sat_statistic[index], first_percentile, axis = 0)
         lower_percentile_oxygen_sat[index] = np.nanpercentile(oxygen_sat_statistic[index], 100-first_percentile, axis = 0)
-          
+
+        mean_density[index] = np.nanmean(density_statistic[index],axis=0) 
+        upper_percentile_density[index] = np.nanpercentile(density_statistic[index], first_percentile, axis = 0)
+        lower_percentile_density[index] = np.nanpercentile(density_statistic[index], 100-first_percentile, axis = 0)
+                  
     ##################################################################################################################################
     ##################################################################################################################################
     ##################################################################################################################################
@@ -393,13 +381,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     ##################################################################################################################################
     ##################################################################################################################################     
         
-          
+    #TODO f_all,all_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True)       
     f_flux,flux_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
     f_salinity,sal_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
     f_temperature,temp_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
     f_dissipation,dissipation_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
     f_skew,skew_axarr = plt.subplots(nrows = 1, ncols = 2*number_of_intervals, sharey = True) 
     f_oxygen,oxygen_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
+    f_density,density_axarr = plt.subplots(nrows = 1, ncols = number_of_intervals, sharey = True, sharex = True) 
                     
     for index in range(number_of_intervals):
     
@@ -452,15 +441,20 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #oxygen_axarr[index].fill_betweenx(eps_pressure,mean_oxygen_sat[index]-std_oxygen_sat[index],mean_oxygen_sat[index]+std_oxygen_sat[index], alpha = 0.5)
         oxygen_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
         oxygen_axarr[index].fill_betweenx(eps_pressure,upper_percentile_oxygen_sat[index],lower_percentile_oxygen_sat[index], alpha = 0.6, label = "84.13% percentile")
-                
+
+        density_axarr[index].plot(mean_density[index],interp_pressure,"k", label = "mean")
+        density_axarr[index].set_title(str(np.shape(density_statistic[index])[0])+" profiles\n"+title)
+        density_axarr[index].fill_betweenx(interp_pressure,upper_percentile_density[index],lower_percentile_density[index], alpha = 0.6, label = "84.13% percentile")
+                        
         flux_axarr[index].set_xlabel(r"FO [mmol/(m$^2$d]")
         oxygen_axarr[index].set_xlabel(r"O$_2$ saturation [$\%$]") 
         sal_axarr[index].set_xlabel("salinity [SA]") 
         temp_axarr[index].set_xlabel("consv_temperature [C]")
         dissipation_axarr[index].set_xlabel(r"log10($\epsilon$) [m$^2$ s$^{-3}$]")    
         skew_axarr[2*index+1].set_xlabel(r"log10($\epsilon$) [m$^2$ s$^{-3}$]")    
+        density_axarr[index].set_xlabel(r"density [kg/m$^3$]")    
         
-        flux_axarr[index].legend()
+        flux_axarr[index].legend(loc = "upper center")
         oxygen_axarr[index].legend()
         sal_axarr[index].legend()
         temp_axarr[index].legend()
@@ -468,8 +462,6 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         skew_axarr[index].legend()
         skew_axarr[index+1].legend()
         
-        #if index ==1:
-        #    np.savez("averaged_oxygen_flux", flux = mean_oxygen_flux[index],eps_pressure = eps_pressure)
         
         
     import matplotlib.ticker as ticker
@@ -477,32 +469,37 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
     flux_axarr[0].invert_yaxis()   
     flux_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
-    flux_axarr[0].set_xlim((-6,6))
+    flux_axarr[0].set_xlim((-10,10))
     flux_axarr[0].set_ylabel("pressure [dbar]")
     f_flux.suptitle("Oxygen flux")
        
-    f_salinity.suptitle("Salinity")
+    f_salinity.suptitle(cruisename+" Salinity")
     sal_axarr[0].invert_yaxis()
     sal_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
     sal_axarr[0].set_ylabel("pressure [dbar]")
         
-    f_temperature.suptitle("temperature")
+    f_temperature.suptitle(cruisename+" temperature")
     temp_axarr[0].invert_yaxis()
     temp_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
     temp_axarr[0].set_ylabel("pressure [dbar]")
     
-    f_dissipation.suptitle("dissipation")
+    f_dissipation.suptitle(cruisename+" dissipation")
     #dissipation_axarr[0].set_xlim((-10,-5))
     dissipation_axarr[0].invert_yaxis()
     dissipation_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
     dissipation_axarr[0].set_ylabel("pressure [dbar]")
     
-    f_oxygen.suptitle("Oxygen saturation")
+    f_oxygen.suptitle(cruisename+" Oxygen saturation")
     oxygen_axarr[0].invert_yaxis()
     oxygen_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
     oxygen_axarr[0].set_ylabel("pressure [dbar]")    
 
-    f_skew.suptitle("Properties of the disspation distribution")
+    f_density.suptitle(cruisename+" density")
+    density_axarr[0].invert_yaxis()
+    density_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
+    density_axarr[0].set_ylabel("pressure [dbar]")    
+    
+    f_skew.suptitle(cruisename+" Properties of the disspation distribution")
     skew_axarr[0].invert_yaxis()
     skew_axarr[0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing)) 
     skew_axarr[0].set_ylabel("pressure [dbar]")
@@ -532,6 +529,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     f_salinity.subplots_adjust(top=0.9)
     f_salinity.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_salinity",dpi=300)
 
+    f_density.set_size_inches(18,10.5)
+    f_density.tight_layout() 
+    f_density.subplots_adjust(top=0.9)
+    f_density.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"intervals_density",dpi=300)
+    
     f_skew.set_size_inches(18,10.5)
     f_skew.tight_layout() 
     f_skew.subplots_adjust(top=0.9)

@@ -29,11 +29,22 @@ import matplotlib.patches as mpatches
 import warnings
 warnings.filterwarnings('ignore')
     
-LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/share-windows/processed_mss/emb177"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
+#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177"]
 
 rolling_window_size = 16
 
 flux_through_halocline = True #set to True if the flux trough the Halocline instead of the BBL should be computed 
+density_interval = False
+
+#only important for a pressure interval 
+upper_bound_halocline_in_db = 57 #67
+lower_bound_halocline_in_db = 72 #77
+
+#only important for a density interval
+upper_bound_halocline_as_density = 1006.24 #67
+lower_bound_halocline_as_density = 1008.90 #77
+
 height_above_ground = 5 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
 maximum_reasonable_flux = 200 #float('Inf') #200 #Fluxes above this value will be discarded
 acceptable_slope = 2 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
@@ -80,6 +91,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     longitude_list = []
     bathymetry_list = []
     bathymetry_longitude_list = []
+    interval_list = []
     
     #go through all files of specified folder and select only files ending with .mat
     for p in path.iterdir():
@@ -208,11 +220,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         transect_oxygen_flux_statistic = []
         
 
-        
+        #compare the prrssure value of the lowest valid data point per profile th the neighbouring profiles to determine outliers
         list_of_short_profiles = thesis.get_list_of_short_profiles(number_of_profiles,bathymetrie,acceptable_slope)
         
-        #hard coded tto accout for one short profile, that my condtions doesn't recognize
-        #if the boolen array contains at least one true
+        #hard coded to accout for one short profile, that my condtions doesn't recognize
+        #if the boolean array contains at least one true
         if np.any(lon == 20.466176666666666):
             list_of_short_profiles.append(np.argmax(lon == 20.466176666666666))
         
@@ -223,14 +235,23 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 print(str(lon[profile])+": short profile")
                 continue
                 
-            from_index = int(list_of_BBL_range_indices[profile]) 
-            to_index = int(list_of_bathymetrie_indices[profile])
+
             
             if flux_through_halocline == True:
-                from_index =  np.argmin(abs(eps_pressure-67))     
-                to_index = np.argmin(abs(eps_pressure-77))
-                  
-
+                if density_interval == True:
+                    print("\n\n",np.shape(eps_density_grid),np.shape(eps_density_grid[profile]),np.nanmin(eps_density_grid[profile]), np.nanmax(eps_density_grid[profile]))
+                    
+                    from_index =  np.nanargmin(abs(np.asarray(eps_density_grid[profile])-upper_bound_halocline_as_density))     
+                    to_index = np.nanargmin(abs(np.asarray(eps_density_grid[profile])-lower_bound_halocline_as_density))
+                     
+                    print(from_index,to_index,"\n\n")
+                                    
+                else: #use pressure intervall
+                    from_index =  np.argmin(abs(eps_pressure-upper_bound_halocline_in_db))     
+                    to_index = np.argmin(abs(eps_pressure-lower_bound_halocline_in_db))
+            else:     
+                from_index = int(list_of_BBL_range_indices[profile]) 
+                to_index = int(list_of_bathymetrie_indices[profile])
             #if the profile contains only nan values, profile is skipped
             if np.all(np.isnan(oxygen_flux_BB_grid[profile,:])): #from_index:to_index
                 print("NaN profile")
@@ -243,29 +264,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 outlier_count += 1
                 continue
           
-            """    
-            #check if the profile was stopped too early by comparing it to the predecessor and succesor. If yes, skip it
-            try:
-                slope = (bathymetrie[profile]-bathymetrie[profile+1])    
-                next_slope = (bathymetrie[profile]-bathymetrie[profile-1])
-            except IndexError:
-                try:
-                    slope = (bathymetrie[profile]-bathymetrie[profile+1])    
-                    next_slope = (bathymetrie[profile]-bathymetrie[profile+2])
-                except IndexError:
-                    slope = (bathymetrie[profile]-bathymetrie[profile-1])
-                    next_slope = (bathymetrie[profile]-bathymetrie[profile-2])
-                           
-            #only remove a profile if the slope to the next and to the overnext point is too high and the last profile was not removed
-            if abs(slope)>acceptable_slope and abs(next_slope)>acceptable_slope: 
-                #as the short profiles were stopped earlier, their bathymetrie value has to be smaller
-                if slope <= 0 and next_slope <= 0:
-                    continue
-            """
                 
             #if the water colum portion contains only nan values, save only the bathymetrie then skip it
             #useful if the interval to average over is deeper than the current bathymetrie
-            if np.all(np.isnan(oxygen_flux_BB_grid[profile,from_index:to_index])):
+            if np.all(np.isnan(oxygen_flux_BB_grid[profile,from_index:to_index])) or from_index == to_index:
 
                 #find the correct position in the sorted list
                 for index,value in enumerate(bathymetry_longitude_list):
@@ -280,13 +282,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 if len(bathymetry_longitude_list) == 0:   
                     bathymetry_list.append(bathymetrie[profile])
                     bathymetry_longitude_list.append(lon[profile])
+                    interval_list.append([np.nan,np.nan])
                 else:
                     bathymetry_list.insert(list_position,bathymetrie[profile])
                     bathymetry_longitude_list.insert(list_position,lon[profile])
-   
+                    interval_list.insert(list_position,[np.nan,np.nan])
                 continue
    
-            #print(eps_pressure[from_index],eps_pressure[to_index],from_index,to_index)
 
 
 
@@ -346,10 +348,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             if len(bathymetry_longitude_list) == 0:   
                 bathymetry_list.append(bathymetrie[profile])
                 bathymetry_longitude_list.append(lon[profile])
+                interval_list.append([eps_pressure[from_index],eps_pressure[to_index]])
             else:
                 bathymetry_list.insert(list_position,bathymetrie[profile])
                 bathymetry_longitude_list.insert(list_position,lon[profile])
-            
+                interval_list.insert(list_position,[eps_pressure[from_index],eps_pressure[to_index]])
                                             
             #find the correct position in the sorted list
             for index,value in enumerate(longitude_list):
@@ -422,8 +425,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         """
         
     ###########################################################################################################################
+    assert(len(longitude_list) != 0)
     assert(np.all(longitude_list == sorted(longitude_list)))
     assert(np.all(bathymetry_longitude_list == sorted(bathymetry_longitude_list)))        
+    interval_list = np.asarray(interval_list)
     
     #compute mean and std over the saved intervals
     mean_flux = [None] * total_number_of_valid_profiles
@@ -509,13 +514,15 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     rolling_second_upper_percentile_dissip = [None] * total_number_of_valid_profiles
     rolling_second_lower_percentile_dissip = [None] * total_number_of_valid_profiles
             
-    max_gap_index = np.argmax(np.diff(longitude_list))
-    max_gap = longitude_list[max_gap_index]
+    max_longitude_gap_index = np.argmax(np.diff(longitude_list))
+    max_longitude_gap = longitude_list[max_longitude_gap_index]
     
     #compute rolling average
     for index in range(total_number_of_valid_profiles):
-        if max_gap > 0.02:
-            if ((index+rolling_window_size//2) >= max_gap_index+1) and ((index-rolling_window_size//2)<=max_gap_index+1):
+    
+        #controls that the mean is not computed over too distant points
+        if max_longitude_gap > 0.02:
+            if ((index+rolling_window_size//2) >= max_longitude_gap_index+1) and ((index-rolling_window_size//2)<=max_longitude_gap_index+1):
                 rolling_mean_flux[index] = np.nan
                 rolling_median_flux[index] = np.nan  
                 rolling_upper_percentile_flux[index] = np.nan
@@ -618,35 +625,25 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     flux_axarr.set_zorder(10)
     flux_axarr.patch.set_visible(False)
         
-    """    
-    #append one extra border behind the last border in the mean distance of the borders 
-    plot_longitude = np.append(averaging_intervals_borders,averaging_intervals_borders[-1]+np.mean(np.diff(averaging_intervals_borders)))
-    #shift all plot points by half the border distance  
-    plot_longitude - np.mean(np.diff(averaging_intervals_borders))/2
-    """
     
-    flux_axarr.plot(longitude_list,mean_flux,"rx", alpha = 0.5)                
-    flux_axarr.plot(longitude_list,rolling_mean_flux, lw = 3, zorder = 3, c = "k", label = "rolling mean")#"tab:blue")
-    flux_axarr.plot(longitude_list,rolling_median_flux,"--",zorder = 3, c = "k")#"tab:blue")
+    flux_axarr.plot(longitude_list,mean_flux,"x", c = "tab:green", alpha = 0.4, label = "mean flux")                
+    flux_axarr.plot(longitude_list,rolling_mean_flux, lw = 3, zorder = 3, c = "k", label = "rolling mean flux")#"tab:blue")
+    #flux_axarr.plot(longitude_list,rolling_median_flux,"--",zorder = 3, c = "k")#"tab:blue")
     
 
     flux_axarr.fill_between(longitude_list,rolling_upper_percentile_flux,rolling_lower_percentile_flux, color = "tab:blue", zorder = 2, alpha = 0.7, label = str(flux_percentile)+"% percentile")
     flux_axarr.fill_between(longitude_list,rolling_upper_percentile_flux,rolling_second_upper_percentile_flux, color = "tab:blue", zorder = 2, alpha = 0.4, label = str(second_flux_percentile)+"% percentile")
     flux_axarr.fill_between(longitude_list,rolling_lower_percentile_flux,rolling_second_lower_percentile_flux, color = "tab:blue", zorder = 2, alpha = 0.4)
     
-    """
-    flux_axarr.plot(plot_longitude,mean_min_flux, color = "k")#"tab:green", zorder = 3)
-    flux_axarr.plot(plot_longitude,median_min_flux,ls = "--",c = "k")#"tab:green")
-    flux_axarr.fill_between(plot_longitude,upper_percentile_min_flux,lower_percentile_min_flux, color = "tab:green", zorder = 2, alpha = 0.6)   
-    flux_axarr.fill_between(plot_longitude,second_lower_percentile_min_flux,lower_percentile_min_flux, color = "tab:green", zorder = 2, alpha = 0.4)  
-    """
+
     bathymetrie_axes.set_ylim((np.nanmin(bathymetry_list)-5,np.nanmax(bathymetry_list)))
     bathymetrie_axes.invert_yaxis()
     bathymetrie_axes.set_ylabel("pressure [dbar]")
     
     #bathymetrie_axes.plot(bathymetry_longitude_list,bathymetry_list)
     bathymetrie_axes.fill_between(bathymetry_longitude_list,bathymetry_list, np.ones(len(bathymetry_list))*max(bathymetry_list),color = "lightgrey", zorder = 1, alpha = 0.8, label = "bathymetry")
-    
+    bathymetrie_axes.plot(bathymetry_longitude_list,interval_list[:,0])
+    bathymetrie_axes.plot(bathymetry_longitude_list,interval_list[:,1])
     
     """
     mean_label = mlines.Line2D([], [], color='k', label='mean')
@@ -658,29 +655,35 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     min_flux_label =  mpatches.Patch(color='tab:blue', alpha = 0.6, label='upwards flux '+str(flux_percentile)+"% percentile")
     second_max_flux_label =  mpatches.Patch(color='tab:green', alpha = 0.4,label='downwards flux '+str(second_flux_percentile)+"% percentile")
     second_min_flux_label =  mpatches.Patch(color='tab:blue', alpha = 0.4, label='upwards flux '+str(second_flux_percentile)+"% percentile")
-       
-    bathymetrie_label =  mpatches.Patch(color='lightgrey', label='bathymetrie')
-    flux_axarr.legend(handles=[mean_label,median_label,down_label,up_label,max_flux_label, second_max_flux_label, min_flux_label, second_min_flux_label,bathymetrie_label]) #loc=8
     """
+       
+    bathymetrie_label =  mpatches.Patch(color='lightgrey', label='bathymetry')
+    flux_axarr.legend(handles=[bathymetrie_label]) #loc=8
+
     flux_axarr.set_ylim((-20,3))
-    flux_axarr.set_xlabel("longitude [degree]")    
+    if cruisename == "emb177":
+        flux_axarr.set_ylim((-40,3))    
+            
+    flux_axarr.set_xlabel(r"longitude [$\circ$]")    
     flux_axarr.set_ylabel(r"oxygen flux [mmol/(m$^2$*d]")
     flux_axarr.legend()
     
     f_flux.set_size_inches(18,10.5)
     f_flux.tight_layout() 
     f_flux.subplots_adjust(top=0.95)
+
     
-    f_flux.suptitle(cruisename+": rolling mean BB oxygen flux (over "+str(rolling_window_size)+" points) around the halocline (67-77dbar)") 
-    
-    """
     if flux_through_halocline == True:
-        f_flux.suptitle(cruisename+": maximum up- and downwards BB oxygen flux around the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
-        f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_halocline_flux")
+        if density_interval == True:
+            f_flux.suptitle(cruisename+": rolling mean BB oxygen flux (over "+str(rolling_window_size)+" points) around the halocline ("+str(upper_bound_halocline_as_density)+"-"+str(lower_bound_halocline_as_density)+r" kg/m$^3$)") 
+            f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_running_mean_halocline_flux")           
+        else:       
+            f_flux.suptitle(cruisename+": rolling mean BB oxygen flux (over "+str(rolling_window_size)+" points) around the halocline ("+str(upper_bound_halocline_in_db)+"-"+str(lower_bound_halocline_in_db)+"dbar)") 
+            f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_running_mean_halocline_flux")
     else:
-        f_flux.suptitle(cruisename+": maximum up- and downwards BB oxygen flux in the lowermost "+str(height_above_ground)+" meters above ground")
-        f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_max_oxygen_flux_"+str(height_above_ground)+"dbar")
-    """
+        f_flux.suptitle(cruisename+": rolling mean BB oxygen flux in the lowermost "+str(height_above_ground)+" meters above ground")
+        f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_running_mean_BBL_flux")
+
     
         
     ###############################################################################################################
@@ -698,9 +701,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     #bathymetrie_axes2.plot(bathymetry_longitude_list,bathymetry_list)    
     bathymetrie_axes2.fill_between(bathymetry_longitude_list,bathymetry_list, np.ones(len(bathymetry_list))*max(bathymetry_list),color = "lightgrey", zorder = 1, alpha = 0.8, label = "bathymetry")
+    bathymetrie_axes2.plot(bathymetry_longitude_list,interval_list[:,0])
+    bathymetrie_axes2.plot(bathymetry_longitude_list,interval_list[:,1])
     
-    dissip_axarr.plot(longitude_list,rolling_log_mean_dissipation, "k", label ="logarithmic mean")
-    dissip_axarr.plot(longitude_list,rolling_arith_mean_dissipation, "k--", label ="arithmic mean")
+    dissip_axarr.plot(longitude_list,log_mean_dissipation,"x", c = "tab:green", alpha = 0.4, label = "mean dissipation")        
+    dissip_axarr.plot(longitude_list,rolling_log_mean_dissipation, "k", label ="rolling logarithmic mean")
+    dissip_axarr.plot(longitude_list,rolling_arith_mean_dissipation, "k--", label ="rolling arithmic mean")
 
     dissip_axarr.fill_between(longitude_list,rolling_upper_percentile_dissip,rolling_lower_percentile_dissip, color = "tab:blue", alpha = 0.7, label=str(dissip_percentile)+"% percentile") 
     dissip_axarr.fill_between(longitude_list,rolling_upper_percentile_dissip,rolling_second_upper_percentile_dissip, color = "tab:blue", alpha = 0.4, label=str(second_dissip_percentile)+"% percentile")
@@ -721,12 +727,20 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     #f_dissip.suptitle(cruisename+": mean dissipation around the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
 
     dissip_axarr.legend()
-    f_dissip.suptitle(cruisename+": rolling mean dissipation (over "+str(rolling_window_size)+" points) around the halocline (67-77dbar)") 
+    
     f_dissip.set_size_inches(18,10.5)
     f_dissip.tight_layout() 
     f_dissip.subplots_adjust(top=0.95)
-    #f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_mean_dissipation")
-    #f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_"+str(number_of_intervals)+"_intervals_halocline_mean_dissipation", dpi = 300)
+    if flux_through_halocline == True:
+        if density_interval == True:
+            titlestring = cruisename+": rolling mean dissipation (over "+str(rolling_window_size)+" points) around the halocline ("+str(upper_bound_halocline_as_density)+"-"+str(lower_bound_halocline_as_density)+r" kg/m$^3$)"          
+        else:          
+            titlestring = cruisename+": rolling mean dissipation (over "+str(rolling_window_size)+" points) around the halocline ("+str(upper_bound_halocline_in_db)+"-"+str(lower_bound_halocline_in_db)+"dbar)"
+        f_dissip.suptitle(titlestring)    
+        f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_running_mean_halocline_dissipation")
+    else:
+        f_dissip.suptitle(cruisename+": rolling mean dissipation in the lowermost "+str(height_above_ground)+" meters above ground")
+        f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_running_mean_BBL_dissipation")
        
     plt.show()
     

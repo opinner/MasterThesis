@@ -76,13 +76,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid = results[1]
             eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid = results[2]
         except TypeError:
-            print(cruisename,DATAFILENAME[:-4],"is skipped!")
+            #print(cruisename,transect_name,"is skipped!")
             continue
-     
-        #oxygen saturation should be positive definite
-        #assert(np.all(oxygen_sat_grid>0))
-        #assert(np.all(oxygen_grid>0))        
-        assert(False)
+ 
 
         #calculate the viscosity (2 different formula)
         eps_wiki_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_density_grid,"Wikipedia")
@@ -127,42 +123,42 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
 
         #choose which profile get exemplarily plotted
-        transect_index = -5
+        profile_index = -5
         
-        print("Profile at Longitude",lon[transect_index])
+        print("Profile at Longitude",lon[profile_index])
         #print(lon)
         #print(np.all(np.diff(lon)>0))
-        img4_0 = axarr4[0].plot(oxygen_grid[transect_index,:],interp_pressure, label = "fine grid")
-        img4_0a = axarr4[0].plot(eps_oxygen_grid[transect_index,:],eps_pressure, label = "eps grid")
-        img4_0b = axarr4[0].plot(0,BBL[transect_index],"Dr")
-        img4_0c = axarr4[0].plot(0,bathymetrie[transect_index],"Dg")
-        img4_0d = axarr4[0].plot(0,BBL_range[transect_index],"ok")
+        img4_0 = axarr4[0].plot(oxygen_sat_grid[profile_index,:],interp_pressure, label = "fine grid")
+        img4_0a = axarr4[0].plot(eps_oxygen_sat_grid[profile_index,:],eps_pressure, label = "eps grid")
+        img4_0b = axarr4[0].plot(0,BBL[profile_index],"Dr")
+        img4_0c = axarr4[0].plot(0,bathymetrie[profile_index],"Dg")
+        img4_0d = axarr4[0].plot(0,BBL_range[profile_index],"ok")
         
         
-        print("Bottom",bathymetrie[transect_index],"BBL",BBL[transect_index],"max BBL",interp_pressure[transect_index],)
+        print("Bottom",bathymetrie[profile_index],"BBL",BBL[profile_index],"max BBL",interp_pressure[profile_index],)
 
 
-        #img4_1 = axarr4[1].plot(salinity_grid[transect_index,:],interp_pressure, label = "fine grid")
-        img4_1 = axarr4[1].plot(density_grid[transect_index,:],interp_pressure, label = "fine grid")
-        img4_1b = axarr4[1].plot(eps_density_grid[transect_index,:],eps_pressure, label = "eps grid")
+        #img4_1 = axarr4[1].plot(salinity_grid[profile_index,:],interp_pressure, label = "fine grid")
+        img4_1 = axarr4[1].plot(density_grid[profile_index,:],interp_pressure, label = "fine grid")
+        img4_1b = axarr4[1].plot(eps_density_grid[profile_index,:],eps_pressure, label = "eps grid")
 
-        img4_2 = axarr4[2].plot(consv_temperature_grid[transect_index,:],interp_pressure, label = "fine grid")
-        img4_2b = axarr4[2].plot(eps_consv_temperature_grid[transect_index,:],eps_pressure, label = "eps grid")
+        img4_2 = axarr4[2].plot(consv_temperature_grid[profile_index,:],interp_pressure, label = "fine grid")
+        img4_2b = axarr4[2].plot(eps_consv_temperature_grid[profile_index,:],eps_pressure, label = "eps grid")
 
-        #img4_3 = axarr4[3].plot(BV_freq_squared_grid_gsw[transect_index,:],mid_point_pressure, label = "fine grid")
-        img4_3b = axarr4[3].plot(eps_N_squared_grid[transect_index,:],eps_pressure, label = "eps grid")
+        #img4_3 = axarr4[3].plot(BV_freq_squared_grid_gsw[profile_index,:],mid_point_pressure, label = "fine grid")
+        img4_3b = axarr4[3].plot(eps_N_squared_grid[profile_index,:],eps_pressure, label = "eps grid")
         #TODO np.ma.m
 
 
-        img4_4 = axarr4[4].plot(eps_viscosity_grid[transect_index,:]*10**6,eps_pressure,label = "Ilker")
-        img4_4b = axarr4[4].plot(eps_wiki_viscosity_grid[transect_index,:]*10**6,eps_pressure,"--",label = "Wikipedia")
+        img4_4 = axarr4[4].plot(eps_viscosity_grid[profile_index,:]*10**6,eps_pressure,label = "Ilker")
+        img4_4b = axarr4[4].plot(eps_wiki_viscosity_grid[profile_index,:]*10**6,eps_pressure,"--",label = "Wikipedia")
         
-        img4_5 = axarr4[5].plot(np.log10(eps_grid[transect_index,:]),eps_pressure, label = "eps grid")
-        img4_5a = axarr4[5].plot(np.log10(corrected_eps_grid[transect_index,:]),eps_pressure, label = "corrected/Ilker")     
-        img4_5b = axarr4[5].plot(np.log10(corrected_eps_wiki_grid[transect_index,:]),eps_pressure,label = "corrected/Wikipedia")
+        img4_5 = axarr4[5].plot(np.log10(eps_grid[profile_index,:]),eps_pressure, label = "eps grid")
+        img4_5a = axarr4[5].plot(np.log10(corrected_eps_grid[profile_index,:]),eps_pressure, label = "corrected/Ilker")     
+        img4_5b = axarr4[5].plot(np.log10(corrected_eps_wiki_grid[profile_index,:]),eps_pressure,label = "corrected/Wikipedia")
         
-        img4_6a = axarr4[6].plot(np.log10(eps_Reynolds_bouyancy_grid[transect_index,:]),eps_pressure,label = "Ilker")
-        img4_6b = axarr4[6].plot(np.log10(eps_wiki_Reynolds_bouyancy_grid[transect_index,:]),eps_pressure,label = "Wikipedia")
+        img4_6a = axarr4[6].plot(np.log10(eps_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "Ilker")
+        img4_6b = axarr4[6].plot(np.log10(eps_wiki_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "Wikipedia")
 
         
         axarr4[0].set_xlabel("oxygen")
@@ -184,13 +180,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         #axarr4[6].set_xlim([,400])
         axarr4[0].set_title("Measurement 02")
-        axarr4[1].set_title("Measurement SA")
+        axarr4[1].set_title(r"Measurement $\rho$") #"Measurement SA")
         axarr4[2].set_title("Measurement CT")
         axarr4[3].set_title("Calculation N^2")
         axarr4[4].set_title("Calculation nu")
         axarr4[5].set_title("Measurement eps")
         axarr4[6].set_title("Calculation Re_b")
-         
+        
+       
          
         #Plot the data  
         #append the last distance plus the last difference (for plotting all the n profiles we need a distance array of size n+1 
@@ -273,11 +270,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         f1.suptitle(cruisename+" "+DATAFILENAME[:-4]+" Measurements")
         f2.suptitle(cruisename+" "+DATAFILENAME[:-4]+" Calculations")
-        
+        f4.suptitle(cruisename+" "+DATAFILENAME[:-4]+" Profile at Longitude "+str(lon[profile_index]))
 
         f1.tight_layout() 
         f2.tight_layout() 
         f4.tight_layout()      
+        
+        f4.subplots_adjust(top=0.92) 
+        
         
         f1.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_Measurements")
         f2.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_calculations")

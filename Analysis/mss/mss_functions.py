@@ -52,8 +52,9 @@ def load_clean_and_interpolate_data(datafile_path):
     cruisename = splitted_path[4][0:6]
     DATAFILENAME = splitted_path[-1]
     
+    transect_name = DATAFILENAME[:-4]
      
-    print(cruisename+"_"+DATAFILENAME[:-4])
+    print(cruisename+"_"+transect_name)
     #print("Filename:",sio.whosmat(FILENAME))
 
     data = sio.loadmat(datafile_path) 
@@ -80,8 +81,30 @@ def load_clean_and_interpolate_data(datafile_path):
     
     if cruisename == "emb217":
             oxygen_sat = CTD_substructure["O2"][0]
+            
     elif cruisename == "emb177":
-        pass
+            try:
+                oxygen_data = sio.loadmat("/home/ole/windows/all_data/emb177/deployments/ship/mss/mss38/TODL/TODL_merged_oxy/" +transect_name+"_TODL_merged_oxy.mat")
+            except OSError:
+                print("##########################################")
+                print(cruisename,transect_name,"is skipped!")
+                print("No oxygen data for this file")
+                print("##########################################")
+                return 0    
+            
+            #the following code block is written by Peter Holtermann and Copy pasted here
+
+            oxygen_sat = []
+            oxygen_pressure = []
+            for icast in range(len(lon)):
+                oxy_p_temp   = oxygen_data['TODL_MSS']['P'][0,:][icast][0,:]
+                #mT  = oxygen_data['TODL_MSS']['mT'][0,:][icast][0,:]
+                #C   = oxygen_data['TODL_MSS']['C'][0,:][icast][0,:]
+                oxy  = oxygen_data['TODL_MSS']['oxy'][0,:][icast][:,4]
+                oxygen_sat.append(oxy)
+                oxygen_pressure.append(oxy_p_temp)
+                
+            
     elif cruisename == "emb169":
         pass
     else:
@@ -251,9 +274,9 @@ def load_clean_and_interpolate_data(datafile_path):
 
 
     #Grid interpolation (loops over all profiles)
-    for i in range(number_of_profiles): 
-        #interpolation to a common fine grid
-        oxygen_sat_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)
+    for i in range(number_of_profiles):      
+             
+        #interpolation to a common fine grid    
         salinity_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
         consv_temperature_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
         alpha_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),alpha[i].flatten(), left = np.nan, right = np.nan)
@@ -268,10 +291,21 @@ def load_clean_and_interpolate_data(datafile_path):
         eps_grid[i] = eps[i].flatten()
 
         #interpolate S and T to the same grid as eps
-        eps_oxygen_sat_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)
         eps_salinity_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
         eps_consv_temperature_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
         
+        #interpolation of the oxygen depends on which source it is
+        if cruisename == "emb217":
+            oxygen_sat_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)
+            eps_oxygen_sat_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)       
+        elif cruisename == "emb177":
+            oxygen_sat_grid[i] = np.interp(interp_pressure,oxygen_pressure[i],oxygen_sat[i],left=np.nan,right=np.nan)
+            eps_oxygen_sat_grid[i] = np.interp(eps_pressure,oxygen_pressure[i],oxygen_sat[i].flatten(), left = np.nan, right = np.nan)  
+
+    
+    assert(np.shape(oxygen_sat_grid) == np.shape(salinity_grid))
+    assert(np.shape(eps_oxygen_sat_grid) == np.shape(eps_salinity_grid))
+            
     #fine density grid
     density_grid = gsw.rho(salinity_grid,consv_temperature_grid,pressure_grid)
 
@@ -329,9 +363,11 @@ def oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temp
     """
 
     import gsw 
-    assert(not np.any(oxygen_sat_grid<0))
-    
-    
+    try:
+        assert not np.any(oxygen_sat_grid<0)
+    except AssertionError:
+        print(oxygen_sat_grid[oxygen_sat_grid<0])
+        #raise AssertionError 
     maximum_concentration = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat, lon)
 
 
