@@ -366,7 +366,8 @@ def oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temp
     try:
         assert not np.any(oxygen_sat_grid<0)
     except AssertionError:
-        print(oxygen_sat_grid[oxygen_sat_grid<0])
+        pass #TODO
+        #print(oxygen_sat_grid[oxygen_sat_grid<0])
         #raise AssertionError 
     maximum_concentration = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat, lon)
 

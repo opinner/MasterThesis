@@ -14,7 +14,7 @@ SMALL_SIZE = 12
 MEDIUM_SIZE = 14
 BIGGER_SIZE = 16
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
 plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
@@ -31,13 +31,24 @@ import warnings
 warnings.filterwarnings('ignore')
     
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]
 
-averaging_intervals_borders = [20.55,20.625]
+averaging_intervals_borders = [20.57,20.625]
 
 flux_through_halocline = True #set to True if the flux trough the Halocline instead of the BBL should be computed 
+density_interval = True #averaging interval is determined by density and not by pressure
+
+#only important for a pressure interval 
+upper_bound_halocline_in_db = 57 #67
+lower_bound_halocline_in_db = 72 #77
+
+#only important for a density interval
+upper_bound_halocline_as_density = 1006.24 #67
+lower_bound_halocline_as_density = 1008.90 #77
+
 height_above_ground = 10 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
-maximum_reasonable_flux = 200 #Fluxes above this value will be discarded
+
+maximum_reasonable_flux = 200 #fluxes with an absolue value above this threshold value will be discarded
 acceptable_slope = 20 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
 
 flux_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
@@ -209,9 +220,24 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             from_index = int(list_of_BBL_range_indices[profile]) 
             to_index = int(list_of_bathymetrie_indices[profile])
             
+            #Determine the averaging intervall
             if flux_through_halocline == True:
-                from_index =  np.argmin(abs(eps_pressure-67))     
-                to_index = np.argmin(abs(eps_pressure-77))
+                if density_interval == True:
+                    print("\n\n",np.shape(eps_density_grid),np.shape(eps_density_grid[profile]),np.nanmin(eps_density_grid[profile]), np.nanmax(eps_density_grid[profile]))
+                    
+                    from_index =  np.nanargmin(abs(np.asarray(eps_density_grid[profile])-upper_bound_halocline_as_density))     
+                    to_index = np.nanargmin(abs(np.asarray(eps_density_grid[profile])-lower_bound_halocline_as_density))
+                     
+                    print(from_index,to_index,"\n\n")
+                                    
+                else: #use pressure intervall
+                    from_index =  np.argmin(abs(eps_pressure-upper_bound_halocline_in_db))     
+                    to_index = np.argmin(abs(eps_pressure-lower_bound_halocline_in_db))
+            
+            #use the indices that are {height_above_ground} meters above the bathymetry
+            else:     
+                from_index = int(list_of_BBL_range_indices[profile]) 
+                to_index = int(list_of_bathymetrie_indices[profile])
             
             for index,border in enumerate(averaging_intervals_borders):
                 #print("index",index)
@@ -345,13 +371,18 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     hist_axarr[0,0].set_ylabel("frequency [#]")
     hist_axarr[1,0].set_ylabel("frequency [#]")
     hist_axarr[2,0].set_ylabel("frequency [#]")
-    hist_axarr[0,0].set_title("Interior, Osborn flux")
-    hist_axarr[0,1].set_title("Slope, Osborn flux")
-    hist_axarr[1,0].set_title("Interior, Shih flux")
-    hist_axarr[1,1].set_title("Slope, Shih flux")
-    hist_axarr[2,0].set_title("Interior, BB flux")
-    hist_axarr[2,1].set_title("Slope, BB flux")
+    hist_axarr[0,0].set_title(f"in the interior (up to {averaging_intervals_borders[0]}$\\,\\degree$, {oxygen_flux_Osborn_statistic[0].size} points)", fontsize = BIGGER_SIZE)#, Osborn flux ({oxygen_flux_Osborn_statistic[0].size} points)")
+    hist_axarr[0,1].set_title(f"at the slope ({averaging_intervals_borders[0]}$\\,\\degree$ - {averaging_intervals_borders[1]}$\\,\\degree$, {oxygen_flux_Osborn_statistic[1].size} points)", fontsize = BIGGER_SIZE)#, Osborn flux ({oxygen_flux_Osborn_statistic[1].size} points)")
+    #hist_axarr[1,0].set_title(f"Interior , Shih flux ({oxygen_flux_Shih_statistic[0].size} points)")
+    #hist_axarr[1,1].set_title(f"Slope, Shih flux ({oxygen_flux_Shih_statistic[1].size} points)")
+    #hist_axarr[2,0].set_title(f"Interior, BB flux ({oxygen_flux_BB_statistic[0].size} points)")
+    #hist_axarr[2,1].set_title(f"Slope, BB flux ({oxygen_flux_BB_statistic[1].size} points)")
     
+    hist_axarr[0,0].text(-0.13,0.5,f"Osborn flux", size=BIGGER_SIZE,verticalalignment='center', rotation=90, transform= hist_axarr[0,0].transAxes)
+    hist_axarr[1,0].text(-0.13,0.5,f"Shih flux", size=BIGGER_SIZE,verticalalignment='center', rotation=90, transform= hist_axarr[1,0].transAxes)
+    hist_axarr[2,0].text(-0.13,0.5,f"Bouffard flux", size=BIGGER_SIZE,verticalalignment='center', rotation=90, transform= hist_axarr[2,0].transAxes)
+
+
     print("interior,osborn",oxygen_flux_Osborn_statistic[0].size)
     print("slope,osborn",oxygen_flux_Osborn_statistic[1].size)
     print("interior,Shih",oxygen_flux_Shih_statistic[0].size)
@@ -359,9 +390,41 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print("interior,BB",oxygen_flux_BB_statistic[0].size)
     print("slope,BB",oxygen_flux_BB_statistic[1].size)
                                             
-    f_hist.suptitle(cruisename+": flux distribution around the halocline (67-77dbar)")
+    f_hist.suptitle(cruisename+": flux distribution around the halocline (67-77dbar)", fontweight = "bold")
     f_hist.set_size_inches(18,10.5)
     f_hist.tight_layout() 
-    f_hist.subplots_adjust(top=0.9)
-
+    f_hist.subplots_adjust(top=0.9,bottom=0.071,left=0.066,right=0.99,hspace=0.078,wspace=0.071)
+    
+    f_hist.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_flux_histogram_params_and_position", dpi = 300)
+    
+    
+    
+    f_demo, demo_axarr =  = plt.subplots()
+    data = np.load("/home/ole/Thesis/Analysis/mss/data/"+cruisename+"_bathymetry")
+    baytmetry_longitude = data["longitude"]
+    bathymetry = data["bathymetry"]bathymetry_list, 
+    interval = data["interval_list"]
+    
+    
     plt.show()
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
