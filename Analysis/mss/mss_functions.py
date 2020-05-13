@@ -94,15 +94,15 @@ def load_clean_and_interpolate_data(datafile_path):
             
             #the following code block is written by Peter Holtermann and Copy pasted here
 
-            oxygen_sat = []
-            oxygen_pressure = []
+            emb177_oxygen = []
+            emb177_oxygen_pressure = []
             for icast in range(len(lon)):
                 oxy_p_temp   = oxygen_data['TODL_MSS']['P'][0,:][icast][0,:]
                 #mT  = oxygen_data['TODL_MSS']['mT'][0,:][icast][0,:]
                 #C   = oxygen_data['TODL_MSS']['C'][0,:][icast][0,:]
                 oxy  = oxygen_data['TODL_MSS']['oxy'][0,:][icast][:,4]
-                oxygen_sat.append(oxy)
-                oxygen_pressure.append(oxy_p_temp)
+                emb177_oxygen.append(oxy)
+                emb177_oxygen_pressure.append(oxy_p_temp)
                 
             
     elif cruisename == "emb169":
@@ -136,7 +136,7 @@ def load_clean_and_interpolate_data(datafile_path):
    
     
     #remove data from a file, with overlapping positional points
-    if (datafile_path == "/home/ole/share-windows/emb217_mss_data/TR1-8.mat"):
+    if cruisename == "emb217" and  transect_name == "TR1-8": 
         lat = np.delete(lat,np.s_[33:47])
         lon = np.delete(lon,np.s_[33:47])
         distance = np.delete(distance,np.s_[33:47])
@@ -236,12 +236,17 @@ def load_clean_and_interpolate_data(datafile_path):
     pressure_grid = np.reshape(interp_pressure,(1,-1))*np.ones((np.shape(pressure)[-1],min_size))
 
     #create grids that changes in distance on x and in depth on y-axis
-    oxygen_sat_grid = np.zeros((np.shape(pressure)[-1],min_size))
-    salinity_grid = np.copy(oxygen_sat_grid)
-    consv_temperature_grid = np.copy(oxygen_sat_grid)
-    alpha_grid = np.copy(consv_temperature_grid)
+
+    salinity_grid = np.zeros((np.shape(pressure)[-1],min_size))
+    consv_temperature_grid = np.copy(salinity_grid)
+    alpha_grid = np.copy(salinity_grid)
     beta_grid = np.copy(salinity_grid)
 
+    if cruisename == "emb217":
+        oxygen_sat_grid =  np.copy(salinity_grid)
+    elif cruisename == "emb177":
+        oxygen_grid =  np.copy(salinity_grid)
+    
     #check if the pressure points for every eps profile are the same
     for i in range(number_of_profiles):  
         assert(np.all(eps_pressure[i].flatten() == eps_pressure[0].flatten()))
@@ -254,8 +259,11 @@ def load_clean_and_interpolate_data(datafile_path):
     #needed for the interpolation of S and T to the same grid as the eps
     eps_salinity_grid = np.ones((np.shape(eps_grid)))
     eps_consv_temperature_grid = np.ones(np.shape(eps_grid))
-    eps_oxygen_sat_grid = np.copy(eps_salinity_grid)
-    
+
+    if cruisename == "emb217":
+        eps_oxygen_sat_grid = np.copy(eps_salinity_grid)
+    elif cruisename == "emb177":
+        eps_oxygen_grid = np.copy(eps_salinity_grid)
 
     #vector times matrix multiplication to get a 2D array, where every column is equal to eps_pressure
     eps_pressure_grid = np.reshape(eps_pressure,(1,-1))*np.ones(np.shape(eps_grid))
@@ -299,13 +307,17 @@ def load_clean_and_interpolate_data(datafile_path):
             oxygen_sat_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)
             eps_oxygen_sat_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)       
         elif cruisename == "emb177":
-            oxygen_sat_grid[i] = np.interp(interp_pressure,oxygen_pressure[i],oxygen_sat[i],left=np.nan,right=np.nan)
-            eps_oxygen_sat_grid[i] = np.interp(eps_pressure,oxygen_pressure[i],oxygen_sat[i].flatten(), left = np.nan, right = np.nan)  
+            oxygen_grid[i] = np.interp(interp_pressure,emb177_oxygen_pressure[i],emb177_oxygen[i],left=np.nan,right=np.nan)
+            eps_oxygen_grid[i] = np.interp(eps_pressure,emb177_oxygen_pressure[i],emb177_oxygen[i].flatten(), left = np.nan, right = np.nan)  
 
-    
-    assert(np.shape(oxygen_sat_grid) == np.shape(salinity_grid))
-    assert(np.shape(eps_oxygen_sat_grid) == np.shape(eps_salinity_grid))
-            
+    if cruisename == "emb217":
+        assert(np.shape(oxygen_sat_grid) == np.shape(salinity_grid))
+        assert(np.shape(eps_oxygen_sat_grid) == np.shape(eps_salinity_grid))
+        
+    if cruisename == "emb177":
+        assert(np.shape(oxygen_grid) == np.shape(salinity_grid))
+        assert(np.shape(eps_oxygen_grid) == np.shape(eps_salinity_grid))
+                    
     #fine density grid
     density_grid = gsw.rho(salinity_grid,consv_temperature_grid,pressure_grid)
 
@@ -316,7 +328,7 @@ def load_clean_and_interpolate_data(datafile_path):
     #density_grid_check = (1 - alpha_grid * (consv_temperature_grid) + beta_grid * (salinity_grid))*rho_0
     #difference = density_grid-density_grid_check
 
-    #calculate N^2 with the gsw toolbox, by using the shifted grid we should get a N^2 grid that is defined at teh same points as eps_grid
+    #calculate N^2 with the gsw toolbox, by using the shifted grid we should get a N^2 grid that is defined at the same points as eps_grid
     eps_N_squared_grid, crosscheck_pressure_grid = gsw.Nsquared(shifted_salinity_grid,shifted_consv_temperature_grid,shifted_pressure_grid, lat = np.mean(lat), axis = 1)
     crosscheck_pressure = np.mean(crosscheck_pressure_grid, axis = 0)
 
@@ -333,10 +345,17 @@ def load_clean_and_interpolate_data(datafile_path):
     #create grids that have the latitude/longitude values for every depth (size: number_of_profiles x len(eps_pressure))
     eps_lat_grid = np.reshape(lat,(-1,1)) * np.ones((number_of_profiles,eps_pressure.size))
     eps_lon_grid = np.reshape(lat,(-1,1)) * np.ones((number_of_profiles,eps_pressure.size))
-      
-    #convert oxygen saturation to oxygen concentration (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
-    oxygen_grid = oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
-    eps_oxygen_grid = oxygen_saturation_to_concentration(eps_oxygen_sat_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)     
+    
+    if cruisename == "emb217":
+        #convert oxygen saturation to oxygen concentration (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
+        oxygen_grid = oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
+        eps_oxygen_grid = oxygen_saturation_to_concentration(eps_oxygen_sat_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)     
+    elif cruisename == "emb177":
+        #convert oxygen concentration to oxygen saturation (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
+        oxygen_sat_grid = oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
+        eps_oxygen_sat_grid = oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)  
+    else:
+        raise AssertionError
         
         
           
@@ -359,16 +378,20 @@ def load_clean_and_interpolate_data(datafile_path):
 
 def oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat, lon):
     """
-    tranforms oxygen saturation in percent to oxygen concentration in micro-moles per kg
+    tranforms oxygen saturation in % to oxygen concentration in micro-moles per kg
     """
 
     import gsw 
+    
+    """
     try:
         assert not np.any(oxygen_sat_grid<0)
     except AssertionError:
         pass #TODO
         #print(oxygen_sat_grid[oxygen_sat_grid<0])
         #raise AssertionError 
+    """
+        
     maximum_concentration = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat, lon)
 
 
@@ -383,7 +406,20 @@ def oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temp
     #assert(np.all(oxygen_concentration>0))
 
     return oxygen_concentration
-        
+
+
+def oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid):
+    """
+    tranforms oxygen concentration in micro-moles per kg to oxygen saturation
+    """
+
+    import gsw 
+    maximum_concentration_grid = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
+
+    oxygen_sat_grid = 100 * oxygen_grid/maximum_concentration_grid
+
+    return oxygen_sat_grid
+
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -397,7 +433,7 @@ def oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temp
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02):
+def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_grid,oxygen_sat_grid,height_above_ground = 10,minimal_density_difference = 0.02):
     import numpy as np
 
     """
@@ -411,7 +447,7 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
        interp_pressure
        
        density_grid                     density in kg/m^3 as a grid (number_of_profiles x len(interp_pressure))
-       oxygen_grid                      oxygen concentration in percent as a grid (number_of_profiles x len(interp_pressure))
+       oxygen_sat_grid                      oxygen concentration in percent as a grid (number_of_profiles x len(interp_pressure))
        
        height_above_ground              Default value 10m
        minimal_density_difference       Default value 0.02 kg/m^3

@@ -30,23 +30,23 @@ import warnings
 warnings.filterwarnings('ignore')
     
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177"]
 
 rolling_window_size = 16
 
 flux_through_halocline = True #set to True if the flux trough the Halocline instead of the BBL should be computed 
-density_interval = False
+density_interval = True
 
 #only important for a pressure interval 
 upper_bound_halocline_in_db = 57 #67
 lower_bound_halocline_in_db = 72 #77
 
 #only important for a density interval
-upper_bound_halocline_as_density = 1006.24 #67
-lower_bound_halocline_as_density = 1008.90 #77
+upper_bound_halocline_as_density = 1007.25 #1006.24 
+lower_bound_halocline_as_density = 1007.75 #1008.90 
 
 height_above_ground = 5 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
-maximum_reasonable_flux = 200 #float('Inf') #200 #Fluxes above this value will be discarded
+maximum_reasonable_flux = 500 #float('Inf') #200 #Fluxes above this value will be discarded
 acceptable_slope = 2 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
 
 flux_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
@@ -73,7 +73,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     cruisename = splitted_foldername[-1]
     
     print(cruisename)
-
+    if cruisename == "emb217":
+        upper_bound_halocline_as_density = 1006.0 #1005.75
+        lower_bound_halocline_as_density = 1006.5 #1006.25
+    elif cruisename == "emb177":
+        upper_bound_halocline_as_density = 1007.25 #1007.4
+        lower_bound_halocline_as_density 1008.25 #1007.9  
     """
     dissipation_list = np.asarray([])
     BB_flux_list = np.asarray([])
@@ -137,6 +142,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         corrected_eps_grid = data["corrected_eps_grid"]
         corrected_eps_wiki_grid = data["corrected_eps_wiki_grid"]
         eps_consv_temperature_grid = data["eps_consv_temperature_grid"]
+        eps_oxygen_sat_grid = data["eps_oxygen_sat_grid"]
         eps_oxygen_grid = data["eps_oxygen_grid"] 
         
         eps_N_squared_grid = data["eps_N_squared_grid"]
@@ -220,7 +226,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         transect_oxygen_flux_statistic = []
         
 
-        #compare the prrssure value of the lowest valid data point per profile th the neighbouring profiles to determine outliers
+        #compare the pressure value of the lowest valid data point per profile th the neighbouring profiles to determine outliers
         list_of_short_profiles = thesis.get_list_of_short_profiles(number_of_profiles,bathymetrie,acceptable_slope)
         
         #hard coded to accout for one short profile, that my condtions doesn't recognize
@@ -236,15 +242,19 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 continue
                 
             
+            if np.nanmean(eps_oxygen_sat_grid[profile]) < 0:
+                print(cruisename,transect_name,"negative oxygen values")
+                continue
+                
             #Determine the averaging intervall
             if flux_through_halocline == True:
                 if density_interval == True:
-                    print("\n\n",np.shape(eps_density_grid),np.shape(eps_density_grid[profile]),np.nanmin(eps_density_grid[profile]), np.nanmax(eps_density_grid[profile]))
+                    #print("\n\n",np.shape(eps_density_grid),np.shape(eps_density_grid[profile]),np.nanmin(eps_density_grid[profile]), np.nanmax(eps_density_grid[profile]))
                     
                     from_index =  np.nanargmin(abs(np.asarray(eps_density_grid[profile])-upper_bound_halocline_as_density))     
                     to_index = np.nanargmin(abs(np.asarray(eps_density_grid[profile])-lower_bound_halocline_as_density))
                      
-                    print(from_index,to_index,"\n\n")
+                    #print(from_index,to_index,"\n\n")
                                     
                 else: #use pressure intervall
                     from_index =  np.argmin(abs(eps_pressure-upper_bound_halocline_in_db))     
@@ -262,16 +272,28 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 continue
 
                                
+            #right now the criterion is only valid for emb217
+            if cruisename == "emb217":
             #check for an outlier profile, ergo too high dissipation rates compared with the surrounding
-            if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+2*spread_of_profile_medians):      
-                #print("\toutlier")
-                outlier_count += 1
-                continue
+                if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+2*spread_of_profile_medians):      
+                    #print("\toutlier")
+                    outlier_count += 1
+                    continue
           
+            if cruisename == "emb177":
+                #index for a depth of 50db
+                test_index = np.nanargmin(np.abs(eps_pressure-50))
+                #print(eps_pressure[test_index],eps_oxygen_sat_grid[profile,test_index])
                 
+                #test if the saturation at that depth is under a certain level
+                if eps_oxygen_sat_grid[profile,test_index] < 50:
+                    print("Halocline is too high!")
+                    outlier_count += 1
+                    continue
+                                    
             #if the water colum portion contains only nan values, save only the bathymetrie then skip it
             #useful if the interval to average over is deeper than the current bathymetrie
-            if np.all(np.isnan(oxygen_flux_BB_grid[profile,from_index:to_index])) or from_index == to_index:
+            if np.all(np.isnan(oxygen_flux_BB_grid[profile,from_index:to_index])): # or  to_index == list_of_bathymetrie_indices[profile]-1:
 
                 #find the correct position in the sorted list
                 for index,value in enumerate(bathymetry_longitude_list):
@@ -293,8 +315,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     interval_list.insert(list_position,[np.nan,np.nan])
                 continue
    
-            
-            
+                
             #find the correct position in the sorted list
             for index,value in enumerate(bathymetry_longitude_list):
                 if value > lon[profile]:
@@ -480,7 +501,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     for index in range(total_number_of_valid_profiles):
     
         #controls that the mean is not computed over too distant points
-        if max_longitude_gap > 0.02:
+        if max_longitude_gap > 0.01:
             if ((index+rolling_window_size//2) >= max_longitude_gap_index+1) and ((index-rolling_window_size//2)<=max_longitude_gap_index+1):
                 
                 rolling_mean_flux[index] = np.nan
@@ -611,6 +632,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     #bathymetrie_axes.plot(bathymetry_longitude_list,interval_list[:,0])
     #bathymetrie_axes.plot(bathymetry_longitude_list,interval_list[:,1])
+    bathymetrie_axes.fill_between(bathymetry_longitude_list,interval_list[:,0],interval_list[:,1],color = "tab:red", alpha = 0.5)
     
     """
     mean_label = mlines.Line2D([], [], color='k', label='mean')
@@ -629,7 +651,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
     flux_axarr.set_ylim((-20,3))
     if cruisename == "emb177":
-        flux_axarr.set_ylim((-40,3))    
+        flux_axarr.set_ylim((-50,3))    
             
     flux_axarr.set_xlabel(r"longitude [$\degree$]")    
     flux_axarr.set_ylabel(r"oxygen flux [mmol/(m$^2$*d]")
@@ -671,6 +693,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     #bathymetrie_axes2.plot(bathymetry_longitude_list,interval_list[:,0])
     #bathymetrie_axes2.plot(bathymetry_longitude_list,interval_list[:,1])
+    bathymetrie_axes2.fill_between(bathymetry_longitude_list,interval_list[:,0],interval_list[:,1],color = "tab:red", alpha = 0.5)
     
     dissip_axarr.plot(longitude_list,log_mean_dissipation,"x", c = "tab:green", alpha = 0.4, label = "mean dissipation")        
     dissip_axarr.plot(longitude_list,rolling_log_mean_dissipation, "k", label ="rolling logarithmic mean")

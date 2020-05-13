@@ -41,6 +41,8 @@ second_flux_percentile = 97.72
 dissip_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
 second_dissip_percentile = 97.72
 
+
+f_density, density_axarr = plt.subplot(nrows = 1, ncols = 2, sharey = True)
   
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     path = pathlib.Path(FOLDERNAME)
@@ -192,61 +194,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #for i in range(number_of_profiles):
         #density_grid[ozmidov_scale_grid,:])))
         
-        """
-        Gamma_Osborn_eps_grid = thesis.Osborn(eps_Reynolds_bouyancy_grid)
-        turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
-        #remove negative diffusivity 
-        turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = np.nan
-        oxygen_flux_osborn_grid = - turbulent_diffusivity_Osborn_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
-        oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)        
-        
-        Gamma_BB_eps_grid = thesis.BB(eps_Reynolds_bouyancy_grid)
-        turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * eps_grid / (eps_N_squared_grid)
-        #remove negative diffusivity    
-        turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = np.nan
-        oxygen_flux_BB_grid = - turbulent_diffusivity_BB_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
-        oxygen_flux_BB_grid = oxygen_flux_BB_grid*86400*(1000/eps_density_grid)
-        
-        Gamma_Skif_eps_grid = thesis.Skif(eps_Reynolds_bouyancy_grid)
-        turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
-        #remove negative diffusivity
-        turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = np.nan
-        oxygen_flux_Skif_grid = - turbulent_diffusivity_Skif_grid[:,:] * thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        #convert from m*micromol/(kg*s) to mmol/(m^2*d)
-        oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
-        """
+
         
         oxygen_flux_osborn_grid = thesis.get_oxygen_flux_osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
         oxygen_flux_BB_grid = thesis.get_oxygen_flux_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
         oxygen_flux_Skif_grid = thesis.get_oxygen_flux_skif(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
-
-        """
-        list_of_short_profiles = []
-        count_of_short_profiles = 0
-                
-        for profile in range(number_of_profiles):
-            #check if the profile was stopped too early by comparing it to the predecessor and succesor. If yes, skip it
-            try:
-                slope = (bathymetrie[profile]-bathymetrie[profile+1])    
-                next_slope = (bathymetrie[profile]-bathymetrie[profile-1])
-            except IndexError:
-                try:
-                    slope = (bathymetrie[profile]-bathymetrie[profile+1])    
-                    next_slope = (bathymetrie[profile]-bathymetrie[profile+2])
-                except IndexError:
-                    slope = (bathymetrie[profile]-bathymetrie[profile-1])
-                    next_slope = (bathymetrie[profile]-bathymetrie[profile-2])
-                           
-            #only remove a profile if the slope to the next and to the overnext point is too high and the last profile was not removed
-            if abs(slope)>acceptable_slope and abs(next_slope)>acceptable_slope: 
-                
-                #as the short profiles were stopped earlier, their bathymetrie value has to be smaller
-                if slope <= 0 and next_slope <= 0:
-                    count_of_short_profiles +=1
-                    list_of_short_profiles.append(profile)
-        """        
+      
                 
         list_of_short_profiles = thesis.get_list_of_short_profiles(number_of_profiles,bathymetrie,acceptable_slope)
         count_of_short_profiles = len(list_of_short_profiles)
@@ -333,7 +286,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 continue
             """
             
-            
+            density_axarr.scatter(oxygen_flux_BB_grid[profile,:],eps_density_grid[profile],c = lon[profile], cmap = , vmin 
+        scatter_axarr[1].plot(eps_grid[profile,:],eps_density_grid[profile],".", color = color[index])
             
             print(eps_pressure[from_index],eps_pressure[to_index],from_index,to_index)
 

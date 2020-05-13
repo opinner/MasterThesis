@@ -31,7 +31,7 @@ def colorbar(mappable):
 
 
 #contains the MSS Data
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb217_mss_data","/home/ole/windows/emb177_mss_data/","/home/ole/windows/emb169_mss_data/MSS055/matlab","/home/ole/windows/emb169_mss_data/MSS038/matlab/"]
+#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb217_mss_data","/home/ole/windows/emb177_mss_data/","/home/ole/windows/emb169_mss_data/MSS055/matlab","/home/ole/windows/emb169_mss_data/MSS038/matlab/"]
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb177_mss_data/","/home/ole/windows/emb217_mss_data"]
 #LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb217_mss_data"]
  
@@ -160,7 +160,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         img4_6b = axarr4[6].plot(np.log10(eps_wiki_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "Wikipedia")
 
         
-        axarr4[0].set_xlabel("oxygen")
+        axarr4[0].set_xlabel("oxygen [%]")
         axarr4[0].set_ylabel("pressure [dbar]")
         #axarr4[1].set_xlabel("SA")
         axarr4[1].set_xlabel(r"density [kg/m$^3$]")

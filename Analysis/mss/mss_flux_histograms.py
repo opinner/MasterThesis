@@ -33,7 +33,7 @@ warnings.filterwarnings('ignore')
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]
 
-averaging_intervals_borders = [20.57,20.625]
+averaging_intervals_borders = [20.575,20.645] #[20.57,20.625]
 
 flux_through_halocline = True #set to True if the flux trough the Halocline instead of the BBL should be computed 
 density_interval = True #averaging interval is determined by density and not by pressure
@@ -43,12 +43,12 @@ upper_bound_halocline_in_db = 57 #67
 lower_bound_halocline_in_db = 72 #77
 
 #only important for a density interval
-upper_bound_halocline_as_density = 1006.24 #67
-lower_bound_halocline_as_density = 1008.90 #77
+upper_bound_halocline_as_density = 1007.25 #1006.24 
+lower_bound_halocline_as_density = 1007.75 #1008.90 
 
 height_above_ground = 10 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
 
-maximum_reasonable_flux = 200 #fluxes with an absolue value above this threshold value will be discarded
+maximum_reasonable_flux = 500 #fluxes with an absolue value above this threshold value will be discarded
 acceptable_slope = 20 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
 
 flux_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
@@ -74,7 +74,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     print(cruisename)
     print(averaging_intervals_borders)
-             
+    if cruisename == "emb217":
+        upper_bound_halocline_as_density = 1005.75# 1006.1 #1005.75#
+        lower_bound_halocline_as_density = 1006.25# 1006.6 #1006.25#
+    elif cruisename == "emb177":
+        upper_bound_halocline_as_density = 1007.25 #1007.4
+        lower_bound_halocline_as_density = 1007.75 #1007.9  
+                 
     #2 borders = 3 intervals
     oxygen_flux_BB_statistic = [None] * number_of_intervals
     oxygen_flux_Shih_statistic = [None] * number_of_intervals
@@ -130,6 +136,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         corrected_eps_grid = data["corrected_eps_grid"]
         corrected_eps_wiki_grid = data["corrected_eps_wiki_grid"]
         eps_consv_temperature_grid = data["eps_consv_temperature_grid"]
+        eps_oxygen_sat_grid = data["eps_oxygen_sat_grid"]
         eps_oxygen_grid = data["eps_oxygen_grid"] 
         
         eps_N_squared_grid = data["eps_N_squared_grid"]
@@ -220,7 +227,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             from_index = int(list_of_BBL_range_indices[profile]) 
             to_index = int(list_of_bathymetrie_indices[profile])
             
-            #Determine the averaging intervall
+            if np.nanmean(eps_oxygen_sat_grid[profile]) < 0:
+                print(cruisename,transect_name,"negative oxygen values")
+                continue
+                
+            #Determine the averaging interval
             if flux_through_halocline == True:
                 if density_interval == True:
                     print("\n\n",np.shape(eps_density_grid),np.shape(eps_density_grid[profile]),np.nanmin(eps_density_grid[profile]), np.nanmax(eps_density_grid[profile]))
@@ -260,12 +271,24 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 continue
 
                                
+            #right now the criterion is only valid for emb217
+            if cruisename == "emb217":
             #check for an outlier profile, ergo too high dissipation rates compared with the surrounding
-            if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+2*spread_of_profile_medians):      
-                #print("\toutlier")
-                outlier_count += 1
-                continue
+                if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+2*spread_of_profile_medians):      
+                    #print("\toutlier")
+                    outlier_count += 1
+                    continue
           
+            if cruisename == "emb177":
+                #index for a depth of 50db
+                test_index = np.nanargmin(np.abs(eps_pressure-50))
+                #print(eps_pressure[test_index],eps_oxygen_sat_grid[profile,test_index])
+                
+                #test if the saturation at that depth is under a certain level
+                if eps_oxygen_sat_grid[profile,test_index] < 50:
+                    print("Halocline is too high!")
+                    outlier_count += 1
+                    continue
                 
             #check if the profile was stopped too early by comparing it to the predecessor and succesor. If yes, skipt it
             try:
@@ -349,7 +372,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     ###############################################################################################
     f_hist, hist_axarr = plt.subplots(nrows = 3, ncols = 2, sharex = True)
 
-    bins = np.arange(-200,5,2.5)
+    bins = np.arange(-maximum_reasonable_flux,5,5)
     hist_axarr[0,0].hist(oxygen_flux_Osborn_statistic[0],bins = bins,edgecolor='black', linewidth=1.2, log = True)
     hist_axarr[0,1].hist(oxygen_flux_Osborn_statistic[1],bins = bins,edgecolor='black', linewidth=1.2, log = True)
     hist_axarr[1,0].hist(oxygen_flux_Shih_statistic[0],bins = bins,edgecolor='black', linewidth=1.2, log = True)
@@ -389,8 +412,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print("slope,Shih",oxygen_flux_Shih_statistic[1].size)
     print("interior,BB",oxygen_flux_BB_statistic[0].size)
     print("slope,BB",oxygen_flux_BB_statistic[1].size)
-                                            
-    f_hist.suptitle(cruisename+": flux distribution around the halocline (67-77dbar)", fontweight = "bold")
+    
+    if density_interval == True:
+        string_interval_bounds = str(upper_bound_halocline_as_density)+"-"+str(lower_bound_halocline_as_density)+r" kg/m$^3$)"
+    else:    
+        string_interval_bounds = str(upper_bound_halocline_in_db)+"-"+str(lower_bound_halocline_in_db)+"dbar)"    
+                                        
+    f_hist.suptitle(cruisename+": flux distribution around the halocline ("+string_interval_bounds, fontweight = "bold")
     f_hist.set_size_inches(18,10.5)
     f_hist.tight_layout() 
     f_hist.subplots_adjust(top=0.9,bottom=0.071,left=0.066,right=0.99,hspace=0.078,wspace=0.071)
@@ -398,13 +426,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     f_hist.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_flux_histogram_params_and_position", dpi = 300)
     
     
-    
-    f_demo, demo_axarr =  = plt.subplots()
+    """
+    f_demo, demo_axarr = plt.subplots(1)
     data = np.load("/home/ole/Thesis/Analysis/mss/data/"+cruisename+"_bathymetry")
     baytmetry_longitude = data["longitude"]
-    bathymetry = data["bathymetry"]bathymetry_list, 
+    bathymetry = data["bathymetry"]
     interval = data["interval_list"]
-    
+    """
     
     plt.show()
     
