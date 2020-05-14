@@ -29,19 +29,21 @@ import numpy.ma as ma
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
 import warnings
-#warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore')
     
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169",
-#"/home/ole/windows/processed_mss/emb177"]
+#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169",
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb177"]
+#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177"]
 
-potential_density = False
-
+vmin = 20.47
+vmax = 20.7
 
 acceptable_slope = 2
-f_density, density_axarr = plt.subplots(nrows = 1, ncols = 2, sharey = True) 
-f_oxygen, oxygen_axarr = plt.subplots(nrows = 1, ncols = 2, sharey = True)
+
   
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
+    f_density, density_axarr = plt.subplots(nrows = 1, ncols = 2, sharey = True) 
+    f_oxygen, oxygen_axarr = plt.subplots(nrows = 1, ncols = 2, sharey = True)
     path = pathlib.Path(FOLDERNAME)
     DATAFILENAMES = []
 
@@ -51,21 +53,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     cruisename = splitted_foldername[-1]
     
     print(cruisename)
-    """ 
+           
     if cruisename == "emb217":
-        upper_bound_halocline_as_density = 1006.0 #1005.75
-        lower_bound_halocline_as_density = 1006.5 #1006.25
+        upper_boundary = 1006.9 #1006.10 #1005.75
+        lower_boundary = 1007.9 #1006.6 #1006.25
     elif cruisename == "emb177":
-        upper_bound_halocline_as_density = 1007.25 #1007.4
-        lower_bound_halocline_as_density = 1008.25 #1007.9  
-    
-    """             
-    if cruisename == "emb217":
-        upper_boundary = 1005.75 #1006.10 #1005.75
-        lower_boundary = 1006.25 #1006.6 #1006.25
-    elif cruisename == "emb177":
-        upper_boundary = 1007.75 #1007.4
-        lower_boundary = 1008.25 #1007.9 
+        upper_boundary = 1007.2 #1006.6 #1007.4
+        lower_boundary = 1008.2 #1007.6 #1007.9 
         
     density_axarr[0].axhspan(lower_boundary, upper_boundary, alpha=0.3, color='tab:red')
     density_axarr[1].axhspan(lower_boundary, upper_boundary, alpha=0.3, color='tab:red')  
@@ -107,35 +101,41 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         print("\n",transect_name)
         
         data = np.load(datafile_path)
+        try:
+            number_of_profiles = data["number_of_profiles"] #
+            lat = data["lat"] #Latitude of the profiles
+            lon = data["lon"] #Longitude of the profiles
+            distance = data["distance"] #distance from the starting profile (monotonically increasing)
+            
+            interp_pressure = data["interp_pressure"]
+            oxygen_grid = data["oxygen_grid"]
+            salinity_grid = data["salinity_grid"]
+            consv_temperature_grid = data["consv_temperature_grid"]
+            density_grid = data["density_grid"]
+            
+            eps_pressure = data["eps_pressure"]
+            eps_grid = data["eps_grid"]
+            corrected_eps_grid = data["corrected_eps_grid"]
+            corrected_eps_wiki_grid = data["corrected_eps_wiki_grid"]
+            eps_consv_temperature_grid = data["eps_consv_temperature_grid"]
+            eps_salinity_grid = data["eps_salinity_grid"]
+            eps_oxygen_grid = data["eps_oxygen_grid"] 
+            eps_oxygen_sat_grid = data["eps_oxygen_sat_grid"] 
+                    
+            eps_N_squared_grid = data["eps_N_squared_grid"]
+            eps_density_grid = data["eps_density_grid"]
+            eps_pot_density_grid = data["eps_pot_density_grid"]
+            #eps_viscosity_grid = data["eps_viscosity_grid"]
+            eps_Reynolds_bouyancy_grid = data["eps_Reynolds_bouyancy_grid"]
+            corrected_eps_Reynolds_bouyancy_grid = data["corrected_eps_Reynolds_bouyancy_grid"]
+            eps_wiki_Reynolds_bouyancy_grid = data["eps_wiki_Reynolds_bouyancy_grid"]
+            corrected_eps_wiki_Reynolds_bouyancy_grid = data["corrected_eps_wiki_Reynolds_bouyancy_grid"]
         
-        number_of_profiles = data["number_of_profiles"] #
-        lat = data["lat"] #Latitude of the profiles
-        lon = data["lon"] #Longitude of the profiles
-        distance = data["distance"] #distance from the starting profile (monotonically increasing)
-        
-        interp_pressure = data["interp_pressure"]
-        oxygen_grid = data["oxygen_grid"]
-        salinity_grid = data["salinity_grid"]
-        consv_temperature_grid = data["consv_temperature_grid"]
-        density_grid = data["density_grid"]
-        
-        eps_pressure = data["eps_pressure"]
-        eps_grid = data["eps_grid"]
-        corrected_eps_grid = data["corrected_eps_grid"]
-        corrected_eps_wiki_grid = data["corrected_eps_wiki_grid"]
-        eps_consv_temperature_grid = data["eps_consv_temperature_grid"]
-        eps_salinity_grid = data["eps_salinity_grid"]
-        eps_oxygen_grid = data["eps_oxygen_grid"] 
-        eps_oxygen_sat_grid = data["eps_oxygen_sat_grid"] 
-                
-        eps_N_squared_grid = data["eps_N_squared_grid"]
-        eps_density_grid = data["eps_density_grid"]
-        #eps_viscosity_grid = data["eps_viscosity_grid"]
-        eps_Reynolds_bouyancy_grid = data["eps_Reynolds_bouyancy_grid"]
-        corrected_eps_Reynolds_bouyancy_grid = data["corrected_eps_Reynolds_bouyancy_grid"]
-        eps_wiki_Reynolds_bouyancy_grid = data["eps_wiki_Reynolds_bouyancy_grid"]
-        corrected_eps_wiki_Reynolds_bouyancy_grid = data["corrected_eps_wiki_Reynolds_bouyancy_grid"]
-        
+        except KeyError:
+            print(transect_name," is skipped, Error during loading data")
+            continue
+            
+            
         """
         number_of_profiles              number of profiles/casts in the transect
         lat                             latitude in degrees (as a float) of the casts
@@ -225,20 +225,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     continue
                                     
             
-            color = np.ones(np.shape(eps_density_grid[profile]))*lon[profile]
+            color = np.ones(np.shape(eps_pot_density_grid[profile]))*lon[profile]
             
-            if potential_density == True:
-                eps_pot_density = gsw.density.sigma0(eps_salinity_grid[profile,:],eps_consv_temperature_grid[profile,:])
-                density_axarr[0].scatter(np.log10(eps_grid[profile,:]),1000+eps_pot_density, c = color , cmap = "viridis", vmin = 20.55, vmax = 20.65, marker = ",", s= 1)           
-                image = density_axarr[1].scatter(oxygen_flux_BB_grid[profile,:],1000+eps_pot_density, c = color, cmap = "viridis", vmin = 20.55, vmax = 20.65, marker = ",", s= 1)
-                oxygen_axarr[0].scatter(thesis.central_differences(eps_oxygen_sat_grid[profile,:]/thesis.central_differences(eps_depth)),1000+eps_pot_density, c = color, cmap = "viridis", vmin = 20.55, vmax = 20.65, marker = ",", s= 1.4)
-                image_oxy = oxygen_axarr[1].scatter(eps_pressure,1000+eps_pot_density, c = color, cmap = "viridis", vmin = 20.55, vmax = 20.65, marker = ",", s= 1.4)
-            else:
-                density_axarr[0].scatter(np.log10(eps_grid[profile,:]),eps_density_grid[profile,:], c = color , cmap = "viridis", vmin = 20.55, vmax = 20.65, marker = ",", s= 1)
-                image = density_axarr[1].scatter(oxygen_flux_BB_grid[profile,:],eps_density_grid[profile,:], c = color, cmap = "viridis", vmin = 20.55, vmax = 20.65, marker = ",", s= 1)
-                oxygen_axarr[0].scatter(thesis.central_differences(eps_oxygen_sat_grid[profile,:])/thesis.central_differences(eps_depth),eps_density_grid[profile,:], c = color, cmap = "viridis", vmin = 20.55, vmax = 20.65, marker = ",", s= 1.4)
-                image_oxy = oxygen_axarr[1].scatter(eps_pressure,eps_density_grid[profile,:], c = color, cmap = "viridis", vmin = 20.55, vmax = 20.65, marker = ",", s= 1.4)
-                          
+
+            density_axarr[0].scatter(np.log10(eps_grid[profile,:]),eps_pot_density_grid[profile,:], c = color , cmap = "viridis", vmin = vmin , vmax = vmax, marker = ",", s= 1.4)           
+            image = density_axarr[1].scatter(oxygen_flux_BB_grid[profile,:],eps_pot_density_grid[profile,:], c = color, cmap = "viridis", vmin = vmin , vmax = vmax, marker = ",", s= 1.4)
+            oxygen_axarr[0].scatter(thesis.central_differences(eps_oxygen_sat_grid[profile,:]/thesis.central_differences(eps_depth)),eps_pot_density_grid[profile,:], c = color, cmap = "viridis", vmin = vmin , vmax = vmax, marker = ",", s= 1.4)
+            image_oxy = oxygen_axarr[1].scatter(eps_pressure,eps_pot_density_grid[profile,:], c = color, cmap = "viridis", vmin = vmin , vmax = vmax, marker = ",", s= 1.4)
+
 
 
         print("removed",outlier_count,"profiles as outliers")
@@ -257,10 +251,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print("\n\n\n Results: \n\n")
 
     oxygen_axarr[0].invert_yaxis()
-    if potential_density == True:
-        oxygen_axarr[0].set_ylabel(r"potential density $\sigma$ [kg/m$^3$]")
-    else:
-        oxygen_axarr[0].set_ylabel(r"density [kg/m$^3$]")  
+    oxygen_axarr[0].set_ylabel(r"potential density $\sigma$ [kg/m$^3$]")
+
     
     oxygen_axarr[0].set_xlabel(r"dO$_2$ /dz [micromol/kg/m]")
     oxygen_axarr[1].set_xlabel("pressure [dbar]")
@@ -269,28 +261,30 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     f_oxygen.set_size_inches(18,10.5)
     f_oxygen.tight_layout()
     f_oxygen.subplots_adjust(top=0.95)
-    f_oxygen.suptitle(cruisename+": Density vs Oxygen gradient and pressure")
-    f_oxygen.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_density_scatter_oxy")
+    f_oxygen.suptitle(cruisename+": potential density vs Oxygen gradient and pressure")
+    f_oxygen.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_pot_density_scatter_oxy")
 
     
     colorbar(image).set_label(r"longitude $[\degree$E]")        
 
+    density_axarr[1].set_xlim(-10.5,-3)
     density_axarr[0].invert_yaxis()
-    density_axarr[1].set_xlim(-150,100)
-      
-    
+    if cruisename == "emb177":
+        density_axarr[1].set_xlim(-300,100)
+    else:  
+        density_axarr[1].set_xlim(-200,100)
+        
     density_axarr[0].set_xlabel(r"log10($\epsilon$) [m$^2$ s$^{-3}$]") 
 
     density_axarr[1].set_xlabel(r"FO [mmol/(m$^2$d]")
-    if potential_density == True:
-        density_axarr[0].set_ylabel(r"potential density $\sigma$ [kg/m$^3$]")
-    else:
-        density_axarr[0].set_ylabel(r"density [kg/m$^3$]")  
+    density_axarr[0].set_ylabel(r"potential density $\sigma$ [kg/m$^3$]")
+
                
     f_density.set_size_inches(18,10.5)
     f_density.tight_layout()
     f_density.subplots_adjust(top=0.95)
-    f_density.suptitle(cruisename+": Density vs Turbulence and Fluxes")
-    f_density.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_density_scatter")
-    plt.show()
+    f_density.suptitle(cruisename+": potential density vs Turbulence and Fluxes")
+    f_density.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_pot_density_scatter")
+    
+plt.show()
    

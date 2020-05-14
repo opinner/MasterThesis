@@ -39,7 +39,7 @@ def colorbar(mappable):
     
     
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/share-windows/processed_mss/emb177"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
 averaging_intervals_borders = [20.55,20.62]
 #averaging_intervals_borders = np.linspace(20.48,20.7,9)
 number_of_intervals = len(averaging_intervals_borders)+1
@@ -61,7 +61,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     #2 borders = 3 intervals
     print(averaging_intervals_borders)
 
-    density_statistic = [None] * number_of_intervals
+    pot_density_statistic = [None] * number_of_intervals
     salinity_statistic = [None] * number_of_intervals
     temperature_statistic = [None] * number_of_intervals
     dissipation_statistic = [None] * number_of_intervals
@@ -104,42 +104,49 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         data = np.load(datafile_path)
         
-        number_of_profiles = data["number_of_profiles"] #
-        lat = data["lat"] #Latitude of the profiles
-        lon = data["lon"] #Longitude of the profiles
-        distance = data["distance"] #distance from the starting profile (monotonically increasing)
+        try:
+            number_of_profiles = data["number_of_profiles"] #
+            lat = data["lat"] #Latitude of the profiles
+            lon = data["lon"] #Longitude of the profiles
+            distance = data["distance"] #distance from the starting profile (monotonically increasing)
+            
+            bathymetrie = data["bathymetrie"]
+            list_of_bathymetrie_indices = data["list_of_bathymetrie_indices"]
+            BBL = data["BBL"]
+            list_of_BBL_indices = data["list_of_BBL_indices"]
+            BBL_range = data["BBL_range"]
+            list_of_BBL_range_indices = data["list_of_BBL_range_indices"]
+            
+            #interp_pressure = data["interp_pressure"]
+            #oxygen_grid = data["oxygen_grid"]
+            #oxygen_sat_grid = data["oxygen_sat_grid"]
+            #salinity_grid = data["salinity_grid"]
+            #consv_temperature_grid = data["consv_temperature_grid"]
+            #pot_density_grid = data["pot_density_grid"]
+            
+            eps_pressure = data["eps_pressure"]
+            eps_grid = data["eps_grid"]
+            corrected_eps_grid = data["corrected_eps_grid"]
+            corrected_eps_wiki_grid = data["corrected_eps_wiki_grid"]
+            eps_consv_temperature_grid = data["eps_consv_temperature_grid"]
+            eps_oxygen_grid = data["eps_oxygen_grid"] 
+            eps_oxygen_sat_grid = data["eps_oxygen_sat_grid"]         
+            eps_salinity_grid = data["eps_salinity_grid"]
+            
+            eps_N_squared_grid = data["eps_N_squared_grid"]
+            eps_density_grid = data["eps_density_grid"]
+            eps_pot_density_grid = data["eps_pot_density_grid"]
+            #eps_viscosity_grid = data["eps_viscosity_grid"]
+            eps_Reynolds_bouyancy_grid = data["eps_Reynolds_bouyancy_grid"]
+            corrected_eps_Reynolds_bouyancy_grid = data["corrected_eps_Reynolds_bouyancy_grid"]
+            eps_wiki_Reynolds_bouyancy_grid = data["eps_wiki_Reynolds_bouyancy_grid"]
+            corrected_eps_wiki_Reynolds_bouyancy_grid = data["corrected_eps_wiki_Reynolds_bouyancy_grid"]
         
-        bathymetrie = data["bathymetrie"]
-        list_of_bathymetrie_indices = data["list_of_bathymetrie_indices"]
-        BBL = data["BBL"]
-        list_of_BBL_indices = data["list_of_BBL_indices"]
-        BBL_range = data["BBL_range"]
-        list_of_BBL_range_indices = data["list_of_BBL_range_indices"]
-        
-        interp_pressure = data["interp_pressure"]
-        oxygen_grid = data["oxygen_grid"]
-        #oxygen_sat_grid = data["oxygen_sat_grid"]
-        salinity_grid = data["salinity_grid"]
-        consv_temperature_grid = data["consv_temperature_grid"]
-        density_grid = data["density_grid"]
-        
-        eps_pressure = data["eps_pressure"]
-        eps_grid = data["eps_grid"]
-        corrected_eps_grid = data["corrected_eps_grid"]
-        corrected_eps_wiki_grid = data["corrected_eps_wiki_grid"]
-        eps_consv_temperature_grid = data["eps_consv_temperature_grid"]
-        eps_oxygen_grid = data["eps_oxygen_grid"] 
-        eps_oxygen_sat_grid = data["eps_oxygen_sat_grid"]         
-        eps_salinity_grid = data["eps_salinity_grid"]
-        
-        eps_N_squared_grid = data["eps_N_squared_grid"]
-        eps_density_grid = data["eps_density_grid"]
-        #eps_viscosity_grid = data["eps_viscosity_grid"]
-        eps_Reynolds_bouyancy_grid = data["eps_Reynolds_bouyancy_grid"]
-        corrected_eps_Reynolds_bouyancy_grid = data["corrected_eps_Reynolds_bouyancy_grid"]
-        eps_wiki_Reynolds_bouyancy_grid = data["eps_wiki_Reynolds_bouyancy_grid"]
-        corrected_eps_wiki_Reynolds_bouyancy_grid = data["corrected_eps_wiki_Reynolds_bouyancy_grid"]
-        
+        except KeyError:
+            print(transect_name," is skipped, Error during loading data")
+            continue
+            
+            
         """
         number_of_profiles              number of profiles/casts in the transect
         lat                             latitude in degrees (as a float) of the casts
@@ -158,7 +165,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         eps_salinity_grid               absolute salinity in g/kg as a grid (number_of_profiles x len(eps_pressure)) 
         eps_oxygen_grid                 oxygen concentration in micromol per kg as a grid (number_of_profiles x len(eps_pressure))
         eps_N_squared_grid              N^2, the Brunt-Vaisala frequency in 1/s^2 as a grid (number_of_profiles x len(eps_pressure))
-        eps_density_grid                density in kg/m^3 as a grid (number_of_profiles x len(eps_pressure))
+        eps_pot_density_grid            potential density in kg/m^3 as a grid (number_of_profiles x len(eps_pressure))
         
         eps_viscosity_grid
         eps_Reynolds_bouyancy_grid
@@ -255,17 +262,15 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 temperature_statistic[interval_number] = np.reshape(eps_consv_temperature_grid[profile,:],(1,-1)) 
                 dissipation_statistic[interval_number] = np.reshape(eps_grid[profile,:],(1,-1)) 
                 oxygen_sat_statistic[interval_number] = np.reshape(eps_oxygen_sat_grid[profile,:],(1,-1)) 
-                #density_statistic[interval_number] = 1000+gsw.density.sigma0(eps_salinity_grid[profile,:],eps_consv_temperature_grid[profile,:])
-                density_statistic[interval_number] = np.reshape(eps_density_grid[profile,:],(1,-1)) 
+                pot_density_statistic[interval_number] = np.reshape(eps_pot_density_grid[profile,:],(1,-1)) 
             else:
                 #concatenate all further profiles to the ones already in the array
                 oxygen_flux_statistic[interval_number] = np.concatenate((oxygen_flux_statistic[interval_number],np.reshape(oxygen_flux_BB_grid[profile,:],(1,-1))),axis=0)
                 salinity_statistic[interval_number] = np.concatenate((salinity_statistic[interval_number],np.reshape(eps_salinity_grid[profile,:],(1,-1))),axis=0)
                 temperature_statistic[interval_number] = np.concatenate((temperature_statistic[interval_number],np.reshape(eps_consv_temperature_grid[profile,:],(1,-1))),axis=0)
                 dissipation_statistic[interval_number] = np.concatenate((dissipation_statistic[interval_number],np.reshape(eps_grid[profile,:],(1,-1))),axis=0)
-                oxygen_sat_statistic[interval_number] = np.concatenate((oxygen_sat_statistic[interval_number],np.reshape(eps_oxygen_sat_grid[profile,:],(1,-1))),axis=0)
-                #density_statistic[interval_number] = np.concatenate((density_statistic[interval_number],1000+gsw.density.sigma0(eps_salinity_grid[profile,:],eps_consv_temperature_grid[profile,:])),axis=0) 
-                density_statistic[interval_number] = np.concatenate((density_statistic[interval_number],np.reshape(eps_density_grid[profile,:],(1,-1))),axis=0)
+                oxygen_sat_statistic[interval_number] = np.concatenate((oxygen_sat_statistic[interval_number],np.reshape(eps_oxygen_sat_grid[profile,:],(1,-1))),axis=0) 
+                pot_density_statistic[interval_number] = np.concatenate((pot_density_statistic[interval_number],np.reshape(eps_pot_density_grid[profile,:],(1,-1))),axis=0)
         print("removed",outlier_count,"profiles as outliers")
         
         
@@ -344,9 +349,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     upper_percentile_oxygen_sat = [None] * number_of_intervals
     lower_percentile_oxygen_sat = [None] * number_of_intervals
     
-    mean_density = [None] * number_of_intervals
-    upper_percentile_density = [None] * number_of_intervals
-    lower_percentile_density = [None] * number_of_intervals
+    mean_pot_density = [None] * number_of_intervals
+    upper_percentile_pot_density = [None] * number_of_intervals
+    lower_percentile_pot_density = [None] * number_of_intervals
             
     for index in range(number_of_intervals):
         mean_oxygen_flux[index] = np.nanmean(oxygen_flux_statistic[index],axis=0)
@@ -385,9 +390,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         upper_percentile_oxygen_sat[index] = np.nanpercentile(oxygen_sat_statistic[index], first_percentile, axis = 0)
         lower_percentile_oxygen_sat[index] = np.nanpercentile(oxygen_sat_statistic[index], 100-first_percentile, axis = 0)
 
-        mean_density[index] = np.nanmean(density_statistic[index],axis=0) 
-        upper_percentile_density[index] = np.nanpercentile(density_statistic[index], first_percentile, axis = 0)
-        lower_percentile_density[index] = np.nanpercentile(density_statistic[index], 100-first_percentile, axis = 0)
+        mean_pot_density[index] = np.nanmean(pot_density_statistic[index],axis=0) 
+        upper_percentile_pot_density[index] = np.nanpercentile(pot_density_statistic[index], first_percentile, axis = 0)
+        lower_percentile_pot_density[index] = np.nanpercentile(pot_density_statistic[index], 100-first_percentile, axis = 0)
                   
     ##################################################################################################################################
     ##################################################################################################################################
@@ -459,9 +464,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         oxygen_axarr[index].set_title(str(np.shape(oxygen_flux_statistic[index])[0])+" profiles\n"+title)
         oxygen_axarr[index].fill_betweenx(eps_pressure,upper_percentile_oxygen_sat[index],lower_percentile_oxygen_sat[index], alpha = 0.6, label = "84.13% percentile")
 
-        density_axarr[index].plot(mean_density[index],eps_pressure,"k", label = "mean")
-        density_axarr[index].set_title(str(np.shape(density_statistic[index])[0])+" profiles\n"+title)
-        density_axarr[index].fill_betweenx(eps_pressure,upper_percentile_density[index],lower_percentile_density[index], alpha = 0.6, label = "84.13% percentile")
+        density_axarr[index].plot(mean_pot_density[index],eps_pressure,"k", label = "mean")
+        density_axarr[index].set_title(str(np.shape(pot_density_statistic[index])[0])+" profiles\n"+title)
+        density_axarr[index].fill_betweenx(eps_pressure,upper_percentile_pot_density[index],lower_percentile_pot_density[index], alpha = 0.6, label = "84.13% percentile")
                         
         flux_axarr[index].set_xlabel(r"FO [mmol/(m$^2$d]")
         oxygen_axarr[index].set_xlabel(r"O$_2$ saturation [$\%$]") 

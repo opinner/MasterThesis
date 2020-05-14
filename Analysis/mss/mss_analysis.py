@@ -73,8 +73,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         try:
             number_of_profiles,lat,lon,distance = results[0]
-            interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid = results[1]
-            eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid = results[2]
+            interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid, pot_density_grid = results[1]
+            eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid, eps_pot_density_grid = results[2]
         except TypeError:
             #print(cruisename,transect_name,"is skipped!")
             continue
@@ -114,12 +114,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
           
         ##########################################################################################################################################################  
           
-        np.savez("/home/ole/windows/processed_mss/"+cruisename+"/"+transect_name ,number_of_profiles = number_of_profiles, lat = lat,lon = lon,distance = distance, bathymetrie = bathymetrie,list_of_bathymetrie_indices = list_of_bathymetrie_indices,BBL = BBL,list_of_BBL_indices = list_of_BBL_indices,BBL_range = BBL_range,list_of_BBL_range_indices = list_of_BBL_range_indices, interp_pressure = interp_pressure,oxygen_grid = oxygen_grid,salinity_grid = salinity_grid,consv_temperature_grid = consv_temperature_grid, density_grid = density_grid, eps_pressure = eps_pressure,eps_grid = eps_grid, corrected_eps_wiki_grid = corrected_eps_wiki_grid, corrected_eps_grid = corrected_eps_grid, eps_salinity_grid = eps_salinity_grid, eps_consv_temperature_grid = eps_consv_temperature_grid, eps_oxygen_grid = eps_oxygen_grid, eps_oxygen_sat_grid = eps_oxygen_sat_grid, eps_N_squared_grid = eps_N_squared_grid,eps_density_grid = eps_density_grid, eps_Reynolds_bouyancy_grid =  eps_Reynolds_bouyancy_grid, corrected_eps_Reynolds_bouyancy_grid = corrected_eps_Reynolds_bouyancy_grid,  eps_wiki_Reynolds_bouyancy_grid = eps_wiki_Reynolds_bouyancy_grid, corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_Reynolds_bouyancy_grid)
+        np.savez("/home/ole/windows/processed_mss/"+cruisename+"/"+transect_name ,number_of_profiles = number_of_profiles, lat = lat,lon = lon,distance = distance, bathymetrie = bathymetrie,list_of_bathymetrie_indices = list_of_bathymetrie_indices,BBL = BBL,list_of_BBL_indices = list_of_BBL_indices,BBL_range = BBL_range,list_of_BBL_range_indices = list_of_BBL_range_indices, interp_pressure = interp_pressure,oxygen_grid = oxygen_grid,salinity_grid = salinity_grid,consv_temperature_grid = consv_temperature_grid, density_grid = density_grid, pot_density_grid = pot_density_grid, eps_pressure = eps_pressure,eps_grid = eps_grid, corrected_eps_wiki_grid = corrected_eps_wiki_grid, corrected_eps_grid = corrected_eps_grid, eps_salinity_grid = eps_salinity_grid, eps_consv_temperature_grid = eps_consv_temperature_grid, eps_oxygen_grid = eps_oxygen_grid, eps_oxygen_sat_grid = eps_oxygen_sat_grid, eps_N_squared_grid = eps_N_squared_grid,eps_density_grid = eps_density_grid, eps_pot_density_grid = eps_pot_density_grid, eps_Reynolds_bouyancy_grid =  eps_Reynolds_bouyancy_grid, corrected_eps_Reynolds_bouyancy_grid = corrected_eps_Reynolds_bouyancy_grid,  eps_wiki_Reynolds_bouyancy_grid = eps_wiki_Reynolds_bouyancy_grid, corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_Reynolds_bouyancy_grid)
         
         
         ##########################################################################################################################################################
-        #TODO outsource this?
-        #Plotting
+
 
 
         #choose which profile get exemplarily plotted
@@ -139,8 +138,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
 
         #img4_1 = axarr4[1].plot(salinity_grid[profile_index,:],interp_pressure, label = "fine grid")
-        img4_1 = axarr4[1].plot(density_grid[profile_index,:],interp_pressure, label = "fine grid")
-        img4_1b = axarr4[1].plot(eps_density_grid[profile_index,:],eps_pressure, label = "eps grid")
+        img4_1 = axarr4[1].plot(pot_density_grid[profile_index,:],interp_pressure, label = "fine grid")
+        img4_1b = axarr4[1].plot(eps_pot_density_grid[profile_index,:],eps_pressure, label = "eps grid")
 
         img4_2 = axarr4[2].plot(consv_temperature_grid[profile_index,:],interp_pressure, label = "fine grid")
         img4_2b = axarr4[2].plot(eps_consv_temperature_grid[profile_index,:],eps_pressure, label = "eps grid")
@@ -163,7 +162,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         axarr4[0].set_xlabel("oxygen [%]")
         axarr4[0].set_ylabel("pressure [dbar]")
         #axarr4[1].set_xlabel("SA")
-        axarr4[1].set_xlabel(r"density [kg/m$^3$]")
+        axarr4[1].set_xlabel(r"potential density $\sigma$ [kg/m$^3$]")
         axarr4[2].set_xlabel("CT")
         axarr4[3].set_xlabel("N^2")
         axarr4[4].set_xlabel("viscosity / 10^(-6)")
@@ -205,7 +204,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         img1_3 = axarr1[3].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10,cmap = cmap_hot)
 
 
-        img2_0 = axarr2[0].pcolormesh(plotmesh_longitude,interp_pressure,density_grid.T,cmap = cmap_RdBu)
+        img2_0 = axarr2[0].pcolormesh(plotmesh_longitude,interp_pressure,pot_density_grid.T,cmap = cmap_RdBu)
         img2_1 = axarr2[1].pcolormesh(plotmesh_longitude,eps_pressure,eps_N_squared_grid.T,vmin = 0, vmax = 0.015,cmap = cmap_RdBu)
         img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9,cmap = cmap_hot)
         img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure,eps_Reynolds_bouyancy_grid.T, vmin = 0, vmax = 100,cmap = cmap_hot)
@@ -231,7 +230,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         colorbar(img1_2).set_label("consv_temperature [C]")
         colorbar(img1_3).set_label(r"log10(dissipation) $[m^2 s^{-3}]$")
 
-        colorbar(img2_0).set_label(r"density [kg/$m^3$]")
+        colorbar(img2_0).set_label(r"pot density [kg/$m^3$]")
         colorbar(img2_1).set_label(r"$N^2$ $[1/s^2]$")
         colorbar(img2_2).set_label(r"log10($\epsilon$) $[m^2 s^{-3}]$")  
         colorbar(img2_3).set_label(r"$Re_b$")

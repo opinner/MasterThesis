@@ -320,10 +320,12 @@ def load_clean_and_interpolate_data(datafile_path):
                     
     #fine density grid
     density_grid = gsw.rho(salinity_grid,consv_temperature_grid,pressure_grid)
+    pot_density_grid = 1000+gsw.density.sigma0(salinity_grid,consv_temperature_grid)
 
     #density grid on the same points as the eps grid
     eps_density_grid = gsw.rho(eps_salinity_grid,eps_consv_temperature_grid,eps_pressure_grid)
-
+    eps_pot_density_grid = 1000+gsw.density.sigma0(eps_salinity_grid,eps_consv_temperature_grid)
+    
     #TODO compare with density_grid?
     #density_grid_check = (1 - alpha_grid * (consv_temperature_grid) + beta_grid * (salinity_grid))*rho_0
     #difference = density_grid-density_grid_check
@@ -359,7 +361,7 @@ def load_clean_and_interpolate_data(datafile_path):
         
         
           
-    return [[number_of_profiles,lat,lon,distance],[interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid],[eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid]]
+    return [[number_of_profiles,lat,lon,distance],[interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid,pot_density_grid],[eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid,eps_pot_density_grid]]
         
 
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -31,9 +31,9 @@ import warnings
 warnings.filterwarnings('ignore')
     
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]
+#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
 
-averaging_intervals_borders = [20.575,20.645] #[20.57,20.625]
+averaging_intervals_borders = [20.6,20.65] #[20.57,20.625]
 
 flux_through_halocline = True #set to True if the flux trough the Halocline instead of the BBL should be computed 
 density_interval = True #averaging interval is determined by density and not by pressure
@@ -43,20 +43,14 @@ upper_bound_halocline_in_db = 57 #67
 lower_bound_halocline_in_db = 72 #77
 
 #only important for a density interval
-upper_bound_halocline_as_density = 1007.25 #1006.24 
-lower_bound_halocline_as_density = 1007.75 #1008.90 
+#upper_bound_halocline_as_density = 1007.25 #1006.24 
+#lower_bound_halocline_as_density = 1007.75 #1008.90 
 
 height_above_ground = 10 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
 
 maximum_reasonable_flux = 500 #fluxes with an absolue value above this threshold value will be discarded
-acceptable_slope = 20 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
+acceptable_slope = 2 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
 
-flux_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
-second_flux_percentile = 97.72
-dissip_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
-second_dissip_percentile = 97.72
-
-number_of_dissipation_subplots = 2 #Decide if both the mean and the median subplots is shown or only the mean
 
 number_of_intervals = len(averaging_intervals_borders)+1  
  
@@ -74,12 +68,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     print(cruisename)
     print(averaging_intervals_borders)
+    
     if cruisename == "emb217":
-        upper_bound_halocline_as_density = 1005.75# 1006.1 #1005.75#
-        lower_bound_halocline_as_density = 1006.25# 1006.6 #1006.25#
+        upper_bound_halocline_as_density = 1006.9 #1005.75
+        lower_bound_halocline_as_density = 1007.9 #1006.25
     elif cruisename == "emb177":
-        upper_bound_halocline_as_density = 1007.25 #1007.4
-        lower_bound_halocline_as_density = 1007.75 #1007.9  
+        upper_bound_halocline_as_density = 1007.2 #1007.4
+        lower_bound_halocline_as_density = 1008.2 #1007.9   
                  
     #2 borders = 3 intervals
     oxygen_flux_BB_statistic = [None] * number_of_intervals
@@ -120,64 +115,69 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         data = np.load(datafile_path)
         
-        number_of_profiles = data["number_of_profiles"] #
-        lat = data["lat"] #Latitude of the profiles
-        lon = data["lon"] #Longitude of the profiles
-        distance = data["distance"] #distance from the starting profile (monotonically increasing)
+        try:
+            number_of_profiles = data["number_of_profiles"] #
+            lat = data["lat"] #Latitude of the profiles
+            lon = data["lon"] #Longitude of the profiles
+            distance = data["distance"] #distance from the starting profile (monotonically increasing)
+            
+            interp_pressure = data["interp_pressure"]
+            oxygen_grid = data["oxygen_grid"]
+            salinity_grid = data["salinity_grid"]
+            consv_temperature_grid = data["consv_temperature_grid"]
+            density_grid = data["density_grid"]
+            
+            eps_pressure = data["eps_pressure"]
+            eps_grid = data["eps_grid"]
+            corrected_eps_grid = data["corrected_eps_grid"]
+            corrected_eps_wiki_grid = data["corrected_eps_wiki_grid"]
+            eps_consv_temperature_grid = data["eps_consv_temperature_grid"]
+            eps_oxygen_sat_grid = data["eps_oxygen_sat_grid"]
+            eps_oxygen_grid = data["eps_oxygen_grid"] 
+            
+            eps_N_squared_grid = data["eps_N_squared_grid"]
+            eps_density_grid = data["eps_density_grid"]
+            eps_pot_density_grid = data["eps_pot_density_grid"]
+            #eps_viscosity_grid = data["eps_viscosity_grid"]
+            eps_Reynolds_bouyancy_grid = data["eps_Reynolds_bouyancy_grid"]
+            corrected_eps_Reynolds_bouyancy_grid = data["corrected_eps_Reynolds_bouyancy_grid"]
+            eps_wiki_Reynolds_bouyancy_grid = data["eps_wiki_Reynolds_bouyancy_grid"]
+            corrected_eps_wiki_Reynolds_bouyancy_grid = data["corrected_eps_wiki_Reynolds_bouyancy_grid"]
+            
+            """
+            number_of_profiles              number of profiles/casts in the transect
+            lat                             latitude in degrees (as a float) of the casts
+            lon                             longitude in degrees (as a float) of the casts
+            distance                        distance in km from the starting point of the transect
+            
+            interp_pressure                 equidistant 1D pressure array between the highest and the lowest measured pressure value
+            oxygen_grid                     oxygen concentration in in micromol per litre as a grid (number_of_profiles x len(interp_pressure))
+            salinity_grid                   salinity in g/kg as a grid (number_of_profiles x len(interp_pressure)) 
+            consv_temperature_grid          conservative temperature in degrees Celsius as a grid (number_of_profiles x len(interp_pressure))
+            density_grid                    density in kg/m^3 as a grid (number_of_profiles x len(interp_pressure))
+            
+            eps_pressure                    pressure values to the dissipation rate values (the pressure distance between points is bigger than in interp_pressure) 
+            eps_grid                        measured dissipation rate values (number_of_profiles x len(eps_pressure))
+            eps_consv_temperature_grid      conservative temperature as a grid (number_of_profiles x len(eps_pressure))
+            eps_oxygen_grid                 oxygen concentration in micromol per litre as a grid (number_of_profiles x len(eps_pressure))
+            eps_N_squared_grid              N^2, the Brunt-Vaisala frequency in 1/s^2 as a grid (number_of_profiles x len(eps_pressure))
+            eps_density_grid                density in kg/m^3 as a grid (number_of_profiles x len(eps_pressure))
+            
+            eps_viscosity_grid
+            eps_Reynolds_bouyancy_grid
+            corrected_eps_Reynolds_bouyancy_grid 
+            eps_wiki_Reynolds_bouyancy_grid
+            corrected_eps_wiki_Reynolds_bouyancy_grid 
+            """
+            
+        except KeyError:
+            print(transect_name," is skipped, Error during loading data")
+            continue
         
-        interp_pressure = data["interp_pressure"]
-        oxygen_grid = data["oxygen_grid"]
-        salinity_grid = data["salinity_grid"]
-        consv_temperature_grid = data["consv_temperature_grid"]
-        density_grid = data["density_grid"]
-        
-        eps_pressure = data["eps_pressure"]
-        eps_grid = data["eps_grid"]
-        corrected_eps_grid = data["corrected_eps_grid"]
-        corrected_eps_wiki_grid = data["corrected_eps_wiki_grid"]
-        eps_consv_temperature_grid = data["eps_consv_temperature_grid"]
-        eps_oxygen_sat_grid = data["eps_oxygen_sat_grid"]
-        eps_oxygen_grid = data["eps_oxygen_grid"] 
-        
-        eps_N_squared_grid = data["eps_N_squared_grid"]
-        eps_density_grid = data["eps_density_grid"]
-        #eps_viscosity_grid = data["eps_viscosity_grid"]
-        eps_Reynolds_bouyancy_grid = data["eps_Reynolds_bouyancy_grid"]
-        corrected_eps_Reynolds_bouyancy_grid = data["corrected_eps_Reynolds_bouyancy_grid"]
-        eps_wiki_Reynolds_bouyancy_grid = data["eps_wiki_Reynolds_bouyancy_grid"]
-        corrected_eps_wiki_Reynolds_bouyancy_grid = data["corrected_eps_wiki_Reynolds_bouyancy_grid"]
-        
-        """
-        number_of_profiles              number of profiles/casts in the transect
-        lat                             latitude in degrees (as a float) of the casts
-        lon                             longitude in degrees (as a float) of the casts
-        distance                        distance in km from the starting point of the transect
-        
-        interp_pressure                 equidistant 1D pressure array between the highest and the lowest measured pressure value
-        oxygen_grid                     oxygen concentration in in micromol per litre as a grid (number_of_profiles x len(interp_pressure))
-        salinity_grid                   salinity in g/kg as a grid (number_of_profiles x len(interp_pressure)) 
-        consv_temperature_grid          conservative temperature in degrees Celsius as a grid (number_of_profiles x len(interp_pressure))
-        density_grid                    density in kg/m^3 as a grid (number_of_profiles x len(interp_pressure))
-        
-        eps_pressure                    pressure values to the dissipation rate values (the pressure distance between points is bigger than in interp_pressure) 
-        eps_grid                        measured dissipation rate values (number_of_profiles x len(eps_pressure))
-        eps_consv_temperature_grid      conservative temperature as a grid (number_of_profiles x len(eps_pressure))
-        eps_oxygen_grid                 oxygen concentration in micromol per litre as a grid (number_of_profiles x len(eps_pressure))
-        eps_N_squared_grid              N^2, the Brunt-Vaisala frequency in 1/s^2 as a grid (number_of_profiles x len(eps_pressure))
-        eps_density_grid                density in kg/m^3 as a grid (number_of_profiles x len(eps_pressure))
-        
-        eps_viscosity_grid
-        eps_Reynolds_bouyancy_grid
-        corrected_eps_Reynolds_bouyancy_grid 
-        eps_wiki_Reynolds_bouyancy_grid
-        corrected_eps_wiki_Reynolds_bouyancy_grid 
-        
-
-        """
-        
+               
         print("Number of profiles:",number_of_profiles)
         
-        print(min(eps_pressure),max(eps_pressure),len(eps_pressure))
+        #print(min(eps_pressure),max(eps_pressure),len(eps_pressure))
         
         #calculate the idices of the bottom and some meters above that
         results = thesis.find_bottom_and_bottom_currents(number_of_profiles,eps_pressure,eps_density_grid,eps_oxygen_grid,height_above_ground = height_above_ground)
@@ -234,12 +234,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             #Determine the averaging interval
             if flux_through_halocline == True:
                 if density_interval == True:
-                    print("\n\n",np.shape(eps_density_grid),np.shape(eps_density_grid[profile]),np.nanmin(eps_density_grid[profile]), np.nanmax(eps_density_grid[profile]))
+                    #print("\n\n",np.shape(eps_pot_density_grid),np.shape(eps_pot_density_grid[profile]),np.nanmin(eps_pot_density_grid[profile]), np.nanmax(eps_pot_density_grid[profile]))
                     
-                    from_index =  np.nanargmin(abs(np.asarray(eps_density_grid[profile])-upper_bound_halocline_as_density))     
-                    to_index = np.nanargmin(abs(np.asarray(eps_density_grid[profile])-lower_bound_halocline_as_density))
+                    from_index =  np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])-upper_bound_halocline_as_density))     
+                    to_index = np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])-lower_bound_halocline_as_density))
                      
-                    print(from_index,to_index,"\n\n")
+                    #print(from_index,to_index,"\n\n")
                                     
                 else: #use pressure intervall
                     from_index =  np.argmin(abs(eps_pressure-upper_bound_halocline_in_db))     
@@ -414,9 +414,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print("slope,BB",oxygen_flux_BB_statistic[1].size)
     
     if density_interval == True:
-        string_interval_bounds = str(upper_bound_halocline_as_density)+"-"+str(lower_bound_halocline_as_density)+r" kg/m$^3$)"
+        string_interval_bounds = str(upper_bound_halocline_as_density)+r"< $\sigma$ < "+str(lower_bound_halocline_as_density)+r" kg/m$^3$)"
     else:    
-        string_interval_bounds = str(upper_bound_halocline_in_db)+"-"+str(lower_bound_halocline_in_db)+"dbar)"    
+        string_interval_bounds = str(upper_bound_halocline_in_db)+r"-"+str(lower_bound_halocline_in_db)+"dbar)"    
                                         
     f_hist.suptitle(cruisename+": flux distribution around the halocline ("+string_interval_bounds, fontweight = "bold")
     f_hist.set_size_inches(18,10.5)
