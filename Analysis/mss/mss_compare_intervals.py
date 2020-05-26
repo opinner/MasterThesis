@@ -30,7 +30,8 @@ import warnings
 warnings.filterwarnings('ignore')
     
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"] #["/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]
 
 rolling_window_size = 16
 
@@ -65,11 +66,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     cruisename = splitted_foldername[-1]
     
     if cruisename == "emb217":
-        upper_bounds = [1005.9,1006.9,1007.9] #1005.75
-        lower_bounds = [1006.9,1007.9,1008.9]#1006.25
+        upper_bounds = [1005.5,1006.5,1008.5] #1005.75
+        lower_bounds = [1006.5,1008.5,1009.0]#1006.25
     elif cruisename == "emb177":
-        upper_bounds = [1006.2,1007.2,1008.2] #1007.4
-        lower_bounds = [1007.2,1008.2,1008.6] #1007.9  
+        upper_bounds = [1005.5,1006.9,1008.2] #1007.4
+        lower_bounds = [1006.9,1008.2,1008.8] #1007.9  
 
    
     
@@ -264,9 +265,20 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                         
                         from_index =  np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])-upper_bound_halocline_as_density))     
                         to_index = np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])-lower_bound_halocline_as_density))
-                         
+                        """
+                        from_index =  np.nanargmax(np.asarray(eps_pot_density_grid[profile]) >= upper_bound_halocline_as_density)    
+                        to_index = np.nanargmax(np.asarray(eps_pot_density_grid[profile])>= lower_bound_halocline_as_density)
+                        
+                        
+                        if (to_index == 0):           
+                            to_index = np.argmax(np.isnan(eps_pot_density_grid[profile]))-1
+              
+                        
+                        if to_index == from_index:            
+                            from_index = np.argmax(np.isnan(eps_pot_density_grid[profile]))-1
+                            to_index = np.argmax(np.isnan(eps_pot_density_grid[profile]))-1         
                         #print(from_index,to_index,"\n\n")
-                                        
+                        """                
                     else: #use pressure intervall
                         from_index =  np.argmin(abs(eps_pressure-upper_bound_halocline_in_db))     
                         to_index = np.argmin(abs(eps_pressure-lower_bound_halocline_in_db))
@@ -304,7 +316,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                                         
                 #if the water colum portion contains only nan values, save only the bathymetrie then skip it
                 #useful if the interval to average over is deeper than the current bathymetrie
-                if np.all(np.isnan(oxygen_flux_BB_grid[profile,from_index:to_index])): # or  to_index == list_of_bathymetrie_indices[profile]-1:
+                if np.all(np.isnan(oxygen_flux_BB_grid[profile,from_index:to_index])) or (from_index == to_index):
 
                     #find the correct position in the sorted list
                     for index,value in enumerate(bathymetry_longitude_list):
@@ -454,22 +466,25 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         #compute statistical properties of the saved values
         for index in range(total_number_of_valid_profiles):
-            temp_flux = BB_flux_list[index]
-            number_of_fluxes_over_the_threshold += np.sum(np.abs(temp_flux)>maximum_reasonable_flux)
-            number_of_zero_flux += np.sum(np.abs(temp_flux)==0)
-            amount_of_missing_values += np.sum(np.isnan(temp_flux))
+            temp_oxygen_flux = BB_flux_list[index]
+            
+            number_of_fluxes_over_the_threshold += np.sum(np.abs(temp_oxygen_flux)>maximum_reasonable_flux)
+            number_of_zero_flux += np.sum(np.abs(temp_oxygen_flux)==0)
+            amount_of_missing_values += np.sum(np.isnan(temp_oxygen_flux))
             #count the number of flux data points        
-            total_number_of_fluxes += temp_flux.size
+            total_number_of_fluxes += temp_oxygen_flux.size
             
-            temp_flux[np.abs(temp_flux)>maximum_reasonable_flux] = np.nan
+            temp_oxygen_flux[np.abs(temp_oxygen_flux)>maximum_reasonable_flux] = np.nan
         
-            mean_flux[index] = np.nanmean(BB_flux_list[index])
-            median_flux[index] = np.nanmedian(BB_flux_list[index])
             
-            upper_percentile_flux[index] = np.nanpercentile(BB_flux_list[index], flux_percentile)
-            lower_percentile_flux[index] = np.nanpercentile(BB_flux_list[index], 100-flux_percentile)
-            second_upper_percentile_flux[index] = np.nanpercentile(BB_flux_list[index], second_flux_percentile)
-            second_lower_percentile_flux[index] = np.nanpercentile(BB_flux_list[index], 100-second_flux_percentile)
+            
+            mean_flux[index] = np.nanmean(temp_oxygen_flux)
+            median_flux[index] = np.nanmedian(temp_oxygen_flux)
+            
+            upper_percentile_flux[index] = np.nanpercentile(temp_oxygen_flux, flux_percentile)
+            lower_percentile_flux[index] = np.nanpercentile(temp_oxygen_flux, 100-flux_percentile)
+            second_upper_percentile_flux[index] = np.nanpercentile(temp_oxygen_flux, second_flux_percentile)
+            second_lower_percentile_flux[index] = np.nanpercentile(temp_oxygen_flux, 100-second_flux_percentile)
                             
             """        
             mean_min_flux[index] = np.nanmean(oxygen_flux_statistic[index][:,0],axis=0)

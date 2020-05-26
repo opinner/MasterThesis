@@ -3,14 +3,16 @@ import numpy as np
 
 #basic version
 def basic_BB(Reb):
-    Pr = 700
+    Pr = 24.14
 
     if Reb < 0.18:
         return 0
         
-    elif ((Reb >= 0.18) and (Reb <= 96.56)):
+    elif ((Reb >= 0.18) and (Reb < 96.56)):
         return 0.1 * Pr**(-0.5) * Reb**(0.5)
 
+    elif ((Reb >= 96.56) and (Reb < 100)):
+        return 0.2
     else:
         return 2*Reb**(-0.5)
 
@@ -65,8 +67,11 @@ Reb = np.linspace(0,1000,1000)
 linewidth = 4
 
 axis1.plot(Reb,Osborn(Reb), linewidth=linewidth, label = "Osborn")
-axis1.plot(Reb,BB(Reb), linewidth=linewidth, label = "BB")
-axis1.plot(Reb,Skif(Reb), "--", linewidth=linewidth ,label = "Skif")
+#axis1.plot(Reb,BB(Reb), linewidth=linewidth, label = "Bouffard & Boegman")
+axis1.plot(Reb,Skif(Reb), "--", linewidth=linewidth ,label = "Shih et al")
+
+
+axis1.set_ylim(-0.01,0.21) 
 
 axis1.set_xlabel(r"$Re_b$")
 axis1.set_ylabel(r"$\Gamma$")
@@ -74,4 +79,6 @@ axis1.set_ylabel(r"$\Gamma$")
 axis1.legend(loc = "lower right")
 axis1.set_title("Turbulence parametrizations")
 
+plt.tight_layout
+plt.savefig("./parametrization",dpi = 300)
 plt.show()      

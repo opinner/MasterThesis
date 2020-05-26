@@ -55,10 +55,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print(cruisename)
            
     if cruisename == "emb217":
-        upper_boundary = 1006.9 #1006.10 #1005.75
-        lower_boundary = 1007.9 #1006.6 #1006.25
+        upper_boundary = 1006.4 #1006.10 #1005.75
+        lower_boundary = 1008.5 #1006.6 #1006.25
     elif cruisename == "emb177":
-        upper_boundary = 1007.2 #1006.6 #1007.4
+        upper_boundary = 1006.9 #1006.6 #1007.4
         lower_boundary = 1008.2 #1007.6 #1007.9 
         
     density_axarr[0].axhspan(lower_boundary, upper_boundary, alpha=0.3, color='tab:red')
@@ -229,7 +229,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
 
             density_axarr[0].scatter(np.log10(eps_grid[profile,:]),eps_pot_density_grid[profile,:], c = color , cmap = "viridis", vmin = vmin , vmax = vmax, marker = ",", s= 1.4)           
-            image = density_axarr[1].scatter(oxygen_flux_BB_grid[profile,:],eps_pot_density_grid[profile,:], c = color, cmap = "viridis", vmin = vmin , vmax = vmax, marker = ",", s= 1.4)
+            image = density_axarr[1].scatter(oxygen_flux_Skif_grid[profile,:],eps_pot_density_grid[profile,:], c = color, cmap = "viridis", vmin = vmin , vmax = vmax, marker = ",", s= 1.4)
             oxygen_axarr[0].scatter(thesis.central_differences(eps_oxygen_sat_grid[profile,:]/thesis.central_differences(eps_depth)),eps_pot_density_grid[profile,:], c = color, cmap = "viridis", vmin = vmin , vmax = vmax, marker = ",", s= 1.4)
             image_oxy = oxygen_axarr[1].scatter(eps_pressure,eps_pot_density_grid[profile,:], c = color, cmap = "viridis", vmin = vmin , vmax = vmax, marker = ",", s= 1.4)
 

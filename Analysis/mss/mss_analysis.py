@@ -12,6 +12,17 @@
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
+#matplotlib preferences:
+SMALL_SIZE = 12
+MEDIUM_SIZE = 14
+BIGGER_SIZE = 16
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 import geopy.distance as geo
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import gsw 
@@ -66,6 +77,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #define the pictures
         f1, axarr1 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
         f2, axarr2 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
+        f3, axarr3 = plt.subplots(nrows = 3, ncols = 1, sharex = True, sharey = True)
         f4, axarr4 = plt.subplots(nrows = 1, ncols = 7, sharey = True)#, sharex = True, 
 
 
@@ -81,8 +93,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
  
 
         #calculate the viscosity (2 different formula)
-        eps_wiki_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_density_grid,"Wikipedia")
-        eps_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_density_grid)
+        eps_wiki_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_salinity_grid,eps_density_grid,"Wikipedia")
+        eps_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_salinity_grid,eps_density_grid, "default")
 
         #print("eps_viscosity_grid\n",np.shape(eps_viscosity_grid))
 
@@ -91,7 +103,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         eps_wiki_Reynolds_bouyancy_grid = eps_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
 
 
-        #A negative Reynolds bouyancy has no physical meaning, therefore get replaced by NaNs
+        #A negative Reynolds bouyancy has no physical meaning, therefore gets replaced by NaNs
         #These negative values occur through a negative squared bouyancy frequency
         eps_Reynolds_bouyancy_grid[eps_Reynolds_bouyancy_grid < 0] = np.nan 
         eps_wiki_Reynolds_bouyancy_grid[eps_wiki_Reynolds_bouyancy_grid < 0] = np.nan            
@@ -148,14 +160,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         img4_3b = axarr4[3].plot(eps_N_squared_grid[profile_index,:],eps_pressure, label = "eps grid")
 
 
-        img4_4 = axarr4[4].plot(eps_viscosity_grid[profile_index,:]*10**6,eps_pressure,label = "Ilker")
+        img4_4 = axarr4[4].plot(eps_viscosity_grid[profile_index,:]*10**6,eps_pressure,label = "default")
         img4_4b = axarr4[4].plot(eps_wiki_viscosity_grid[profile_index,:]*10**6,eps_pressure,"--",label = "Wikipedia")
         
         img4_5 = axarr4[5].plot(np.log10(eps_grid[profile_index,:]),eps_pressure, label = "eps grid")
-        img4_5a = axarr4[5].plot(np.log10(corrected_eps_grid[profile_index,:]),eps_pressure, label = "corrected/Ilker")     
+        img4_5a = axarr4[5].plot(np.log10(corrected_eps_grid[profile_index,:]),eps_pressure, label = "corrected/default")     
         img4_5b = axarr4[5].plot(np.log10(corrected_eps_wiki_grid[profile_index,:]),eps_pressure,label = "corrected/Wikipedia")
         
-        img4_6a = axarr4[6].plot(np.log10(eps_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "Ilker")
+        img4_6a = axarr4[6].plot(np.log10(eps_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "default")
         img4_6b = axarr4[6].plot(np.log10(eps_wiki_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "Wikipedia")
 
         
@@ -198,6 +210,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         cmap_RdBu = plt.get_cmap('RdBu_r')
         cmap_RdBu.set_bad(color = 'lightgrey')
  
+        cmap_density = plt.get_cmap('plasma_r')
+        cmap_density.set_bad(color = 'lightgrey')
+        
+        
         img1_0 = axarr1[0].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_grid.T,cmap = cmap_RdBu)
         img1_1 = axarr1[1].pcolormesh(plotmesh_longitude,interp_pressure,salinity_grid.T,cmap = cmap_RdBu)
         img1_2 = axarr1[2].pcolormesh(plotmesh_longitude,interp_pressure,consv_temperature_grid.T,cmap = cmap_RdBu)
@@ -209,7 +225,31 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9,cmap = cmap_hot)
         img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure,eps_Reynolds_bouyancy_grid.T, vmin = 0, vmax = 100,cmap = cmap_hot)
         
+        img3_0 = axarr3[0].pcolormesh(plotmesh_longitude,interp_pressure,pot_density_grid.T,cmap = cmap_density)
+        img3_1 = axarr3[1].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_sat_grid.T,cmap = cmap_RdBu)
+        img3_2 = axarr3[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10,cmap = cmap_hot)
         
+        
+        
+        density_steps = np.arange(np.nanmin(pot_density_grid),np.nanmax(pot_density_grid),0.4)
+        #compute isopycnals
+        for density_step in density_steps:
+            isopycnal = np.zeros(number_of_profiles)
+            for i in range(number_of_profiles):
+                iso_index = np.argmax(pot_density_grid[i,:] >= density_step)
+                
+                isopycnal[i] = interp_pressure[iso_index]
+                
+                if iso_index == (pot_density_grid[i,:].size -1):
+                    isopycnal[i] = np.nan
+                if iso_index == 0:            
+                    isopycnal[i] = np.nan
+
+
+            axarr3[0].plot(lon,isopycnal,"k")
+            axarr3[1].plot(lon,isopycnal,"k")
+            axarr3[2].plot(lon,isopycnal,"k")
+                                        
         #draw the calculated layers in the plot    
         axarr1[0].plot(lon,bathymetrie)
         axarr1[0].plot(lon,BBL,"g")
@@ -220,9 +260,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         axarr1[3].set_xlabel("Longitude")#("distance [km]")
         axarr2[3].set_xlabel("Longitude")
+        axarr3[2].set_xlabel(r"Longitude [$\degree$E]")
+        axarr3[0].set_ylabel("pressure [dbar]")
+        axarr3[1].set_ylabel("pressure [dbar]")
+        axarr3[2].set_ylabel("pressure [dbar]")
             
         f1.set_size_inches(18,10.5)
         f2.set_size_inches(18,10.5)
+        f3.set_size_inches(18,10.5)
         f4.set_size_inches(18,10.5)
 
         colorbar(img1_0).set_label(r"Oxygen [$\mu mol/kg$]") 
@@ -234,6 +279,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         colorbar(img2_1).set_label(r"$N^2$ $[1/s^2]$")
         colorbar(img2_2).set_label(r"log10($\epsilon$) $[m^2 s^{-3}]$")  
         colorbar(img2_3).set_label(r"$Re_b$")
+
+        colorbar(img3_0).set_label(r"pot density $\sigma$ [kg/$m^3$]")
+        colorbar(img3_1).set_label(r"oxygen saturation [%]")
+        colorbar(img3_2).set_label(r"log10($\epsilon$) $[m^2 s^{-3}]$") 
+        
 
         for i in range(4):
             if cruisename == "emb169":
@@ -264,21 +314,31 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         axarr1[0].invert_yaxis()
         axarr2[0].invert_yaxis()
+        if cruisename == "emb217":
+            axarr3[0].set_ylim((0,160))
+        else:
+            axarr3[0].set_ylim((0,135)) 
+        
+        axarr3[0].invert_yaxis()
         axarr4[0].invert_yaxis() 
 
         f1.suptitle(cruisename+" "+DATAFILENAME[:-4]+" Measurements")
         f2.suptitle(cruisename+" "+DATAFILENAME[:-4]+" Calculations")
+        f3.suptitle(cruisename+" "+DATAFILENAME[:-4])
         f4.suptitle(cruisename+" "+DATAFILENAME[:-4]+" Profile at Longitude "+str(lon[profile_index]))
 
         f1.tight_layout() 
-        f2.tight_layout() 
+        f2.tight_layout()
+        f3.tight_layout() 
         f4.tight_layout()      
         
+        f3.subplots_adjust(top=0.94)
         f4.subplots_adjust(top=0.92) 
         
         
         f1.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_Measurements")
         f2.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_calculations")
+        f3.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_transect", dpi = 300)
         f4.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_profiles")
 
         #close the pictures after saving
