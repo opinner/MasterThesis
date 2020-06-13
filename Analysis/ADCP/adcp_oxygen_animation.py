@@ -183,7 +183,7 @@ print(PME_index_tief,PME_depth_tief[PME_index_tief])
 #Load bathymetrie data
 #-------------------------   
 from PIL import Image
-im = Image.open('/home/ole/windows/Area_of_interest.tif')
+im = Image.open('/home/ole/windows/all_data/bathymetry_data/Area_of_interest.tif')
 #im.show()
 bathymetrie_array = np.array(im)
 ny, nx = bathymetrie_array.shape

@@ -39,7 +39,7 @@ def colorbar(mappable):
     
     
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169","/home/ole/share-windows/processed_mss/emb177"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169"]#,"/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
 averaging_intervals_borders = [20.55,20.62]
 #averaging_intervals_borders = np.linspace(20.48,20.7,9)
 number_of_intervals = len(averaging_intervals_borders)+1
@@ -88,10 +88,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         transect_name = DATAFILENAME[:-4]
     
         #skip the short "S206" transects
-        if transect_name[0:4] == "S106":
+        if cruisename == "emb217" and transect_name[0:4] == "S106":
             print(transect_name,"skipped")
             continue
             
+                
         print("\n",transect_name)
     
         #define the pictures
@@ -185,7 +186,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         print("Number of profiles:",number_of_profiles)
         
-        print(min(eps_pressure),max(eps_pressure),len(eps_pressure))
+        print(min(eps_pressure),max(eps_pressure),len(eps_pressure),np.nanmean(np.diff(eps_pressure)))
         
         eps_N_grid = np.sqrt(eps_N_squared_grid)
         #ozmidov scale

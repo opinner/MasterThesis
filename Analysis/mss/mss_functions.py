@@ -106,12 +106,32 @@ def load_clean_and_interpolate_data(datafile_path):
                 
             
     elif cruisename == "emb169":
-        pass
+            try:
+                oxygen_data = sio.loadmat("/home/ole/windows/all_data/emb169/deployments/ship/mss/TODL/merged/" +transect_name+"_TODL_merged_oxy.mat")
+            except OSError:
+                print("##########################################")
+                print(cruisename,transect_name,"is skipped!")
+                print("No oxygen data for this file")
+                print("##########################################")
+                return 0    
+            
+            #the following code block is written by Peter Holtermann and Copy pasted here
+
+            emb169_oxygen = []
+            emb169_oxygen_pressure = []
+            for icast in range(len(lon)):
+                oxy_p_temp   = oxygen_data['TODL_MSS']['P'][0,:][icast][0,:]
+                #mT  = oxygen_data['TODL_MSS']['mT'][0,:][icast][0,:]
+                #C   = oxygen_data['TODL_MSS']['C'][0,:][icast][0,:]
+                oxy  = oxygen_data['TODL_MSS']['oxy'][0,:][icast][:,4]
+                emb169_oxygen.append(oxy)
+                emb169_oxygen_pressure.append(oxy_p_temp)
     else:
         raise AssertionError
         
     eps = MIX_substructure["eps"][0]
     eps_pressure = MIX_substructure["P"][0]
+       
 
     number_of_profiles = np.shape(pressure)[-1]
 
@@ -244,15 +264,23 @@ def load_clean_and_interpolate_data(datafile_path):
 
     if cruisename == "emb217":
         oxygen_sat_grid =  np.copy(salinity_grid)
-    elif cruisename == "emb177":
+    elif cruisename == "emb177" or cruisename == "emb169": 
         oxygen_grid =  np.copy(salinity_grid)
     
     #check if the pressure points for every eps profile are the same
     for i in range(number_of_profiles):  
-        assert(np.all(eps_pressure[i].flatten() == eps_pressure[0].flatten()))
+        assert np.all(eps_pressure[i].flatten() == eps_pressure[0].flatten())
     #if yes the pressure can be coverted to a 1D array instead of a 2D array    
     eps_pressure = eps_pressure[0].flatten()
-        
+    
+    print(eps[i].flatten().size,eps_pressure.size, np.arange(1,160.5,0.5).size)
+    last_element = eps_pressure[-1]
+    if last_element < 160:
+        eps = np.pad(eps, (0,np.arange(0,160.5,0.5).size - eps_pressure.size), 'constant', constant_values= np.nan)
+        eps_pressure = np.append(eps_pressure,np.arange(last_element+0.5,160.5,0.5))
+    print(eps[i].flatten().size,eps_pressure.size, np.arange(1,160.5,0.5).size)
+    assert(eps[i].flatten().size == eps_pressure.size)    
+            
     #averaged of approx 5 depth bins (???)
     eps_grid = np.zeros((number_of_profiles,eps_pressure.size))
 
@@ -262,7 +290,7 @@ def load_clean_and_interpolate_data(datafile_path):
 
     if cruisename == "emb217":
         eps_oxygen_sat_grid = np.copy(eps_salinity_grid)
-    elif cruisename == "emb177":
+    elif cruisename == "emb177" or cruisename == "emb169": 
         eps_oxygen_grid = np.copy(eps_salinity_grid)
 
     #vector times matrix multiplication to get a 2D array, where every column is equal to eps_pressure
@@ -309,12 +337,16 @@ def load_clean_and_interpolate_data(datafile_path):
         elif cruisename == "emb177":
             oxygen_grid[i] = np.interp(interp_pressure,emb177_oxygen_pressure[i],emb177_oxygen[i],left=np.nan,right=np.nan)
             eps_oxygen_grid[i] = np.interp(eps_pressure,emb177_oxygen_pressure[i],emb177_oxygen[i].flatten(), left = np.nan, right = np.nan)  
-
+        elif cruisename == "emb169": 
+            oxygen_grid[i] = np.interp(interp_pressure,emb169_oxygen_pressure[i],emb169_oxygen[i],left=np.nan,right=np.nan)
+            eps_oxygen_grid[i] = np.interp(eps_pressure,emb169_oxygen_pressure[i],emb169_oxygen[i].flatten(), left = np.nan, right = np.nan)  
+            
+        
     if cruisename == "emb217":
         assert(np.shape(oxygen_sat_grid) == np.shape(salinity_grid))
         assert(np.shape(eps_oxygen_sat_grid) == np.shape(eps_salinity_grid))
         
-    if cruisename == "emb177":
+    if cruisename == "emb177" or cruisename == "emb169":
         assert(np.shape(oxygen_grid) == np.shape(salinity_grid))
         assert(np.shape(eps_oxygen_grid) == np.shape(eps_salinity_grid))
                     
@@ -351,11 +383,34 @@ def load_clean_and_interpolate_data(datafile_path):
     if cruisename == "emb217":
         #convert oxygen saturation to oxygen concentration (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
         oxygen_grid = oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
-        eps_oxygen_grid = oxygen_saturation_to_concentration(eps_oxygen_sat_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)     
+        eps_oxygen_grid = oxygen_saturation_to_concentration(eps_oxygen_sat_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid) 
+              
     elif cruisename == "emb177":
+        #scale the oxygen to be at 100% at the surface
+        maximum_concentration_grid = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
+        
+        correction_factor = np.ones((number_of_profiles,1))
+        
+        for profile in range(number_of_profiles):
+            for i in range(100):   
+                if np.isnan(oxygen_grid[profile,i]) or np.isnan(maximum_concentration_grid[profile,i]):
+                    continue
+                else:
+                    correction_factor[profile] = maximum_concentration_grid[profile,i]/oxygen_grid[profile,i]
+                    break
+                    
+        oxygen_grid = oxygen_grid * correction_factor
+        eps_oxygen_grid = eps_oxygen_grid * correction_factor
+        
         #convert oxygen concentration to oxygen saturation (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
         oxygen_sat_grid = oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
         eps_oxygen_sat_grid = oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)  
+    
+    elif cruisename == "emb169":
+        #convert oxygen concentration to oxygen saturation (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
+        oxygen_sat_grid = oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
+        eps_oxygen_sat_grid = oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)  
+    
     else:
         raise AssertionError
         
@@ -861,8 +916,12 @@ def correct_dissipation(dissipation_1D,Reb_1D, a = 1.3):
 def get_oxygen_flux_osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid):
     Gamma_Osborn_eps_grid = Osborn(eps_Reynolds_bouyancy_grid)
     turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
+
     #remove negative diffusivity 
     turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = np.nan
+    
+    #print(np.nanmean(turbulent_diffusivity_Osborn_grid),np.nanstd(turbulent_diffusivity_Osborn_grid))
+        
     oxygen_flux_osborn_grid = - turbulent_diffusivity_Osborn_grid[:,:] * central_differences(eps_oxygen_grid)/central_differences(eps_depth)
     #convert from m*micromol/(kg*s) to mmol/(m^2*d)
     oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)        
@@ -883,6 +942,9 @@ def get_oxygen_flux_skif(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,
     turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
     #remove negative diffusivity
     turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = np.nan
+    
+    #print(np.nanmean(turbulent_diffusivity_Skif_grid),np.nanstd(turbulent_diffusivity_Skif_grid))
+
     oxygen_flux_Skif_grid = - turbulent_diffusivity_Skif_grid[:,:] * central_differences(eps_oxygen_grid)/central_differences(eps_depth)
     #convert from m*micromol/(kg*s) to mmol/(m^2*d)
     oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)

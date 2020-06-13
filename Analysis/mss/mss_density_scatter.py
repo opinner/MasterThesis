@@ -32,8 +32,8 @@ import warnings
 warnings.filterwarnings('ignore')
     
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169",
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb177"]
-#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177"]
+#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb177"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169"]
 
 vmin = 20.47
 vmax = 20.7
@@ -60,7 +60,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     elif cruisename == "emb177":
         upper_boundary = 1006.9 #1006.6 #1007.4
         lower_boundary = 1008.2 #1007.6 #1007.9 
-        
+    elif cruisename == "emb169":
+        upper_boundary = 1006.5 
+        lower_boundary = 1008.6 
+            
     density_axarr[0].axhspan(lower_boundary, upper_boundary, alpha=0.3, color='tab:red')
     density_axarr[1].axhspan(lower_boundary, upper_boundary, alpha=0.3, color='tab:red')  
     oxygen_axarr[0].axhspan(lower_boundary, upper_boundary, alpha=0.3, color='tab:red')  
@@ -97,7 +100,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         if transect_name[0:4] == "S106":
             print(transect_name,"skipped")
             continue
-            
+        
+        #something is not correct with this measurement
+        if transect_name[0:4] == "TS13":
+            print(transect_name,"skipped")
+            continue
+                
         print("\n",transect_name)
         
         data = np.load(datafile_path)
@@ -135,6 +143,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             print(transect_name," is skipped, Error during loading data")
             continue
             
+        print(min(eps_pressure),max(eps_pressure),len(eps_pressure))
             
         """
         number_of_profiles              number of profiles/casts in the transect
@@ -276,7 +285,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
     density_axarr[0].set_xlabel(r"log10($\epsilon$) [m$^2$ s$^{-3}$]") 
 
-    density_axarr[1].set_xlabel(r"FO [mmol/(m$^2$d]")
+    density_axarr[1].set_xlabel(r"Shih oxygen flux [mmol/(m$^2$d]")
     density_axarr[0].set_ylabel(r"potential density $\sigma$ [kg/m$^3$]")
 
                

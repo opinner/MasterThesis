@@ -29,10 +29,10 @@ import matplotlib.patches as mpatches
 import warnings
 warnings.filterwarnings('ignore')
     
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
-#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
+#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
 
-rolling_window_size = 16
+rolling_window_size = 12
 
 flux_through_halocline = True #set to True if the flux trough the Halocline instead of the BBL should be computed 
 density_interval = True
@@ -62,7 +62,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     total_number_of_fluxes = 0
     number_of_zero_flux = 0
     amount_of_missing_values = 0
-    total_number_of_valid_profiles = 0    
+    total_number_of_chosen_profiles = 0    
+    total_number_of_valid_profiles = 0
     
     path = pathlib.Path(FOLDERNAME)
     DATAFILENAMES = []
@@ -75,10 +76,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print(cruisename)
     
     if cruisename == "emb217":
-        upper_bound_halocline_as_density = 1006.9 #1005.75
-        lower_bound_halocline_as_density = 1007.9 #1006.25
+        upper_bound_halocline_as_density = 1006.4 #1005.75
+        lower_bound_halocline_as_density = 1008.5 #1006.25
     elif cruisename == "emb177":
-        upper_bound_halocline_as_density = 1007.2 #1007.4
+        upper_bound_halocline_as_density = 1006.9 #1007.4
         lower_bound_halocline_as_density = 1008.2 #1007.9   
     
 
@@ -287,6 +288,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     print("Halocline is too high!")
                     outlier_count += 1
                     continue
+            
+            total_number_of_valid_profiles+=1
                                     
             #if the water colum portion contains only nan values, save only the bathymetrie then skip it
             #useful if the interval to average over is deeper than the current bathymetrie
@@ -344,7 +347,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             if len(longitude_list) == 0:    
                 dissipation_list.append(eps_grid[profile,from_index:to_index])
                 BB_flux_list.append(oxygen_flux_BB_grid[profile,from_index:to_index])
-                #Shih_flux_list.insert(list_position,)
+                Shih_flux_list.append(oxygen_flux_Skif_grid[profile,from_index:to_index])
                 #Osborn_flux_list.insert(list_position,)
                 longitude_list.append(lon[profile])
             
@@ -354,7 +357,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 #Sort the current profile into the list            
                 dissipation_list.insert(list_position,eps_grid[profile,from_index:to_index])
                 BB_flux_list.insert(list_position,oxygen_flux_BB_grid[profile,from_index:to_index])
-                #Shih_flux_list.insert(list_position,)
+                Shih_flux_list.insert(list_position,oxygen_flux_Skif_grid[profile,from_index:to_index])
                 #Osborn_flux_list.insert(list_position,)
                 longitude_list.insert(list_position,lon[profile])
 
@@ -362,7 +365,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             #print(longitude_list)        
             assert(np.all(longitude_list == sorted(longitude_list)))
 
-            total_number_of_valid_profiles+=1
+            total_number_of_chosen_profiles+=1
 
         """
         print("removed",outlier_count,"profiles as outliers")
@@ -408,24 +411,24 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     interval_list = np.asarray(interval_list)
     
     #compute mean and std over the saved intervals
-    mean_flux = [None] * total_number_of_valid_profiles
-    median_flux = [None] * total_number_of_valid_profiles
-    upper_percentile_flux = [None] * total_number_of_valid_profiles
-    lower_percentile_flux = [None] * total_number_of_valid_profiles
-    second_upper_percentile_flux = [None] * total_number_of_valid_profiles
-    second_lower_percentile_flux = [None] * total_number_of_valid_profiles
+    mean_flux = [None] * total_number_of_chosen_profiles
+    median_flux = [None] * total_number_of_chosen_profiles
+    upper_percentile_flux = [None] * total_number_of_chosen_profiles
+    lower_percentile_flux = [None] * total_number_of_chosen_profiles
+    second_upper_percentile_flux = [None] * total_number_of_chosen_profiles
+    second_lower_percentile_flux = [None] * total_number_of_chosen_profiles
   
     #bathymetrie_mean = [None] * number_of_intervals
     #bathymetrie_percentile = [None] * number_of_intervals
     
-    log_mean_dissipation = [None] * total_number_of_valid_profiles
-    arith_mean_dissipation = [None] * total_number_of_valid_profiles
-    median_dissipation = [None] * total_number_of_valid_profiles
-    lower_percentile_dissip = [None] * total_number_of_valid_profiles
-    upper_percentile_dissip = [None] * total_number_of_valid_profiles
+    log_mean_dissipation = [None] * total_number_of_chosen_profiles
+    arith_mean_dissipation = [None] * total_number_of_chosen_profiles
+    median_dissipation = [None] * total_number_of_chosen_profiles
+    lower_percentile_dissip = [None] * total_number_of_chosen_profiles
+    upper_percentile_dissip = [None] * total_number_of_chosen_profiles
 
-    second_lower_percentile_dissip = [None] * total_number_of_valid_profiles
-    second_upper_percentile_dissip = [None] * total_number_of_valid_profiles
+    second_lower_percentile_dissip = [None] * total_number_of_chosen_profiles
+    second_upper_percentile_dissip = [None] * total_number_of_chosen_profiles
 
     """
     mean_dissipation_med = [None] * number_of_profiles
@@ -439,8 +442,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     """
     
     #compute statistical properties of the saved values
-    for index in range(total_number_of_valid_profiles):
-        temp_flux = BB_flux_list[index]
+    for index in range(total_number_of_chosen_profiles):
+        temp_flux = Shih_flux_list[index]
         number_of_fluxes_over_the_threshold += np.sum(np.abs(temp_flux)>maximum_reasonable_flux)
         number_of_zero_flux += np.sum(np.abs(temp_flux)==0)
         amount_of_missing_values += np.sum(np.isnan(temp_flux))
@@ -449,13 +452,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         temp_flux[np.abs(temp_flux)>maximum_reasonable_flux] = np.nan
     
-        mean_flux[index] = np.nanmean(BB_flux_list[index])
-        median_flux[index] = np.nanmedian(BB_flux_list[index])
+        mean_flux[index] = np.nanmean(temp_flux)
+        median_flux[index] = np.nanmedian(temp_flux)
         
-        upper_percentile_flux[index] = np.nanpercentile(BB_flux_list[index], flux_percentile)
-        lower_percentile_flux[index] = np.nanpercentile(BB_flux_list[index], 100-flux_percentile)
-        second_upper_percentile_flux[index] = np.nanpercentile(BB_flux_list[index], second_flux_percentile)
-        second_lower_percentile_flux[index] = np.nanpercentile(BB_flux_list[index], 100-second_flux_percentile)
+        upper_percentile_flux[index] = np.nanpercentile(temp_flux, flux_percentile)
+        lower_percentile_flux[index] = np.nanpercentile(temp_flux, 100-flux_percentile)
+        second_upper_percentile_flux[index] = np.nanpercentile(temp_flux, second_flux_percentile)
+        second_lower_percentile_flux[index] = np.nanpercentile(temp_flux, 100-second_flux_percentile)
                         
         """        
         mean_min_flux[index] = np.nanmean(oxygen_flux_statistic[index][:,0],axis=0)
@@ -476,26 +479,26 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     
                        
                            
-    rolling_mean_flux = [None] * total_number_of_valid_profiles
-    rolling_median_flux = [None] * total_number_of_valid_profiles
-    rolling_upper_percentile_flux = [None] * total_number_of_valid_profiles
-    rolling_lower_percentile_flux = [None] * total_number_of_valid_profiles
-    rolling_second_upper_percentile_flux = [None] * total_number_of_valid_profiles
-    rolling_second_lower_percentile_flux = [None] * total_number_of_valid_profiles
+    rolling_mean_flux = [None] * total_number_of_chosen_profiles
+    rolling_median_flux = [None] * total_number_of_chosen_profiles
+    rolling_upper_percentile_flux = [None] * total_number_of_chosen_profiles
+    rolling_lower_percentile_flux = [None] * total_number_of_chosen_profiles
+    rolling_second_upper_percentile_flux = [None] * total_number_of_chosen_profiles
+    rolling_second_lower_percentile_flux = [None] * total_number_of_chosen_profiles
     
-    rolling_log_mean_dissipation = [None] * total_number_of_valid_profiles
-    rolling_arith_mean_dissipation = [None] * total_number_of_valid_profiles
-    rolling_median_dissipation = [None] * total_number_of_valid_profiles
-    rolling_lower_percentile_dissip = [None] * total_number_of_valid_profiles
-    rolling_upper_percentile_dissip = [None] * total_number_of_valid_profiles
-    rolling_second_upper_percentile_dissip = [None] * total_number_of_valid_profiles
-    rolling_second_lower_percentile_dissip = [None] * total_number_of_valid_profiles
+    rolling_log_mean_dissipation = [None] * total_number_of_chosen_profiles
+    rolling_arith_mean_dissipation = [None] * total_number_of_chosen_profiles
+    rolling_median_dissipation = [None] * total_number_of_chosen_profiles
+    rolling_lower_percentile_dissip = [None] * total_number_of_chosen_profiles
+    rolling_upper_percentile_dissip = [None] * total_number_of_chosen_profiles
+    rolling_second_upper_percentile_dissip = [None] * total_number_of_chosen_profiles
+    rolling_second_lower_percentile_dissip = [None] * total_number_of_chosen_profiles
             
     max_longitude_gap_index = np.argmax(np.diff(longitude_list))
     max_longitude_gap = np.diff(longitude_list)[max_longitude_gap_index]
     print("LONGITUDE GAP",max_longitude_gap)
     #compute rolling average
-    for index in range(total_number_of_valid_profiles):
+    for index in range(total_number_of_chosen_profiles):
     
         #controls that the mean is not computed over too distant points
         if max_longitude_gap > 0.01:
@@ -584,8 +587,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     else:
         unit = "pressure"
     np.savez("/home/ole/Thesis/Analysis/mss/data/"+cruisename+"_bathymetry_"+unit, longitude = bathymetry_longitude_list , bathymetry = bathymetry_list, interval = interval_list, unit = unit)
-                
-    print("total_number_of_valid_profiles",total_number_of_valid_profiles)     
+    
+    print("total_number_of_valid_profiles",total_number_of_valid_profiles)             
+    print("total_number_of_chosen_profiles",total_number_of_chosen_profiles)     
     print("number_of_fluxes_over_the_threshold\ttotal_number_of_fluxes\tratio")
     print("NaN",amount_of_missing_values,total_number_of_fluxes,100*amount_of_missing_values/total_number_of_fluxes,"%")
     print("0",number_of_zero_flux,total_number_of_fluxes,100*number_of_zero_flux/total_number_of_fluxes,"%")
@@ -661,13 +665,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     if flux_through_halocline == True:
         if density_interval == True:
-            f_flux.suptitle(cruisename+": rolling mean BB oxygen flux (over "+str(rolling_window_size)+" points) around the halocline ("+str(upper_bound_halocline_as_density)+r"< $\sigma$ < "+str(lower_bound_halocline_as_density)+r" kg/m$^3$)") 
+            f_flux.suptitle(cruisename+": rolling mean Shih oxygen flux (over "+str(rolling_window_size)+" points) around the halocline ("+str(upper_bound_halocline_as_density)+r"< $\sigma$ < "+str(lower_bound_halocline_as_density)+r" kg/m$^3$)") 
             f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_running_mean_halocline_flux_density")           
         else:       
-            f_flux.suptitle(cruisename+": rolling mean BB oxygen flux (over "+str(rolling_window_size)+" points) around the halocline ("+str(upper_bound_halocline_in_db)+"-"+str(lower_bound_halocline_in_db)+"dbar)") 
+            f_flux.suptitle(cruisename+": rolling mean Shih oxygen flux (over "+str(rolling_window_size)+" points) around the halocline ("+str(upper_bound_halocline_in_db)+"-"+str(lower_bound_halocline_in_db)+"dbar)") 
             f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_running_mean_halocline_flux_db")
     else:
-        f_flux.suptitle(cruisename+": rolling mean BB oxygen flux in the lowermost "+str(height_above_ground)+" meters above ground")
+        f_flux.suptitle(cruisename+": rolling mean Shih oxygen flux in the lowermost "+str(height_above_ground)+" meters above ground")
         f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_running_mean_BBL_flux")
 
     
@@ -702,7 +706,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
                 
     dissip_axarr.set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
-    dissip_axarr.set_xlabel("longitude [degree]")       
+    dissip_axarr.set_xlabel(r"longitude [$\degree$E]")       
     """      
     bathymetrie_label =  mpatches.Patch(color='lightgrey', label='bathymetrie')
     dissip_mean_label = mlines.Line2D([], [], color= "k", label='mean dissipation $\epsilon$') #tab:blue

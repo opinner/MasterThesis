@@ -22,7 +22,7 @@ def coord2float(degrees,minutes):
 def coord2float2(degrees,minutes):
     return degrees + (minutes)/60
     
-dset = CDF.Dataset("/home/ole/windows/all_data/iowtopo2_rev03.nc")
+dset = CDF.Dataset("/home/ole/windows/all_data/bathymetry_data/iowtopo2_rev03.nc")
 #print(dset)
 
 z_topo = dset.variables["Z_WATER"]
@@ -60,7 +60,7 @@ print("emb217_flach",emb217_flach)
 emb217_tief = [57.3200,20.600]
 print("emb217_tief",emb217_tief)
 
-aspect_ratio = XT_I.size/YT_J.size
+#aspect_ratio = XT_I.size/YT_J.size
 
 distance = geo.distance((emb169_tief[0],emb169_tief[1]),(emb169_flach[0],emb169_flach[1])).km
 print("distance emb169 tief/flach in km = ",distance)

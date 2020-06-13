@@ -44,7 +44,7 @@ def colorbar(mappable):
 #contains the MSS Data
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb217_mss_data","/home/ole/windows/emb177_mss_data/","/home/ole/windows/emb169_mss_data/MSS055/matlab","/home/ole/windows/emb169_mss_data/MSS038/matlab/"]
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb177_mss_data/","/home/ole/windows/emb217_mss_data"]
-#LIST_OF_MSS_FOLDERS = ["/home/ole/share-windows/emb217_mss_data"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb169_mss_data/MSS055/matlab","/home/ole/windows/emb169_mss_data/MSS038/matlab/"]
  
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     path = pathlib.Path(FOLDERNAME)
@@ -56,6 +56,16 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     print(cruisename)    
     
+    if cruisename == "emb217":
+        upper_bound_halocline_as_density = 1006.4
+        lower_bound_halocline_as_density = 1008.5
+    elif cruisename == "emb177":
+        upper_bound_halocline_as_density = 1006.9
+        lower_bound_halocline_as_density = 1008.2
+    elif cruisename == "emb169":
+        upper_bound_halocline_as_density = 1006.9
+        lower_bound_halocline_as_density = 1008.2
+                
     #go through all files of specified folder and select only files ending with .mat
     for p in path.iterdir():
         all_files_name = str(p.parts[-1])
@@ -68,6 +78,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     for DATAFILENAME in DATAFILENAMES:
         datafile_path = FOLDERNAME+"/"+DATAFILENAME
         
+        #skip this filename, not what thsi program expects
         if DATAFILENAME == "TS11_TODL_merged.mat":
             continue
             
@@ -126,7 +137,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
           
         ##########################################################################################################################################################  
           
-        np.savez("/home/ole/windows/processed_mss/"+cruisename+"/"+transect_name ,number_of_profiles = number_of_profiles, lat = lat,lon = lon,distance = distance, bathymetrie = bathymetrie,list_of_bathymetrie_indices = list_of_bathymetrie_indices,BBL = BBL,list_of_BBL_indices = list_of_BBL_indices,BBL_range = BBL_range,list_of_BBL_range_indices = list_of_BBL_range_indices, interp_pressure = interp_pressure,oxygen_grid = oxygen_grid,salinity_grid = salinity_grid,consv_temperature_grid = consv_temperature_grid, density_grid = density_grid, pot_density_grid = pot_density_grid, eps_pressure = eps_pressure,eps_grid = eps_grid, corrected_eps_wiki_grid = corrected_eps_wiki_grid, corrected_eps_grid = corrected_eps_grid, eps_salinity_grid = eps_salinity_grid, eps_consv_temperature_grid = eps_consv_temperature_grid, eps_oxygen_grid = eps_oxygen_grid, eps_oxygen_sat_grid = eps_oxygen_sat_grid, eps_N_squared_grid = eps_N_squared_grid,eps_density_grid = eps_density_grid, eps_pot_density_grid = eps_pot_density_grid, eps_Reynolds_bouyancy_grid =  eps_Reynolds_bouyancy_grid, corrected_eps_Reynolds_bouyancy_grid = corrected_eps_Reynolds_bouyancy_grid,  eps_wiki_Reynolds_bouyancy_grid = eps_wiki_Reynolds_bouyancy_grid, corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_Reynolds_bouyancy_grid)
+        np.savez("/home/ole/windows/processed_mss/"+cruisename+"/"+transect_name ,number_of_profiles = number_of_profiles, lat = lat,lon = lon,distance = distance, bathymetrie = bathymetrie,list_of_bathymetrie_indices = list_of_bathymetrie_indices,BBL = BBL,list_of_BBL_indices = list_of_BBL_indices,BBL_range = BBL_range,list_of_BBL_range_indices = list_of_BBL_range_indices, interp_pressure = interp_pressure,oxygen_grid = oxygen_grid, oxygen_sat_grid = oxygen_sat_grid, salinity_grid = salinity_grid,consv_temperature_grid = consv_temperature_grid, density_grid = density_grid, pot_density_grid = pot_density_grid, eps_pressure = eps_pressure,eps_grid = eps_grid, corrected_eps_wiki_grid = corrected_eps_wiki_grid, corrected_eps_grid = corrected_eps_grid, eps_salinity_grid = eps_salinity_grid, eps_consv_temperature_grid = eps_consv_temperature_grid, eps_oxygen_grid = eps_oxygen_grid, eps_oxygen_sat_grid = eps_oxygen_sat_grid, eps_N_squared_grid = eps_N_squared_grid,eps_density_grid = eps_density_grid, eps_pot_density_grid = eps_pot_density_grid, eps_Reynolds_bouyancy_grid =  eps_Reynolds_bouyancy_grid, corrected_eps_Reynolds_bouyancy_grid = corrected_eps_Reynolds_bouyancy_grid,  eps_wiki_Reynolds_bouyancy_grid = eps_wiki_Reynolds_bouyancy_grid, corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_Reynolds_bouyancy_grid)
         
         
         ##########################################################################################################################################################
@@ -222,17 +233,17 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         img2_0 = axarr2[0].pcolormesh(plotmesh_longitude,interp_pressure,pot_density_grid.T,cmap = cmap_RdBu)
         img2_1 = axarr2[1].pcolormesh(plotmesh_longitude,eps_pressure,eps_N_squared_grid.T,vmin = 0, vmax = 0.015,cmap = cmap_RdBu)
-        img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9,cmap = cmap_hot)
+        img2_2 = axarr2[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9.5,cmap = cmap_hot)
         img2_3 = axarr2[3].pcolormesh(plotmesh_longitude,eps_pressure,eps_Reynolds_bouyancy_grid.T, vmin = 0, vmax = 100,cmap = cmap_hot)
         
         img3_0 = axarr3[0].pcolormesh(plotmesh_longitude,interp_pressure,pot_density_grid.T,cmap = cmap_density)
         img3_1 = axarr3[1].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_sat_grid.T,cmap = cmap_RdBu)
-        img3_2 = axarr3[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -10,cmap = cmap_hot)
+        img3_2 = axarr3[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9,cmap = cmap_hot)
         
         
         
         density_steps = np.arange(np.nanmin(pot_density_grid),np.nanmax(pot_density_grid),0.4)
-        #compute isopycnals
+        #compute and plot isopycnals
         for density_step in density_steps:
             isopycnal = np.zeros(number_of_profiles)
             for i in range(number_of_profiles):
@@ -249,6 +260,25 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             axarr3[0].plot(lon,isopycnal,"k")
             axarr3[1].plot(lon,isopycnal,"k")
             axarr3[2].plot(lon,isopycnal,"k")
+        
+       
+        #compute and plot halocline boundaries
+        for density_step in [upper_bound_halocline_as_density, lower_bound_halocline_as_density]:
+            isopycnal = np.zeros(number_of_profiles)
+            for i in range(number_of_profiles):
+                iso_index = np.argmax(pot_density_grid[i,:] >= density_step)
+                
+                isopycnal[i] = interp_pressure[iso_index]
+                
+                if iso_index == (pot_density_grid[i,:].size -1):
+                    isopycnal[i] = np.nan
+                if iso_index == 0:            
+                    isopycnal[i] = np.nan
+
+
+            axarr3[0].plot(lon,isopycnal,"g",lw = 4)
+            axarr3[1].plot(lon,isopycnal,"g",lw = 4)
+            axarr3[2].plot(lon,isopycnal,"g",lw = 4)
                                         
         #draw the calculated layers in the plot    
         axarr1[0].plot(lon,bathymetrie)
