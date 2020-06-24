@@ -30,7 +30,7 @@ import warnings
 warnings.filterwarnings('ignore')
     
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169"]#,"/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
 
 rolling_window_size = 12
 
@@ -81,7 +81,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     elif cruisename == "emb177":
         upper_bound_halocline_as_density = 1006.9 #1007.4
         lower_bound_halocline_as_density = 1008.2 #1007.9   
-    
+    elif cruisename == "emb169":
+        upper_bound_halocline_as_density = 1006.5 
+        lower_bound_halocline_as_density = 1008.6     
 
     dissipation_list = []
     BB_flux_list = []
@@ -114,7 +116,16 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         if transect_name[0:4] == "S106":
             print(transect_name,"skipped")
             continue
-            
+        
+        #something is not correct with this measurement
+        if cruisename == "emb169" and transect_name[0:4] == "TS13":
+            print(transect_name,"skipped, measurement looks wrong")
+            continue
+        
+        #if cruisename == "emb169" and transect_name[0:4] in ["TS111","TS113","TS113","TS114","TS115",]:
+        #    print(transect_name,"skipped, measurement looks wrong")
+        #    continue
+                        
         print("\n",transect_name)
             
         
@@ -650,10 +661,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     bathymetrie_label =  mpatches.Patch(color='lightgrey', label='bathymetry')
     flux_axarr.legend(handles=[bathymetrie_label]) #loc=8
 
-    flux_axarr.set_ylim((-20,1))
+    #flux_axarr.set_ylim((-20,1))
     if cruisename == "emb177":
         flux_axarr.set_ylim((-50,1))    
-            
+    elif cruisename == "emb169":
+        pass
+        #flux_axarr.set_ylim((-50,1))  
+                
     flux_axarr.set_xlabel(r"longitude [$\degree$]")    
     flux_axarr.set_ylabel(r"oxygen flux [mmol/(m$^2$*d]")
     flux_axarr.legend()

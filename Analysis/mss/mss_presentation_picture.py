@@ -30,7 +30,7 @@ import warnings
 warnings.filterwarnings('ignore')
     
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb177"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb169"]
 
 rolling_window_size = 12
 
@@ -98,7 +98,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     elif cruisename == "emb177":
         upper_bound_halocline_as_density = 1006.9 #1006.9
         lower_bound_halocline_as_density = 1008.2 #1007.9   
-    
+    elif cruisename == "emb169":
+        upper_bound_halocline_as_density = 1006.5 
+        lower_bound_halocline_as_density = 1008.6    
 
     dissipation_list = []
     BB_flux_list = []
@@ -132,6 +134,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             print(transect_name,"skipped")
             continue
             
+        #something is not correct with this measurement
+        if cruisename == "emb169" and transect_name[0:4] == "TS13":
+            print(transect_name,"skipped, measurement looks wrong")
+            continue
+                
         print("\n",transect_name)
             
         
@@ -382,14 +389,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 Osborn_flux_list.insert(list_position,oxygen_flux_Osborn_grid[profile,from_index:to_index])
                 longitude_list.insert(list_position,lon[profile])
 
-
-            #print(longitude_list)        
+    
             assert(np.all(longitude_list == sorted(longitude_list)))
 
             total_number_of_valid_profiles+=1
 
         
     ###########################################################################################################################
+    #print(len(longitude_list))
     assert(len(longitude_list) != 0)
     assert(np.all(longitude_list == sorted(longitude_list)))
     assert(np.all(bathymetry_longitude_list == sorted(bathymetry_longitude_list)))        
@@ -578,7 +585,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     ##################################################################################################################################
     ##################################################################################################################################     
         
-        
+    if cruisename == "emb169":
+        color = "tab:green"
+        label_name = "spring cruise" 
+                
     if cruisename == "emb177":
         color = "tab:blue"
         label_name = "winter cruise" 
@@ -664,15 +674,17 @@ min_flux_label =  mpatches.Patch(color='tab:blue', alpha = 0.6, label='upwards f
 second_max_flux_label =  mpatches.Patch(color='tab:green', alpha = 0.4,label='downwards flux '+str(second_flux_percentile)+"% percentile")
 second_min_flux_label =  mpatches.Patch(color='tab:blue', alpha = 0.4, label='upwards flux '+str(second_flux_percentile)+"% percentile")
 """
+
+emb169_label = mpatches.Patch(color='tab:green', label='spring cruise')
 emb177_label = mpatches.Patch(color='tab:blue', label='winter cruise')
 emb217_label = mpatches.Patch(color='tab:red', label='summer cruise')
 Osborn_label = mlines.Line2D([], [], ls = "-.", lw = 2.5, c = "k", label = "Osborn oxygen flux")
 Shih_label = mlines.Line2D([], [], ls = "-", lw = 2.5, c = "k", label = "Shih oxygen flux")
 
-flux_axarr[0].legend(handles=[emb217_label,emb177_label,Osborn_label,Shih_label],loc = "upper left")
+flux_axarr[0].legend(handles=[emb217_label,emb177_label,emb169_label,Osborn_label,Shih_label],loc = "lower left")
  
 bathymetrie_label =  mpatches.Patch(color='lightgrey', label='bathymetry')
-flux_axarr[1].legend(loc = "upper left")
+flux_axarr[1].legend(loc = "lower left")
 
 
 flux_axarr[0].set_ylim((-50,1))    
@@ -686,7 +698,7 @@ f_flux.tight_layout()
 f_flux.subplots_adjust(top=0.94)
 
 props = dict(boxstyle='square', facecolor = "white")
-flux_axarr[1].text(0.7, 0.2, textstr, transform=flux_axarr[1].transAxes, fontsize=14,verticalalignment='top', bbox=props, multialignment = "right")
+flux_axarr[1].text(0.7, 0.05, textstr, transform=flux_axarr[1].transAxes, fontsize=14,verticalalignment='bottom', bbox=props, multialignment = "right")
 
 f_flux.suptitle("rolling mean oxygen flux (over "+str(rolling_window_size)+" points) around the halocline")
 f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/flux_presentation", dpi = 300)           
@@ -708,7 +720,7 @@ dissip_axarr.legend(handles=[dissip_mean_label,dissip_median_label,dissip_percen
 #f_dissip.suptitle(cruisename+": mean dissipation around the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
 
 dissip_axarr[0].legend(loc = "upper left")
-dissip_axarr[1].legend(loc = "upper left")
+dissip_axarr[1].legend(loc = "lower left")
 
 f_dissip.set_size_inches(16,10.5)
 f_dissip.tight_layout() 
@@ -716,7 +728,7 @@ f_dissip.subplots_adjust(top=0.94)
  
     
 props = dict(boxstyle='square', facecolor = "white")
-dissip_axarr[1].text(0.7, 0.2, textstr, transform=dissip_axarr[1].transAxes, fontsize=14,verticalalignment='top', bbox=props, multialignment = "right")
+dissip_axarr[1].text(0.7, 0.05, textstr, transform=dissip_axarr[1].transAxes, fontsize=14,verticalalignment='bottom', bbox=props, multialignment = "right")
         
 f_dissip.suptitle("rolling mean dissipation (over "+str(rolling_window_size)+" points) around the halocline")
 f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/dissip_presentation", dpi = 300)

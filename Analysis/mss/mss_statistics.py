@@ -89,10 +89,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
         #skip the short "S206" transects
         if cruisename == "emb217" and transect_name[0:4] == "S106":
-            print(transect_name,"skipped")
+            print(transect_name,"skipped, loop in the transect")
             continue
             
-                
+        #something is not correct with this measurement
+        if cruisename == "emb169" and transect_name[0:4] == "TS13":
+            print(transect_name,"skipped, measurement looks wrong")
+            continue
+                    
         print("\n",transect_name)
     
         #define the pictures

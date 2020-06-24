@@ -273,13 +273,18 @@ def load_clean_and_interpolate_data(datafile_path):
     #if yes the pressure can be coverted to a 1D array instead of a 2D array    
     eps_pressure = eps_pressure[0].flatten()
     
-    print(eps[i].flatten().size,eps_pressure.size, np.arange(1,160.5,0.5).size)
+    print(eps[i].flatten().size,eps_pressure.size, np.arange(1,160.5,0.5).size, np.arange(1,160.5,0.5).size - eps_pressure.size)
+    print(np.shape(eps),np.shape(eps[0]))
+    
+    
+    desired_pressure_array = np.arange(1,160.5,0.5) #stems from the orginal matlab script that process the raw MSS data
     last_element = eps_pressure[-1]
+    old_size = eps_pressure.size
     if last_element < 160:
-        eps = np.pad(eps, (0,np.arange(0,160.5,0.5).size - eps_pressure.size), 'constant', constant_values= np.nan)
+        for index,element in enumerate(eps):
+            eps[index] = np.pad(eps[index], ((0,desired_pressure_array.size - eps_pressure.size),(0,0)), 'constant', constant_values= np.nan)
         eps_pressure = np.append(eps_pressure,np.arange(last_element+0.5,160.5,0.5))
-    print(eps[i].flatten().size,eps_pressure.size, np.arange(1,160.5,0.5).size)
-    assert(eps[i].flatten().size == eps_pressure.size)    
+    assert(eps[0].flatten().size == eps_pressure.size)    
             
     #averaged of approx 5 depth bins (???)
     eps_grid = np.zeros((number_of_profiles,eps_pressure.size))
