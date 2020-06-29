@@ -39,14 +39,13 @@ warnings.filterwarnings('ignore')
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"],"/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
 
-rolling_window_size = 10
-
 maximum_reasonable_flux = 500 #float('Inf') #200 #Fluxes above this value will be discarded
 acceptable_slope = 2 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
 
 density_axis = np.linspace(1004,1010.5,20) #maybe change to a non equidistant array?
 
-
+averaging_intervals_borders = [20.55,20.62]
+averaging_intervals_borders = np.linspace(20.48,20.7,4)
  
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     number_of_fluxes_over_the_threshold = 0
@@ -66,18 +65,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     print(cruisename)
     
-    """
-    if cruisename == "emb217":
-        upper_bound_halocline_as_density = 1006.4 #1005.75
-        lower_bound_halocline_as_density = 1008.5 #1006.25
-    elif cruisename == "emb177":
-        upper_bound_halocline_as_density = 1006.9 #1007.4
-        lower_bound_halocline_as_density = 1008.2 #1007.9   
-    elif cruisename == "emb169":
-        pass
-        #upper_bound_halocline_as_density = 1006.9 #1007.4
-        #lower_bound_halocline_as_density = 1008.2 #1007.9  
-    """       
+     
 
     pressure_list = []
     dissipation_list = []
@@ -86,6 +74,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     Osborn_flux_list = []
     longitude_list = []
     bathymetry_list = []
+    temperature_list = []
+    salinity_list = []
+    oxygen_sat_list = []
+    
+    
     
     #go through all files of specified folder and select only files ending with .mat
     for p in path.iterdir():
@@ -134,6 +127,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             eps_consv_temperature_grid = data["eps_consv_temperature_grid"]
             eps_oxygen_sat_grid = data["eps_oxygen_sat_grid"]
             eps_oxygen_grid = data["eps_oxygen_grid"] 
+            eps_salinity_grid = data["eps_salinity_grid"] 
             
             eps_N_squared_grid = data["eps_N_squared_grid"]
             eps_density_grid = data["eps_density_grid"]
@@ -227,18 +221,27 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         
             number_of_bins = density_axis.size
+            
+            #collects all values in a certain density interval
             density_bins = [ [] for _ in range(number_of_bins) ]
             dissipation_density_bins = [ [] for _ in range(number_of_bins) ]
             Shih_flux_density_bins = [ [] for _ in range(number_of_bins) ]
             Osborn_flux_density_bins = [ [] for _ in range(number_of_bins) ]
             pressure_density_bins = [ [] for _ in range(number_of_bins) ]
-        
+            salinity_density_bins = [ [] for _ in range(number_of_bins) ]
+            temperature_density_bins = [ [] for _ in range(number_of_bins) ]
+            oxygen_sat_density_bins = [ [] for _ in range(number_of_bins) ]
+                                            
+            #collects only the mean in a certain density interval
             iso_Osborn_flux = []
             iso_Shih_flux = []
             iso_pressure = []
             iso_density = []
             iso_dissipation = []
-        
+            iso_temperature = []
+            iso_salinity = []
+            iso_oxygen_sat = []
+            
             #if the current profile is too short, skip it
             if profile in list_of_short_profiles:
                 print(str(lon[profile])+": short profile")
@@ -273,9 +276,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     print("Halocline is too high!")
                     outlier_count += 1
                     continue
-            
-            total_number_of_valid_profiles+=1
-                                    
+                                              
    
            
             #sort the profile into the density bins
@@ -299,6 +300,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                         pressure_density_bins[bin_number].append(eps_pressure[value_index])
                         density_bins[bin_number].append(eps_pot_density_grid[profile,value_index])
                         dissipation_density_bins[bin_number].append(eps_grid[profile,value_index])
+                        salinity_density_bins[bin_number].append(eps_salinity_grid[profile,value_index])
+                        temperature_density_bins[bin_number].append(eps_consv_temperature_grid[profile,value_index])
+                        oxygen_sat_density_bins[bin_number].append(eps_oxygen_sat_grid[profile,value_index])
+            
                         
             #average the values inside the density bins
             for bin_index in range(len(density_bins)):
@@ -310,14 +315,20 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     iso_Osborn_flux.append(np.nan)
                     iso_pressure.append(np.nan)
                     iso_density.append(np.nan)                
-                    
+                    iso_temperature.append(np.nan)     
+                    iso_salinity.append(np.nan)     
+                    iso_oxygen_sat.append(np.nan)     
+            
                 else:
                     iso_Osborn_flux.append(np.nanmean(Osborn_flux_density_bins[bin_index]))
                     iso_Shih_flux.append(np.nanmean(Shih_flux_density_bins[bin_index]))
                     iso_pressure.append(np.nanmean(pressure_density_bins[bin_index]))
                     iso_density.append(np.mean(density_bins[bin_index]))
                     iso_dissipation.append(np.nanmean(dissipation_density_bins[bin_index]))
-                   
+                    iso_temperature.append(np.nanmean(temperature_density_bins[bin_index])) 
+                    iso_salinity.append(np.nanmean(salinity_density_bins[bin_index]))    
+                    iso_oxygen_sat.append(np.nanmean(oxygen_sat_density_bins[bin_index]))    
+                                       
                 #print(np.shape(density_bins[bin_index]),np.nanmean(pressure_density_bins[bin_index]),density_axis[bin_index])
                 
             """
@@ -351,7 +362,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 Shih_flux_list.append(iso_Shih_flux)
                 Osborn_flux_list.append(iso_Osborn_flux)
                 longitude_list.append(lon[profile])
-            
+                temperature_list.append(iso_temperature)
+                salinity_list.append(iso_salinity)
+                oxygen_sat_list.append(iso_oxygen_sat)
             
             else:
                 
@@ -362,7 +375,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 Shih_flux_list.insert(list_position,iso_Shih_flux)
                 Osborn_flux_list.insert(list_position,iso_Osborn_flux)
                 longitude_list.insert(list_position,lon[profile])
-
+                temperature_list.insert(list_position,iso_temperature)
+                salinity_list.insert(list_position,iso_salinity)
+                oxygen_sat_list.insert(list_position,iso_oxygen_sat)
 
             #print(longitude_list)        
             assert(np.all(longitude_list == sorted(longitude_list)))
@@ -383,49 +398,65 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     
     
-    #compute rolling isopycnal average
-                       
-    rolling_mean_Shih_flux = [None] * total_number_of_chosen_profiles                      
-    rolling_mean_Osborn_flux = [None] * total_number_of_chosen_profiles
-    rolling_arith_mean_dissipation = [None] * total_number_of_chosen_profiles
-    mean_pressure = [None] * total_number_of_chosen_profiles
+    #compute isopycnal average in the longitude intervals                    
+    binned_mean_Shih_flux = [None] * (len(averaging_intervals_borders)+1)                  
+    binned_mean_Osborn_flux = [None] * (len(averaging_intervals_borders)+1) 
+    binned_arith_mean_dissipation = [None] * (len(averaging_intervals_borders)+1) 
+    binned_mean_salinity =  [None] * (len(averaging_intervals_borders)+1) 
+    binned_mean_temperature =  [None] * (len(averaging_intervals_borders)+1) 
+    binned_mean_oxygen_sat =   [None] * (len(averaging_intervals_borders)+1) 
+    mean_pressure = [None] * (len(averaging_intervals_borders)+1) 
 
     print(np.shape(pressure_list))
     print(np.shape(dissipation_list))
     print(np.shape(Osborn_flux_list))
 
-    pressure_list = np.asarray(pressure_list)
-    dissipation_list = np.asarray(dissipation_list)
-    Shih_flux_list = np.asarray(Shih_flux_list)
-    Osborn_flux_list = np.asarray(Osborn_flux_list)
-                
-    #loop over all profiles
-    for index in range(0,total_number_of_chosen_profiles): 
+    longitude_list = np.asarray(longitude_list) #1D
+    pressure_list = np.asarray(pressure_list) #2D
+    dissipation_list = np.asarray(dissipation_list) #2D
+    Shih_flux_list = np.asarray(Shih_flux_list) #2D
+    Osborn_flux_list = np.asarray(Osborn_flux_list) #2D
+    temperature_list = np.asarray(temperature_list)
+    salinity_list = np.asarray(salinity_list)
+    oxygen_sat_list = np.asarray(oxygen_sat_list)           
 
-        #print(index-(rolling_window_size//2),index+rolling_window_size//2)
-        if index >= rolling_window_size//2 and index <= (total_number_of_chosen_profiles+1-rolling_window_size//2):
-        #+1 to get the last element through an array slice (Example: a=[0,1], a[:2] = [0,1], a[2] = IndexError)
-            
-            #isopycnal average over all density bins at teh same time
-            mean_pressure[index] = np.nanmean(pressure_list[index-(rolling_window_size//2):index+rolling_window_size//2,:],axis = 0)
-            rolling_arith_mean_dissipation[index] = np.nanmean(dissipation_list[index-(rolling_window_size//2):index+rolling_window_size//2,:],axis = 0)
-            rolling_mean_Osborn_flux[index] = np.nanmean(Osborn_flux_list[index-(rolling_window_size//2):index+rolling_window_size//2,:],axis = 0)
-            rolling_mean_Shih_flux[index] = np.nanmean(Shih_flux_list[index-(rolling_window_size//2):index+rolling_window_size//2,:],axis = 0)
-        else:
-            mean_pressure[index] = np.nan*np.ones(density_axis.size)
-            rolling_arith_mean_dissipation[index] = np.nan*np.ones(density_axis.size)
-            rolling_mean_Osborn_flux[index] = np.nan*np.ones(density_axis.size)
-            rolling_mean_Shih_flux[index] = np.nan*np.ones(density_axis.size)
+    averaging_interval_indices = [] 
+    for interval_border in averaging_intervals_borders:
+        averaging_interval_indices.append(np.argmin(np.abs(longitude_list-interval_border)))
+        
+    #append the length of the longitude list to close the last interval    
+    averaging_interval_indices.append(len(longitude_list))
+    
+    print(averaging_interval_indices)
+    
+    start = 0    
+    for interval_index, border_index in enumerate(averaging_interval_indices):
+        stop = border_index
+      
+        print(start,stop)
+        #isopycnal average over all density bins at the same time
+        mean_pressure[interval_index] = np.nanmean(pressure_list[start:stop,:],axis = 0)
+        binned_arith_mean_dissipation[interval_index] = np.nanmean(dissipation_list[start:stop,:],axis = 0)
+        binned_mean_Osborn_flux[interval_index] = np.nanmean(Osborn_flux_list[start:stop,:],axis = 0)
+        binned_mean_Shih_flux[interval_index] = np.nanmean(Shih_flux_list[start:stop,:],axis = 0)
+        binned_mean_salinity[interval_index] = np.nanmean(salinity_list[start:stop,:],axis = 0)
+        binned_mean_temperature[interval_index] = np.nanmean(temperature_list[start:stop,:],axis = 0)
+        binned_mean_oxygen_sat[interval_index] = np.nanmean(oxygen_sat_list[start:stop,:],axis = 0)
+        
+        start = stop
+
      
-     
-    print("TEST:",np.nanmax(Shih_flux_list),np.nanmin(Shih_flux_list),np.nanmax(rolling_mean_Shih_flux),np.nanmin(rolling_mean_Shih_flux))
-            
-    #Assure that the isopycnal averaging did not change the overall shape        
-    assert(np.shape(mean_pressure) == np.shape(pressure_list))
-    rolling_mean_Shih_flux = np.asarray(rolling_mean_Shih_flux)                     
-    rolling_mean_Osborn_flux = np.asarray(rolling_mean_Osborn_flux)
-    rolling_arith_mean_dissipation = np.asarray(rolling_arith_mean_dissipation)
+    print("TEST:",np.nanmax(Shih_flux_list),np.nanmin(Shih_flux_list),np.nanmax(binned_mean_Shih_flux),np.nanmin(binned_mean_Shih_flux))
+      
+    binned_mean_Shih_flux = np.asarray(binned_mean_Shih_flux)                     
+    binned_mean_Osborn_flux = np.asarray(binned_mean_Osborn_flux)
+    binned_arith_mean_dissipation = np.asarray(binned_arith_mean_dissipation)
     mean_pressure = np.asarray(mean_pressure)
+    binned_mean_salinity = np.asarray(binned_mean_salinity)
+    binned_mean_temperature = np.asarray(binned_mean_temperature)
+    binned_mean_oxygen_sat = np.asarray(binned_mean_oxygen_sat)
+    
+    print(np.shape(binned_mean_Shih_flux))
                        
     print("total_number_of_chosen_profiles",total_number_of_chosen_profiles)     
     print("number_of_fluxes_over_the_threshold\ttotal_number_of_fluxes\tratio")
@@ -441,271 +472,47 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     ##################################################################################################################################
     ##################################################################################################################################
     ##################################################################################################################################     
-    x_array = longitude_list
-    y_array = pressure_list
 
+    f,axarr = plt.subplots(nrows = 3, ncols = len(averaging_interval_indices), sharey = True, sharex = "row") 
 
-    x = (np.ones(np.shape(y_array))*np.reshape(x_array,(-1,1))).flatten() #1D to a 2D array back to an 1D array to use the 
-    y1 = np.asarray(pressure_list).flatten()
-    y2 = np.asarray(mean_pressure).flatten()
-    z1 = np.asarray(dissipation_list).flatten()   
-    z2 = np.asarray(rolling_arith_mean_dissipation).flatten()
-
-    #print(np.shape(x),np.shape(y1),np.shape(z1),np.shape(z2))
-    missing_data_mask1 = ~np.isnan(y1)
-    missing_data_mask2 = ~np.isnan(y2)
-    
-    #remove NaN values as the triangulation is not possible with them
-    x1= x[missing_data_mask1]
-    x2= x[missing_data_mask2]
-    y1= y1[missing_data_mask1]
-    y2= y2[missing_data_mask2]
-    z1= z1[missing_data_mask1]
-    z2= z2[missing_data_mask2]
-    #print(np.shape(x),np.shape(y),np.shape(z1),np.shape(z2))
-    
-    # Create the Triangulation; no triangles so Delaunay triangulation created.
-    isbad1 = np.isnan(np.log10(z1))
-    triang1 = tri.Triangulation(x1, y1)
-    mask1 = np.any(np.where(isbad1[triang1.triangles], True, False), axis=1)
-    triang1.set_mask(mask1)
-    
-    isbad2 = np.isnan(np.log10(z2))
-    triang2 = tri.Triangulation(x2, y2)
-    mask2 = np.any(np.where(isbad2[triang2.triangles], True, False), axis=1)
-    triang2.set_mask(mask2)
-
-    cmap_hot = plt.get_cmap('hot_r')
-    cmap_hot.set_bad(color = 'lightgrey')
-
-    f1, ax = plt.subplots(2,2, sharex=True, sharey=True)
-    shading= "flat" #'gouraud'
-    img00 = ax[0,0].tripcolor(triang1,np.log10(z1), shading=shading,vmin = -9, vmax = -5, cmap = cmap_hot)
-    img01 = ax[0,1].tricontourf(triang1,np.log10(z1), levels = 100, vmin = -9, vmax = -5, cmap = cmap_hot, extend = "both") # choose 20 contour levels, just to show how good its interpolation is
-    
-    print(np.shape(longitude_list),np.shape(bathymetry_list))
-    ax[0,0].fill_between(longitude_list,bathymetry_list,np.ones(np.shape(bathymetry_list))*np.max(bathymetry_list), color = "lightgrey")
-    ax[0,1].fill_between(longitude_list,bathymetry_list,np.ones(np.shape(bathymetry_list))*np.max(bathymetry_list), color = "lightgrey")
-    
-    img10 = ax[1,0].tripcolor(triang2,np.log10(z2), shading=shading,vmin = -9, vmax = -5, cmap = cmap_hot)
-    img11 = ax[1,1].tricontourf(triang2,np.log10(z2), levels = 100, vmin = -9, vmax = -5, cmap = cmap_hot, extend = "both") # choose 20 contour levels, just to show how good its interpolation is
-    
-    thesis.colorbar(img00)
-    thesis.colorbar(img01, ax[0,1])
-    thesis.colorbar(img10)
-    thesis.colorbar(img11, ax[1,1])
-    
-    print(np.shape(longitude_list),np.shape(bathymetry_list))
-    ax[1,0].fill_between(longitude_list,bathymetry_list,np.ones(np.shape(bathymetry_list))*np.max(bathymetry_list), color = "lightgrey")
-    ax[1,1].fill_between(longitude_list,bathymetry_list,np.ones(np.shape(bathymetry_list))*np.max(bathymetry_list), color = "lightgrey")
-    
-    ax[0,0].invert_yaxis()
-    #ax[1].plot(x,y, 'k,')
-    #ax[0].plot(x,y, 'k,')
-    ax[0,0].set_title("tripcolor, non averaged")
-    ax[0,1].set_title("tripcontourf, non averaged")
-    ax[1,0].set_title("tripcolor, isopycnally averaged")
-    ax[1,1].set_title("tripcontourf, isopycnally averaged")
-    
-    f1.suptitle(cruisename+": Comparison based on dissipation measurements")
-    f1.set_size_inches(18,10.5)
-    f1.tight_layout()
-    f1.subplots_adjust(top=0.94)
-    f1.savefig("./iso_comparison_dissip_"+cruisename,dpi=300)
-    
-    ###############################################################################################################
-    x = (np.ones(np.shape(y_array))*np.reshape(x_array,(-1,1))).flatten() #1D to a 2D array back to an 1D array to use the 
-    y1 = np.asarray(pressure_list).flatten()
-    y2 = np.asarray(mean_pressure).flatten()
-    z1 = np.asarray(Shih_flux_list).flatten()   
-    z2 = np.asarray(rolling_mean_Shih_flux).flatten()
-
-    #print(np.shape(x),np.shape(y1),np.shape(z1),np.shape(z2))
-    missing_data_mask1 = ~np.isnan(y1)
-    missing_data_mask2 = ~np.isnan(y2)
-    
-    #remove NaN values as the triangulation is not possible with them
-    x1= x[missing_data_mask1]
-    x2= x[missing_data_mask2]
-    y1= y1[missing_data_mask1]
-    y2= y2[missing_data_mask2]
-    z1= z1[missing_data_mask1]
-    z2= z2[missing_data_mask2]
-    #print(np.shape(x),np.shape(y),np.shape(z1),np.shape(z2))
-    
-    # Create the Triangulation; no triangles so Delaunay triangulation created.
-    isbad1 = np.isnan(z1)
-    triang1 = tri.Triangulation(x1, y1)
-    mask1 = np.any(np.where(isbad1[triang1.triangles], True, False), axis=1)
-    triang1.set_mask(mask1)
-    
-    isbad2 = np.isnan(z2)
-    triang2 = tri.Triangulation(x2, y2)
-    mask2 = np.any(np.where(isbad2[triang2.triangles], True, False), axis=1)
-    triang2.set_mask(mask2)
-
-    f2, ax2 = plt.subplots(2,2, sharex=True, sharey=True)
-    shading= "flat" #'gouraud'
-    levels = np.linspace(-30,30,20)
+    for index in range(len(averaging_interval_indices)):
         
-    img00 = ax2[0,0].tripcolor(triang1,z1, shading=shading,vmin = -30, vmax = +30, cmap = cmap_RdBu)
-    img01 = ax2[0,1].tricontourf(triang1,z1, levels = levels, vmin = -30, vmax = +30, cmap = cmap_RdBu, extend = "both") # choose 20 contour levels, just to show how good its interpolation is
-    
-    print(np.shape(longitude_list),np.shape(bathymetry_list))
-    ax2[0,0].fill_between(longitude_list,bathymetry_list,np.ones(np.shape(bathymetry_list))*np.max(bathymetry_list), color = "lightgrey")
-    ax2[0,1].fill_between(longitude_list,bathymetry_list,np.ones(np.shape(bathymetry_list))*np.max(bathymetry_list), color = "lightgrey")
-    
-    img10 = ax2[1,0].tripcolor(triang2,z2, shading=shading,vmin = -30, vmax = +30, cmap = cmap_RdBu)
-
-    img11 = ax2[1,1].tricontourf(triang2,z2, levels = levels, vmin = -30, vmax = +30, cmap = cmap_RdBu, extend = "both") # choose 20 contour levels, just to show how good its interpolation is
-    
-    thesis.colorbar(img00)
-    thesis.colorbar(img01, ax2[0,1])
-    thesis.colorbar(img10)
-    thesis.colorbar(img11, ax2[1,1])
-    
-    print(np.shape(longitude_list),np.shape(bathymetry_list))
-    ax2[1,0].fill_between(longitude_list,bathymetry_list,np.ones(np.shape(bathymetry_list))*np.max(bathymetry_list), color = "lightgrey")
-    ax2[1,1].fill_between(longitude_list,bathymetry_list,np.ones(np.shape(bathymetry_list))*np.max(bathymetry_list), color = "lightgrey")
-    
-    ax2[0,0].invert_yaxis()
-    #ax2[1].plot(x,y, 'k,')
-    #ax2[0].plot(x,y, 'k,')
-    ax2[0,0].set_title("tripcolor, non averaged")
-    ax2[0,1].set_title("tripcontourf, non averaged")
-    ax2[1,0].set_title("tripcolor, isopycnally averaged")
-    ax2[1,1].set_title("tripcontourf, isopycnally averaged")
         
-    f2.suptitle(cruisename+": Comparison based on oxygen fluxes")
-    f2.set_size_inches(18,10.5)
-    f2.tight_layout()
-    f2.subplots_adjust(top=0.94)
-    f2.savefig("./iso_comparison_flux_"+cruisename,dpi=300)
-    ################################################################################################################
-    
-    x = (np.ones(np.shape(y_array))*np.reshape(x_array,(-1,1))).flatten() #1D to a 2D array back to an 1D array to use the 
-    y1 = np.asarray(pressure_list).flatten()
-    y2 = np.asarray(mean_pressure).flatten()
-    z1 = np.asarray(dissipation_list).flatten()   
-    z2 = np.asarray(rolling_arith_mean_dissipation).flatten()
-
-    #print(np.shape(x),np.shape(y1),np.shape(z1),np.shape(z2))
-    missing_data_mask1 = ~np.isnan(y1)
-    missing_data_mask2 = ~np.isnan(y2)
-    
-    #remove NaN values as the triangulation is not possible with them
-    x1= x[missing_data_mask1]
-    x2= x[missing_data_mask2]
-    y1= y1[missing_data_mask1]
-    y2= y2[missing_data_mask2]
-    z1= z1[missing_data_mask1]
-    z2= z2[missing_data_mask2]
-    #print(np.shape(x),np.shape(y),np.shape(z1),np.shape(z2))
-    
-    # Create the Triangulation; no triangles so Delaunay triangulation created.
-    isbad1 = np.isnan(np.log10(z1))
-    triang1 = tri.Triangulation(x1, y1)
-    mask1 = np.any(np.where(isbad1[triang1.triangles], True, False), axis=1)
-    triang1.set_mask(mask1)
-    
-    isbad2 = np.isnan(np.log10(z2))
-    triang2 = tri.Triangulation(x2, y2)
-    mask2 = np.any(np.where(isbad2[triang2.triangles], True, False), axis=1)
-    triang2.set_mask(mask2)
-    
-    f3, ax3 = plt.subplots(1,2, sharex=True, sharey=True)
-    print(type(pressure_list),np.shape(pressure_list))
-    ax3[0].tricontourf(triang1,np.log10(z1), levels = 20, vmin = -9, vmax = -5, cmap = cmap_hot)
-    ax3[0].plot(longitude_list,pressure_list[:,density_axis.size//2])
-    ax3[1].tricontourf(triang2,np.log10(z2), levels = 20, vmin = -9, vmax = -5, cmap = cmap_hot) # choose 20 contour levels, just to show how good its interpolation is
-    ax3[1].plot(longitude_list,mean_pressure[:,density_axis.size//2])
-    
-    #ax3[0].colorbar()
-    print(np.shape(longitude_list),np.shape(bathymetry_list))
-    ax3[0].fill_between(longitude_list,bathymetry_list,np.ones(np.shape(bathymetry_list))*np.max(bathymetry_list), color = "lightgrey")
-    ax3[1].fill_between(longitude_list,bathymetry_list,np.ones(np.shape(bathymetry_list))*np.max(bathymetry_list), color = "lightgrey")
-    ax3[0].invert_yaxis()
-    ax3[0].plot(x1,y1, 'k,')
-    ax3[1].plot(x2,y2, 'k,')
-    f3.suptitle(cruisename+": normal,isopycnal averaged")
-    f3.set_size_inches(18,10.5)
-    f3.tight_layout()
-    f3.subplots_adjust(top=0.94)
-    #f3.savefig("./normal_iso_comparison_flux_"+cruisename)        
-    #TODO test for monotonous pressure axis
-    #TODO plot fluxes
-    #TODO compare normal and averaged pressure axis
-    
-    ################################################################################################################    
-      
-
         
-    x_array = longitude_list
-    y_array = pressure_list
-
-    x = (np.ones(np.shape(y_array))*np.reshape(x_array,(-1,1))).flatten() #1D to a 2D array back to an 1D array to use the 
-    y = np.asarray(mean_pressure).flatten()
-    z1 = np.asarray(rolling_arith_mean_dissipation).flatten()   
-    z2 = np.asarray(rolling_mean_Shih_flux).flatten()
-
-    #print(np.shape(x),np.shape(y),np.shape(z1),np.shape(z2))
-    missing_data_mask = ~np.isnan(y)
-    
-    #remove NaN values as the triangulation is not possible with them
-    x= x[missing_data_mask]
-    y= y[missing_data_mask]
-    z1= z1[missing_data_mask]
-    z2= z2[missing_data_mask]
-    #print(np.shape(x),np.shape(y),np.shape(z1),np.shape(z2))
-    
-    # Create the Triangulation; no triangles so Delaunay triangulation created.
-    isbad1 = np.isnan(np.log10(z1))
-    triang1 = tri.Triangulation(x, y)
-    mask1 = np.any(np.where(isbad1[triang1.triangles], True, False), axis=1)
-    triang1.set_mask(mask1)
-    
-    isbad2 = np.isnan(z2)
-    triang2 = tri.Triangulation(x, y)
-    mask2 = np.any(np.where(isbad2[triang2.triangles], True, False), axis=1)
-    triang2.set_mask(mask2)
-
-    f_flux,flux_axarr = plt.subplots(nrows = 2, ncols = 1, sharey = True, sharex = True) 
-    flux_levels = np.linspace(-15,15,20)
-    dissip_levels = np.linspace(-9,-5,20)
+        temp_array = mean_pressure[index,:]
+        array_without_nans = temp_array[~np.isnan(temp_array)]
+        print(array_without_nans)
+        assert(np.all(np.diff(array_without_nans)>=0))
         
-    img_dissip = flux_axarr[0].tricontourf(triang1,np.log10(z1), levels = dissip_levels, cmap = cmap_hot, extend = "both")
-    img_flux = flux_axarr[1].tricontourf(triang2,z2, levels = flux_levels, cmap = cmap_RdBu, extend = "both")
+        axarr[0,index].plot(binned_mean_temperature[index,:],mean_pressure[index,:], c = "tab:blue")
+        axarr[1,index].plot(binned_mean_oxygen_sat[index,:],mean_pressure[index,:],c = "tab:blue")
     
-    print(np.shape(longitude_list),np.shape(bathymetry_list))
-    flux_axarr[0].fill_between(longitude_list,bathymetry_list,np.ones(np.shape(bathymetry_list))*np.max(bathymetry_list), color = "lightgrey")
-    flux_axarr[1].fill_between(longitude_list,bathymetry_list,np.ones(np.shape(bathymetry_list))*np.max(bathymetry_list), color = "lightgrey")
-    flux_axarr[0].invert_yaxis()
-    
-    
-    thesis.colorbar(img_dissip,flux_axarr[0]).set_label(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
-    thesis.colorbar(img_flux, flux_axarr[1]).set_label(r"oxygen flux [mmol/(m$^2$*d]")
-    
-    flux_axarr[0].set_ylabel(r"pressure [dbar]")      
-    flux_axarr[1].set_xlabel(r"longitude [$\degree$]")    
-    flux_axarr[1].set_ylabel(r"pressure [dbar]")
-
-    f_flux.suptitle(cruisename)
-    f_flux.set_size_inches(18,10.5)
-    f_flux.tight_layout() 
-    f_flux.subplots_adjust(top=0.94)
-    f_flux.savefig("./isopycnal_average_"+cruisename,dpi=300)
+        axarr[2,index].plot(binned_mean_Shih_flux[index,:],mean_pressure[index,:],".", c = "tab:blue")
+        axarr[2,index].plot(binned_mean_Shih_flux[index,:],mean_pressure[index,:],c = "tab:blue")
+        axarr[2,index].plot(binned_mean_Osborn_flux[index,:],mean_pressure[index,:],".", c = "tab:green")
+        axarr[2,index].plot(binned_mean_Osborn_flux[index,:],mean_pressure[index,:],ls = "-", c = "tab:green")
+        axarr[2,index].set_xlim(-15,15)
+        
+        
+    axarr[0,0].invert_yaxis()            
+    #axarr.set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
+    #axarr.set_xlabel(r"longitude [$\degree$E]")       
 
     """
-        
-    ###############################################################################################################
+    f2,axarr2 = plt.subplots(nrows = 1, 1) 
+
+    axarr.pcolormesh(binned_mean_Shih_flux[index,:],mean_pressure[index,:],".", c = "tab:blue")
     
-
-    f_dissip,dissip_axarr = plt.subplots(nrows = 1, ncols = 1, sharey = True, sharex = True) 
-
-
-                
-    dissip_axarr.set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
-    dissip_axarr.set_xlabel(r"longitude [$\degree$E]")       
+    
+        axarr[2,index].plot(binned_mean_Shih_flux[index,:],mean_pressure[index,:],c = "tab:blue")
+        axarr[2,index].plot(binned_mean_Osborn_flux[index,:],mean_pressure[index,:],".", c = "tab:green")
+        axarr[2,index].plot(binned_mean_Osborn_flux[index,:],mean_pressure[index,:],ls = "-", c = "tab:green")
+        axarr[2,index].set_xlim(-20,20)
+        
+        
+    axarr[0,0].invert_yaxis()            
+    #axarr.set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
+    #axarr.set_xlabel(r"longitude [$\degree$E]")    
     """
        
     plt.show()

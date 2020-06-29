@@ -956,4 +956,14 @@ def get_oxygen_flux_skif(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,
     return oxygen_flux_Skif_grid   
         
 
-      
+#####################################################################################################
+def colorbar(mappable, ax = None):
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    
+    if ax == None:
+        ax = mappable.axes
+    fig = ax.figure
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="3%", pad=0.05)
+    #cax.set_label('Temperature / Celsius')
+    return fig.colorbar(mappable, cax=cax)
