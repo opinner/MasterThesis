@@ -251,8 +251,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 continue
                 
             
-            if np.nanmean(eps_oxygen_sat_grid[profile]) < 0:
-                print(cruisename,transect_name,"negative oxygen values")
+            if np.any(eps_oxygen_sat_grid[profile,:] < -0.01):
+                temp = eps_oxygen_sat_grid[profile,:]
+                print(cruisename,transect_name," is skipped due to ",len(temp[temp<0])," negative oxygen values")
+                if len(temp[temp<0]) < 10:
+                    print(temp[temp<0])
                 continue
                 
             #Determine the averaging intervall

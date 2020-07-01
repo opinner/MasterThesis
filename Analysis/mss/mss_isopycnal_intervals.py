@@ -19,13 +19,15 @@ plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+plt.rc('savefig', dpi=300)
 
 cmap_RdBu = plt.get_cmap('RdBu_r')
 cmap_RdBu.set_bad(color = 'lightgrey')
 cmap_hot = plt.get_cmap('hot_r')
 cmap_hot.set_bad(color = 'lightgrey')
 
-
+import matplotlib.ticker as ticker
+tick_spacing = 20
 import matplotlib.tri as tri
 import gsw.conversions as gsw
 import pathlib
@@ -36,16 +38,15 @@ import matplotlib.patches as mpatches
 import warnings
 warnings.filterwarnings('ignore')
     
-#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"],"/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
 
 maximum_reasonable_flux = 500 #float('Inf') #200 #Fluxes above this value will be discarded
 acceptable_slope = 2 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
 
-density_axis = np.linspace(1004,1010.5,20) #maybe change to a non equidistant array?
+density_axis = np.linspace(1004,1010.5,50) #maybe change to a non equidistant array?
 
 averaging_intervals_borders = [20.55,20.62]
-averaging_intervals_borders = np.linspace(20.48,20.7,4)
+#averaging_intervals_borders = np.linspace(20.48,20.7,4)
  
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     number_of_fluxes_over_the_threshold = 0
@@ -77,7 +78,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     temperature_list = []
     salinity_list = []
     oxygen_sat_list = []
-    
+    density_list = []
     
     
     #go through all files of specified folder and select only files ending with .mat
@@ -248,9 +249,17 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 continue
                 
             
-            if np.nanmean(eps_oxygen_sat_grid[profile]) < 0:
-                print(cruisename,transect_name," is skipped due to negative oxygen values")
-                continue  
+            #if np.nanmean(eps_oxygen_sat_grid[profile]) < 0:
+            #    print(cruisename,transect_name," is skipped due to negative oxygen values")
+            #    continue  
+               
+            if np.any(eps_oxygen_sat_grid[profile,:] < -0.05):
+                temp = eps_oxygen_sat_grid[profile,:]
+                print(cruisename,transect_name," is skipped due to ",len(temp[temp<0])," negative oxygen values")
+                if len(temp[temp<0]) < 10:
+                    print(temp[temp<0])
+                continue
+            
                 
             #if the profile contains only nan values, profile is skipped
             if np.all(np.isnan(oxygen_flux_BB_grid[profile,:])): #from_index:to_index
@@ -277,7 +286,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     outlier_count += 1
                     continue
                                               
-   
+
            
             #sort the profile into the density bins
             for value_index,value in enumerate(eps_pot_density_grid[profile]):
@@ -365,6 +374,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 temperature_list.append(iso_temperature)
                 salinity_list.append(iso_salinity)
                 oxygen_sat_list.append(iso_oxygen_sat)
+                density_list.append(iso_density)
             
             else:
                 
@@ -378,7 +388,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 temperature_list.insert(list_position,iso_temperature)
                 salinity_list.insert(list_position,iso_salinity)
                 oxygen_sat_list.insert(list_position,iso_oxygen_sat)
-
+                density_list.insert(list_position,iso_density)
+                
             #print(longitude_list)        
             assert(np.all(longitude_list == sorted(longitude_list)))
 
@@ -393,7 +404,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     assert(len(longitude_list) != 0)
     assert(np.all(longitude_list == sorted(longitude_list)))     
 
-    
+    if cruisename == "emb217":
+        np.savetxt("./bathymetry_emb217.txt",np.transpose([longitude_list,bathymetry_list]),header = "longitude [degree East] \t depth in pressure coordinates [dbar]", fmt = ["%2f","%2.2f"])
     ###########################################################################################################################
     
     
@@ -405,8 +417,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     binned_mean_salinity =  [None] * (len(averaging_intervals_borders)+1) 
     binned_mean_temperature =  [None] * (len(averaging_intervals_borders)+1) 
     binned_mean_oxygen_sat =   [None] * (len(averaging_intervals_borders)+1) 
-    mean_pressure = [None] * (len(averaging_intervals_borders)+1) 
-
+    binned_mean_pressure = [None] * (len(averaging_intervals_borders)+1) 
+    binned_mean_density = [None] * (len(averaging_intervals_borders)+1) 
+    
     print(np.shape(pressure_list))
     print(np.shape(dissipation_list))
     print(np.shape(Osborn_flux_list))
@@ -419,6 +432,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     temperature_list = np.asarray(temperature_list)
     salinity_list = np.asarray(salinity_list)
     oxygen_sat_list = np.asarray(oxygen_sat_list)           
+    density_list = np.asarray(density_list)
 
     averaging_interval_indices = [] 
     for interval_border in averaging_intervals_borders:
@@ -427,35 +441,39 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     #append the length of the longitude list to close the last interval    
     averaging_interval_indices.append(len(longitude_list))
     
-    print(averaging_interval_indices)
+    #print(longitude_list)
+    #print(averaging_interval_indices)
     
+    #average inside the longitude intervals
     start = 0    
     for interval_index, border_index in enumerate(averaging_interval_indices):
         stop = border_index
       
-        print(start,stop)
+        #print(start,stop)
         #isopycnal average over all density bins at the same time
-        mean_pressure[interval_index] = np.nanmean(pressure_list[start:stop,:],axis = 0)
+        binned_mean_pressure[interval_index] = np.nanmean(pressure_list[start:stop,:],axis = 0)
         binned_arith_mean_dissipation[interval_index] = np.nanmean(dissipation_list[start:stop,:],axis = 0)
         binned_mean_Osborn_flux[interval_index] = np.nanmean(Osborn_flux_list[start:stop,:],axis = 0)
         binned_mean_Shih_flux[interval_index] = np.nanmean(Shih_flux_list[start:stop,:],axis = 0)
         binned_mean_salinity[interval_index] = np.nanmean(salinity_list[start:stop,:],axis = 0)
         binned_mean_temperature[interval_index] = np.nanmean(temperature_list[start:stop,:],axis = 0)
         binned_mean_oxygen_sat[interval_index] = np.nanmean(oxygen_sat_list[start:stop,:],axis = 0)
-        
+        binned_mean_density[interval_index] = np.nanmean(density_list[start:stop,:],axis = 0)
+                
         start = stop
 
      
-    print("TEST:",np.nanmax(Shih_flux_list),np.nanmin(Shih_flux_list),np.nanmax(binned_mean_Shih_flux),np.nanmin(binned_mean_Shih_flux))
+    #print("TEST:",np.nanmax(Shih_flux_list),np.nanmin(Shih_flux_list),np.nanmax(binned_mean_Shih_flux),np.nanmin(binned_mean_Shih_flux))
       
     binned_mean_Shih_flux = np.asarray(binned_mean_Shih_flux)                     
     binned_mean_Osborn_flux = np.asarray(binned_mean_Osborn_flux)
     binned_arith_mean_dissipation = np.asarray(binned_arith_mean_dissipation)
-    mean_pressure = np.asarray(mean_pressure)
+    binned_mean_pressure = np.asarray(binned_mean_pressure)
     binned_mean_salinity = np.asarray(binned_mean_salinity)
     binned_mean_temperature = np.asarray(binned_mean_temperature)
     binned_mean_oxygen_sat = np.asarray(binned_mean_oxygen_sat)
-    
+    binned_mean_density = np.asarray(binned_mean_density)
+        
     print(np.shape(binned_mean_Shih_flux))
                        
     print("total_number_of_chosen_profiles",total_number_of_chosen_profiles)     
@@ -478,46 +496,71 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     for index in range(len(averaging_interval_indices)):
         
         
+        nanmask = ~np.isnan(binned_mean_pressure[index,:])
+        cleaned_mean_pressure = binned_mean_pressure[index,:][nanmask]
+        cleaned_salinity = binned_mean_salinity[index,:][nanmask]
+        cleaned_temperature = binned_mean_temperature[index,:][nanmask]
+        cleaned_density = binned_mean_density[index,:][nanmask]
+        cleaned_dissipation = binned_arith_mean_dissipation[index,:][nanmask]
+        cleaned_oxygen = binned_mean_oxygen_sat[index,:][nanmask]
+        cleaned_Osborn_flux = binned_mean_Osborn_flux[index,:][nanmask]
+        cleaned_Shih_flux = binned_mean_Shih_flux[index,:][nanmask]
         
-        temp_array = mean_pressure[index,:]
-        array_without_nans = temp_array[~np.isnan(temp_array)]
-        print(array_without_nans)
-        assert(np.all(np.diff(array_without_nans)>=0))
+        salinity_plot_axis = axarr[0,index].twiny()
+        density_plot_axis =  axarr[0,index].twiny()
+        density_plot_axis.axis("off")
         
-        axarr[0,index].plot(binned_mean_temperature[index,:],mean_pressure[index,:], c = "tab:blue")
-        axarr[1,index].plot(binned_mean_oxygen_sat[index,:],mean_pressure[index,:],c = "tab:blue")
-    
-        axarr[2,index].plot(binned_mean_Shih_flux[index,:],mean_pressure[index,:],".", c = "tab:blue")
-        axarr[2,index].plot(binned_mean_Shih_flux[index,:],mean_pressure[index,:],c = "tab:blue")
-        axarr[2,index].plot(binned_mean_Osborn_flux[index,:],mean_pressure[index,:],".", c = "tab:green")
-        axarr[2,index].plot(binned_mean_Osborn_flux[index,:],mean_pressure[index,:],ls = "-", c = "tab:green")
-        axarr[2,index].set_xlim(-15,15)
-        
-        
-    axarr[0,0].invert_yaxis()            
-    #axarr.set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
-    #axarr.set_xlabel(r"longitude [$\degree$E]")       
+        dissipation_plot_axis = axarr[1,index].twiny()
+        axarr[1,index].patch.set_visible(False)
+        dissipation_plot_axis.set_zorder(0)
+        dissipation_plot_axis.set_zorder(-10)
 
-    """
-    f2,axarr2 = plt.subplots(nrows = 1, 1) 
+    
+        print(cleaned_mean_pressure)
 
-    axarr.pcolormesh(binned_mean_Shih_flux[index,:],mean_pressure[index,:],".", c = "tab:blue")
-    
-    
-        axarr[2,index].plot(binned_mean_Shih_flux[index,:],mean_pressure[index,:],c = "tab:blue")
-        axarr[2,index].plot(binned_mean_Osborn_flux[index,:],mean_pressure[index,:],".", c = "tab:green")
-        axarr[2,index].plot(binned_mean_Osborn_flux[index,:],mean_pressure[index,:],ls = "-", c = "tab:green")
+        
+        
+        axarr[0,index].plot(cleaned_temperature,cleaned_mean_pressure, c = "tab:red")
+        salinity_plot_axis.plot(cleaned_salinity,cleaned_mean_pressure, c = "tab:green")
+        density_plot_axis.plot(cleaned_density,cleaned_mean_pressure,c = "k")
+        density_plot_axis.plot(cleaned_density,cleaned_mean_pressure,".",c = "k")
+                    
+        axarr[1,index].plot(cleaned_oxygen,cleaned_mean_pressure,c = "tab:blue")
+                
+        axarr[2,index].plot(cleaned_Osborn_flux,cleaned_mean_pressure,".", c = "tab:green", alpha = 0.4)
+        axarr[2,index].plot(cleaned_Osborn_flux,cleaned_mean_pressure,ls = "-", c = "tab:green", alpha = 0.4)            
+        axarr[2,index].plot(cleaned_Shih_flux,cleaned_mean_pressure,".", c = "tab:blue")
+        axarr[2,index].plot(cleaned_Shih_flux,cleaned_mean_pressure,c = "tab:blue")
+
+        dissipation_plot_axis.plot(np.log10(cleaned_dissipation),cleaned_mean_pressure,c = "k", alpha = 0.4)
+
         axarr[2,index].set_xlim(-20,20)
         
         
-    axarr[0,0].invert_yaxis()            
+    axarr[0,0].invert_yaxis()
+    axarr[0,0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))      
     #axarr.set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
-    #axarr.set_xlabel(r"longitude [$\degree$E]")    
-    """
-       
-    plt.show()
+    #axarr.set_xlabel(r"longitude [$\degree$E]")     
+    f.suptitle(cruisename)  
+    f.set_size_inches(18,10.5)
+    f.tight_layout() 
+    f.subplots_adjust(top=0.915)
+
+    f.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+"isopycnal_averaged_overview_"+cruisename)
+    
+    
+    b,bxarr = plt.subplots(nrows = 1, ncols = 1) 
+    bxarr.invert_yaxis()
+    bxarr.plot(longitude_list,bathymetry_list)
+    for border in averaging_intervals_borders:
+        bxarr.axvline(border, c = "k")
+    bxarr.xaxis.set_major_locator(ticker.MultipleLocator(0.01))   
+    b.set_size_inches(18,10.5)
+    b.tight_layout() 
+    b.subplots_adjust(top=0.915)
+    b.suptitle(cruisename)
+    b.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+"isopycnal_averaged_overview_"+cruisename+"_intervals")   
+    
+    #plt.show()
     
 
-    
-    
-    

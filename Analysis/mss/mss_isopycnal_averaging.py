@@ -65,19 +65,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     cruisename = splitted_foldername[-1]
     
     print(cruisename)
-    
-    """
-    if cruisename == "emb217":
-        upper_bound_halocline_as_density = 1006.4 #1005.75
-        lower_bound_halocline_as_density = 1008.5 #1006.25
-    elif cruisename == "emb177":
-        upper_bound_halocline_as_density = 1006.9 #1007.4
-        lower_bound_halocline_as_density = 1008.2 #1007.9   
-    elif cruisename == "emb169":
-        pass
-        #upper_bound_halocline_as_density = 1006.9 #1007.4
-        #lower_bound_halocline_as_density = 1008.2 #1007.9  
-    """       
+     
 
     pressure_list = []
     dissipation_list = []
@@ -245,9 +233,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 continue
                 
             
-            if np.nanmean(eps_oxygen_sat_grid[profile]) < 0:
-                print(cruisename,transect_name," is skipped due to negative oxygen values")
-                continue  
+            if np.any(eps_oxygen_sat_grid[profile,:] < -0.05):
+                temp = eps_oxygen_sat_grid[profile,:]
+                print(cruisename,transect_name," is skipped due to ",len(temp[temp<0])," negative oxygen values")
+                if len(temp[temp<0]) < 10:
+                    print(temp[temp<0])
+                continue
                 
             #if the profile contains only nan values, profile is skipped
             if np.all(np.isnan(oxygen_flux_BB_grid[profile,:])): #from_index:to_index

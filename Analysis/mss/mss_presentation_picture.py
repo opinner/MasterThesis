@@ -58,19 +58,8 @@ number_of_dissipation_subplots = 1 #Decide if both the mean and the median subpl
 
 
 f_flux,flux_axarr = plt.subplots(nrows = 2, ncols = 1, sharex = True) 
-#bathymetrie_axes = flux_axarr[1].twinx()
-
-#define flux_axarr as the foreground
-#flux_axarr.set_zorder(10)
-#flux_axarr.patch.set_visible(False)
 
 f_dissip,dissip_axarr = plt.subplots(nrows = 2, ncols = 1, sharex = True) 
-#define dissip_axarr as the foreground
-#dissip_axarr.set_zorder(10)
-#dissip_axarr.patch.set_visible(False)
-
-#bathymetrie_axes2 = dissip_axarr[1].twinx()
-
 textstr = ""
          
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
