@@ -217,7 +217,7 @@ def load_clean_and_interpolate_data(datafile_path):
     except AssertionError:  
         print("##########################################")
         print(cruisename,DATAFILENAME[:-4],"is skipped!")
-        print("Distance is not monotonically increasing. Mabye due to a loop in the transsect?")
+        print("Distance is not monotonically increasing. Mabye due to a loop in the transect?")
         print("##########################################")
         return 0
         #continue #jump to the next datafile
@@ -273,10 +273,10 @@ def load_clean_and_interpolate_data(datafile_path):
     #if yes the pressure can be coverted to a 1D array instead of a 2D array    
     eps_pressure = eps_pressure[0].flatten()
     
-    print(eps[i].flatten().size,eps_pressure.size, np.arange(1,160.5,0.5).size, np.arange(1,160.5,0.5).size - eps_pressure.size)
-    print(np.shape(eps),np.shape(eps[0]))
+    #print(eps[i].flatten().size,eps_pressure.size, np.arange(1,160.5,0.5).size, np.arange(1,160.5,0.5).size - eps_pressure.size)
+    #print(np.shape(eps),np.shape(eps[0]))
     
-    
+    #checks if the shape of the data is as expected, if its smaller append nan
     desired_pressure_array = np.arange(1,160.5,0.5) #stems from the orginal matlab script that process the raw MSS data
     last_element = eps_pressure[-1]
     old_size = eps_pressure.size

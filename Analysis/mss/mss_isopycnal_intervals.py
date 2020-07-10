@@ -40,12 +40,15 @@ warnings.filterwarnings('ignore')
     
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
 
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169"]
+
 maximum_reasonable_flux = 500 #float('Inf') #200 #Fluxes above this value will be discarded
 acceptable_slope = 2 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
 
 density_axis = np.linspace(1004,1010.5,50) #maybe change to a non equidistant array?
 
 averaging_intervals_borders = [20.55,20.62]
+averaging_intervals_borders = [20.55,20.6,20.63,20.67]
 #averaging_intervals_borders = np.linspace(20.48,20.7,4)
  
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
@@ -520,33 +523,47 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
         
         
-        axarr[0,index].plot(cleaned_temperature,cleaned_mean_pressure, c = "tab:red")
-        salinity_plot_axis.plot(cleaned_salinity,cleaned_mean_pressure, c = "tab:green")
-        density_plot_axis.plot(cleaned_density,cleaned_mean_pressure,c = "k")
-        density_plot_axis.plot(cleaned_density,cleaned_mean_pressure,".",c = "k")
+        t, = axarr[0,index].plot(cleaned_temperature,cleaned_mean_pressure, c = "tab:red", label = "temperature")
+        s, = salinity_plot_axis.plot(cleaned_salinity,cleaned_mean_pressure, c = "tab:green", label = "salinity")
+        d, = density_plot_axis.plot(cleaned_density,cleaned_mean_pressure,c = "k", label = "density")
+        #density_plot_axis.plot(cleaned_density,cleaned_mean_pressure,".",c = "k")
                     
-        axarr[1,index].plot(cleaned_oxygen,cleaned_mean_pressure,c = "tab:blue")
-                
+        o, = axarr[1,index].plot(cleaned_oxygen,cleaned_mean_pressure,c = "tab:blue", label = "oxygen saturation")
+        e, = dissipation_plot_axis.plot(np.log10(cleaned_dissipation),cleaned_mean_pressure,c = "k", alpha = 0.4, label = "dissipation rate")
+                        
         axarr[2,index].plot(cleaned_Osborn_flux,cleaned_mean_pressure,".", c = "tab:green", alpha = 0.4)
-        axarr[2,index].plot(cleaned_Osborn_flux,cleaned_mean_pressure,ls = "-", c = "tab:green", alpha = 0.4)            
+        axarr[2,index].plot(cleaned_Osborn_flux,cleaned_mean_pressure,ls = "-", c = "tab:green", alpha = 0.4, label = "Osborn flux")            
         axarr[2,index].plot(cleaned_Shih_flux,cleaned_mean_pressure,".", c = "tab:blue")
-        axarr[2,index].plot(cleaned_Shih_flux,cleaned_mean_pressure,c = "tab:blue")
+        axarr[2,index].plot(cleaned_Shih_flux,cleaned_mean_pressure,c = "tab:blue", label = "Shih flux")
 
-        dissipation_plot_axis.plot(np.log10(cleaned_dissipation),cleaned_mean_pressure,c = "k", alpha = 0.4)
 
-        axarr[2,index].set_xlim(-20,20)
+
+        axarr[2,index].set_xlim(-30,15)
         
         
     axarr[0,0].invert_yaxis()
     axarr[0,0].yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))      
-    #axarr.set_ylabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
+
+    axarr[0,0].set_ylabel("pressure [dbar]")
+    axarr[1,0].set_ylabel("pressure [dbar]")
+    axarr[2,0].set_ylabel("pressure [dbar]")
+    axarr[0,0].set_xlabel(r"temperature/salinity") 
+    axarr[1,0].set_xlabel(r"log10($\epsilon$) $[m^2 s^{-3}]$")   
+    axarr[2,0].set_xlabel(r"oxygen flux [mmol/(m$^2$*d]")
+  
+    lines = [t,s,d]
+    axarr[0,-2].legend(lines, [l.get_label() for l in lines], loc = "lower center")
+    lines = [o,e]
+    axarr[1,-2].legend(lines, [l.get_label() for l in lines], loc = "lower center")
+    axarr[2,-2].legend(loc = "lower center")
+  
     #axarr.set_xlabel(r"longitude [$\degree$E]")     
     f.suptitle(cruisename)  
     f.set_size_inches(18,10.5)
     f.tight_layout() 
     f.subplots_adjust(top=0.915)
 
-    f.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+"isopycnal_averaged_overview_"+cruisename)
+    f.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/isopycnal_averaging/"+"isopycnal_averaged_overview_"+cruisename)
     
     
     b,bxarr = plt.subplots(nrows = 1, ncols = 1) 
@@ -557,10 +574,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     bxarr.xaxis.set_major_locator(ticker.MultipleLocator(0.01))   
     b.set_size_inches(18,10.5)
     b.tight_layout() 
-    b.subplots_adjust(top=0.915)
+    b.subplots_adjust(top=0.915,bottom=0.071,left=0.047,right=0.983,hspace=0.4,wspace=0.13)
     b.suptitle(cruisename)
-    b.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+"isopycnal_averaged_overview_"+cruisename+"_intervals")   
+    b.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/isopycnal_averaging/"+"isopycnal_averaged_overview_"+cruisename+"_intervals")   
     
-    #plt.show()
+    plt.show()
     
 
