@@ -1,5 +1,7 @@
 ############################################################
+#compares the impact of shifting the measured raw oxygen data by a small amount on the computed oxygen fluxes
 
+#EMB169 is not yet possible as the raw data is saved in two foldes instead of one. (No case handling of that) 
 ##############################################################
 import numpy as np
 import scipy.io as sio
@@ -15,6 +17,7 @@ plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+plt.rc('savefig', dpi=300)
 
 cmap_RdBu = plt.get_cmap('RdBu_r')
 cmap_RdBu.set_bad(color = 'lightgrey')
@@ -35,14 +38,15 @@ warnings.filterwarnings('ignore')
 #Load raw data and shift the oxygen the defined values
 #################################################
 
-FOLDERNAME = "/home/ole/windows/emb217_mss_data" 
-shift_values = [-0.5,-0.25,0,0.25,0.5]
-
+FOLDERNAME_raw = "/home/ole/windows/emb217_mss_data" 
+FOLDERNAME_shifted =  "/home/ole/windows/shifted_mss_data"
+shift_values = [-0.5,-0.25,0.25,0.5,0]
+#shift_values = [0.5,0.5,0]
 
 
 
 f_flux,flux_axarr = plt.subplots(1)
-flux_axarr.invert_yaxis()
+#flux_axarr.invert_yaxis()
 
 
 def load_clean_interpolate_and_shift_data(datafile_path, shift_value):
@@ -86,6 +90,8 @@ def load_clean_interpolate_and_shift_data(datafile_path, shift_value):
     import geopy.distance as geo
     import numpy as np
     import gsw 
+    
+
     
     splitted_path = datafile_path.split("/")
     cruisename = splitted_path[4][0:6]
@@ -312,8 +318,8 @@ def load_clean_interpolate_and_shift_data(datafile_path, shift_value):
     #if yes the pressure can be coverted to a 1D array instead of a 2D array    
     eps_pressure = eps_pressure[0].flatten()
     
-    print(eps[i].flatten().size,eps_pressure.size, np.arange(1,160.5,0.5).size, np.arange(1,160.5,0.5).size - eps_pressure.size)
-    print(np.shape(eps),np.shape(eps[0]))
+    #print(eps[i].flatten().size,eps_pressure.size, np.arange(1,160.5,0.5).size, np.arange(1,160.5,0.5).size - eps_pressure.size)
+    #print(np.shape(eps),np.shape(eps[0]))
     
     
     desired_pressure_array = np.arange(1,160.5,0.5) #stems from the orginal matlab script that process the raw MSS data
@@ -426,8 +432,8 @@ def load_clean_interpolate_and_shift_data(datafile_path, shift_value):
     
     if cruisename == "emb217":
         #convert oxygen saturation to oxygen concentration (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
-        oxygen_grid = oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
-        eps_oxygen_grid = oxygen_saturation_to_concentration(eps_oxygen_sat_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid) 
+        oxygen_grid = thesis.oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
+        eps_oxygen_grid = thesis.oxygen_saturation_to_concentration(eps_oxygen_sat_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid) 
               
     elif cruisename == "emb177":
         #scale the oxygen to be at 100% at the surface
@@ -447,13 +453,13 @@ def load_clean_interpolate_and_shift_data(datafile_path, shift_value):
         eps_oxygen_grid = eps_oxygen_grid * correction_factor
         
         #convert oxygen concentration to oxygen saturation (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
-        oxygen_sat_grid = oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
-        eps_oxygen_sat_grid = oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)  
+        oxygen_sat_grid = thesis.oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
+        eps_oxygen_sat_grid = thesis.oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)  
     
     elif cruisename == "emb169":
         #convert oxygen concentration to oxygen saturation (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
-        oxygen_sat_grid = oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
-        eps_oxygen_sat_grid = oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)  
+        oxygen_sat_grid = thesis.oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
+        eps_oxygen_sat_grid = thesis.oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)  
     
     else:
         raise AssertionError
@@ -466,18 +472,27 @@ def load_clean_interpolate_and_shift_data(datafile_path, shift_value):
 ##################################################################
 #!!!!!!!!!!!!!!!!!!!!!!!!main function starts!!!!!!!!!!!!!!!!!!!!!
 ##################################################################
+
+
 ############################
-#loop over the shift values and prepare the data with shifted oxygen data points
+#loop over the raw data and prepare it with shifted oxygen data points
 ############################
 for shift_index,shift_value in enumerate(shift_values):
 
-    path = pathlib.Path(FOLDERNAME)
+    print("-----------------------------------------------")
+    print("-----------------------------------------------")
+    print("compute flux with a shift of "+str(shift_value)+" m")
+    print("-----------------------------------------------")
+    print("-----------------------------------------------")
+
+    path = pathlib.Path(FOLDERNAME_raw)
     DATAFILENAMES = []
 
-    splitted_foldername = FOLDERNAME.split("/")
+    splitted_foldername = FOLDERNAME_raw.split("/")
     
     cruisename = splitted_foldername[4][0:6]
     
+    print("load, clean and shift data")
     print(cruisename)    
    
                 
@@ -491,23 +506,25 @@ for shift_index,shift_value in enumerate(shift_values):
     DATAFILENAMES = sorted(DATAFILENAMES) 
     
     for DATAFILENAME in DATAFILENAMES:
-        datafile_path = FOLDERNAME+"/"+DATAFILENAME
+        datafile_path = FOLDERNAME_raw+"/"+DATAFILENAME
         
         #skip this filename, not what thsi program expects
         if DATAFILENAME == "TS11_TODL_merged.mat":
             continue
-            
+        if DATAFILENAME[0] == "S":
+            continue   
 
         transect_name = DATAFILENAME[:-4]
 
-        results = thesis.load_clean_interpolate_and_shift_data(datafile_path, shift_value)
+        
+        results = load_clean_interpolate_and_shift_data(datafile_path, shift_value)
         
         try:
             number_of_profiles,lat,lon,distance = results[0]
             interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid, pot_density_grid = results[1]
             eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid, eps_pot_density_grid = results[2]
         except TypeError:
-            #print(cruisename,transect_name,"is skipped!")
+            print(cruisename,transect_name,"is skipped!")
             continue
  
 
@@ -549,16 +566,16 @@ for shift_index,shift_value in enumerate(shift_values):
         
         
                
-        ########################################################################################################################################################## 
+    ########################################################################################################################################################## 
     rolling_window_size = 12
 
     maximum_reasonable_flux = 500 #float('Inf') #200 #Fluxes above this value will be discarded
     acceptable_slope = 2 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
 
-
+    print("compute rolling average")
          
     print("#######################################")
-    FOLDERNAME = "/home/ole/windows/shifted_mss_data"
+
     number_of_fluxes_over_the_threshold = 0
     number_of_transects = 0
     total_number_of_fluxes = 0
@@ -567,15 +584,15 @@ for shift_index,shift_value in enumerate(shift_values):
     total_number_of_valid_profiles = 0    
     total_number_of_correct_profiles = 0
     
-    path = pathlib.Path(FOLDERNAME)
+    path = pathlib.Path(FOLDERNAME_shifted)
     DATAFILENAMES = []
 
-    splitted_foldername = FOLDERNAME.split("/")
+    #splitted_foldername = FOLDERNAME.split("/")
     
     #get the cruise name from the folder name
-    cruisename = splitted_foldername[-1]
+    #cruisename = splitted_foldername[-1]
     
-    print(cruisename)
+    print("cruisename",cruisename)
     
     if cruisename == "emb217":
         upper_bound_halocline_as_density = 1006.4 #1005.75
@@ -600,17 +617,18 @@ for shift_index,shift_value in enumerate(shift_values):
     for p in path.iterdir():
         all_files_name = str(p.parts[-1])
 
-        if all_files_name[-4:] == ".npz":
+        #print(all_files_name[:6],cruisename)
+        if all_files_name[-4:] == ".npz" and all_files_name[:6] == cruisename:
             DATAFILENAMES.append(str(p.parts[-1]))
 
     DATAFILENAMES = sorted(DATAFILENAMES) 
     
-    #print(DATAFILENAMES)
+    print(DATAFILENAMES)
     
     
     for DATAFILENAME in DATAFILENAMES:
     
-        datafile_path = FOLDERNAME+"/"+DATAFILENAME
+        datafile_path = FOLDERNAME_shifted+"/"+DATAFILENAME
         
         transect_name = DATAFILENAME[:-4]
     
@@ -878,10 +896,10 @@ for shift_index,shift_value in enumerate(shift_values):
     mean_Osborn_flux = [None] * total_number_of_valid_profiles
     mean_Shih_flux = [None] * total_number_of_valid_profiles
     median_flux = [None] * total_number_of_valid_profiles
-    upper_percentile_flux = [None] * total_number_of_valid_profiles
-    lower_percentile_flux = [None] * total_number_of_valid_profiles
-    second_upper_percentile_flux = [None] * total_number_of_valid_profiles
-    second_lower_percentile_flux = [None] * total_number_of_valid_profiles
+    #upper_percentile_flux = [None] * total_number_of_valid_profiles
+    #lower_percentile_flux = [None] * total_number_of_valid_profiles
+    #second_upper_percentile_flux = [None] * total_number_of_valid_profiles
+    #second_lower_percentile_flux = [None] * total_number_of_valid_profiles
   
     #bathymetrie_mean = [None] * number_of_intervals
     #bathymetrie_percentile = [None] * number_of_intervals
@@ -889,11 +907,11 @@ for shift_index,shift_value in enumerate(shift_values):
     log_mean_dissipation = [None] * total_number_of_valid_profiles
     arith_mean_dissipation = [None] * total_number_of_valid_profiles
     median_dissipation = [None] * total_number_of_valid_profiles
-    lower_percentile_dissip = [None] * total_number_of_valid_profiles
-    upper_percentile_dissip = [None] * total_number_of_valid_profiles
+    #lower_percentile_dissip = [None] * total_number_of_valid_profiles
+    #upper_percentile_dissip = [None] * total_number_of_valid_profiles
 
-    second_lower_percentile_dissip = [None] * total_number_of_valid_profiles
-    second_upper_percentile_dissip = [None] * total_number_of_valid_profiles
+    #second_lower_percentile_dissip = [None] * total_number_of_valid_profiles
+    #second_upper_percentile_dissip = [None] * total_number_of_valid_profiles
 
     """
     mean_dissipation_med = [None] * number_of_profiles
@@ -921,13 +939,14 @@ for shift_index,shift_value in enumerate(shift_values):
         median_flux[index] = np.nanmedian(temp_Shih_flux)
         
         temp_Osborn_flux = Osborn_flux_list[index]
+        #replace fluxes above the threshold wit nan
         temp_Osborn_flux[np.abs(temp_Osborn_flux)>maximum_reasonable_flux] = np.nan  
         mean_Osborn_flux[index] = np.nanmean(temp_Osborn_flux)
         
-        upper_percentile_flux[index] = np.nanpercentile(temp_Shih_flux, flux_percentile)
-        lower_percentile_flux[index] = np.nanpercentile(temp_Shih_flux, 100-flux_percentile)
-        second_upper_percentile_flux[index] = np.nanpercentile(temp_Shih_flux, second_flux_percentile)
-        second_lower_percentile_flux[index] = np.nanpercentile(temp_Shih_flux, 100-second_flux_percentile)
+        #upper_percentile_flux[index] = np.nanpercentile(temp_Shih_flux, flux_percentile)
+        #lower_percentile_flux[index] = np.nanpercentile(temp_Shih_flux, 100-flux_percentile)
+        #second_upper_percentile_flux[index] = np.nanpercentile(temp_Shih_flux, second_flux_percentile)
+        #second_lower_percentile_flux[index] = np.nanpercentile(temp_Shih_flux, 100-second_flux_percentile)
                         
         """        
         mean_min_flux[index] = np.nanmean(oxygen_flux_statistic[index][:,0],axis=0)
@@ -941,28 +960,28 @@ for shift_index,shift_value in enumerate(shift_values):
         log_mean_dissipation[index] = np.nanmean(np.log10(dissipation_list[index]))
         arith_mean_dissipation[index] = np.log10(np.nanmean(dissipation_list[index]))
         median_dissipation[index] = np.log10(np.nanmedian(dissipation_list[index]))
-        upper_percentile_dissip[index] = np.log10(np.nanpercentile(dissipation_list[index], dissip_percentile))
-        lower_percentile_dissip[index] = np.log10(np.nanpercentile(dissipation_list[index], 100-dissip_percentile))
-        second_upper_percentile_dissip[index] = np.log10(np.nanpercentile(dissipation_list[index], second_dissip_percentile))
-        second_lower_percentile_dissip[index] = np.log10(np.nanpercentile(dissipation_list[index], 100-second_dissip_percentile))
+        #upper_percentile_dissip[index] = np.log10(np.nanpercentile(dissipation_list[index], dissip_percentile))
+        #lower_percentile_dissip[index] = np.log10(np.nanpercentile(dissipation_list[index], 100-dissip_percentile))
+        #second_upper_percentile_dissip[index] = np.log10(np.nanpercentile(dissipation_list[index], second_dissip_percentile))
+        #second_lower_percentile_dissip[index] = np.log10(np.nanpercentile(dissipation_list[index], 100-second_dissip_percentile))
                     
                        
                            
     rolling_mean_Shih_flux = [None] * total_number_of_valid_profiles
     rolling_mean_Osborn_flux = [None] * total_number_of_valid_profiles
     rolling_median_flux = [None] * total_number_of_valid_profiles
-    rolling_upper_percentile_flux = [None] * total_number_of_valid_profiles
-    rolling_lower_percentile_flux = [None] * total_number_of_valid_profiles
-    rolling_second_upper_percentile_flux = [None] * total_number_of_valid_profiles
-    rolling_second_lower_percentile_flux = [None] * total_number_of_valid_profiles
+    #rolling_upper_percentile_flux = [None] * total_number_of_valid_profiles
+    #rolling_lower_percentile_flux = [None] * total_number_of_valid_profiles
+    #rolling_second_upper_percentile_flux = [None] * total_number_of_valid_profiles
+    #rolling_second_lower_percentile_flux = [None] * total_number_of_valid_profiles
     
     rolling_log_mean_dissipation = [None] * total_number_of_valid_profiles
     rolling_arith_mean_dissipation = [None] * total_number_of_valid_profiles
     rolling_median_dissipation = [None] * total_number_of_valid_profiles
-    rolling_lower_percentile_dissip = [None] * total_number_of_valid_profiles
-    rolling_upper_percentile_dissip = [None] * total_number_of_valid_profiles
-    rolling_second_upper_percentile_dissip = [None] * total_number_of_valid_profiles
-    rolling_second_lower_percentile_dissip = [None] * total_number_of_valid_profiles
+    #rolling_lower_percentile_dissip = [None] * total_number_of_valid_profiles
+    #rolling_upper_percentile_dissip = [None] * total_number_of_valid_profiles
+    #rolling_second_upper_percentile_dissip = [None] * total_number_of_valid_profiles
+    #rolling_second_lower_percentile_dissip = [None] * total_number_of_valid_profiles
             
     max_longitude_gap_index = np.argmax(np.diff(longitude_list))
     max_longitude_gap = np.diff(longitude_list)[max_longitude_gap_index]
@@ -977,18 +996,18 @@ for shift_index,shift_value in enumerate(shift_values):
                 rolling_mean_Shih_flux[index] = np.nan
                 rolling_mean_Osborn_flux[index] = np.nan
                 rolling_median_flux[index] = np.nan  
-                rolling_upper_percentile_flux[index] = np.nan
-                rolling_lower_percentile_flux[index] = np.nan
-                rolling_second_upper_percentile_flux[index] = np.nan
-                rolling_second_lower_percentile_flux[index] = np.nan
+                #rolling_upper_percentile_flux[index] = np.nan
+                #rolling_lower_percentile_flux[index] = np.nan
+                #rolling_second_upper_percentile_flux[index] = np.nan
+                #rolling_second_lower_percentile_flux[index] = np.nan
                                 
                 rolling_log_mean_dissipation[index] = np.nan
                 rolling_arith_mean_dissipation[index] = np.nan
                 rolling_median_dissipation[index] = np.nan   
-                rolling_lower_percentile_dissip[index] =  np.nan
-                rolling_upper_percentile_dissip[index] =  np.nan
-                rolling_second_upper_percentile_dissip[index] =  np.nan
-                rolling_second_lower_percentile_dissip[index] =  np.nan
+                #rolling_lower_percentile_dissip[index] =  np.nan
+                #rolling_upper_percentile_dissip[index] =  np.nan
+                #rolling_second_upper_percentile_dissip[index] =  np.nan
+                #rolling_second_lower_percentile_dissip[index] =  np.nan
                 continue
     
         if rolling_window_size ==1:
@@ -1006,19 +1025,19 @@ for shift_index,shift_value in enumerate(shift_values):
                 rolling_mean_Shih_flux[index] = np.nanmean(mean_Shih_flux[index-(rolling_window_size//2):index+rolling_window_size//2])
                 rolling_mean_Osborn_flux[index] = np.nanmean(mean_Osborn_flux[index-(rolling_window_size//2):index+rolling_window_size//2])
                 rolling_median_flux[index] = np.nanmean(median_flux[index-(rolling_window_size//2):index+rolling_window_size//2])
-                rolling_upper_percentile_flux[index] = np.nanmean(upper_percentile_flux[index-(rolling_window_size//2):index+rolling_window_size//2])
-                rolling_lower_percentile_flux[index] = np.nanmean(lower_percentile_flux[index-(rolling_window_size//2):index+rolling_window_size//2])
-                rolling_second_upper_percentile_flux[index] = np.nanmean(second_upper_percentile_flux[index-(rolling_window_size//2):index+rolling_window_size//2])
-                rolling_second_lower_percentile_flux[index] = np.nanmean(second_lower_percentile_flux[index-(rolling_window_size//2):index+rolling_window_size//2])
+                #rolling_upper_percentile_flux[index] = np.nanmean(upper_percentile_flux[index-(rolling_window_size//2):index+rolling_window_size//2])
+                #rolling_lower_percentile_flux[index] = np.nanmean(lower_percentile_flux[index-(rolling_window_size//2):index+rolling_window_size//2])
+                #rolling_second_upper_percentile_flux[index] = np.nanmean(second_upper_percentile_flux[index-(rolling_window_size//2):index+rolling_window_size//2])
+                #rolling_second_lower_percentile_flux[index] = np.nanmean(second_lower_percentile_flux[index-(rolling_window_size//2):index+rolling_window_size//2])
                 
                 #print("test",np.nanmean(log_mean_dissipation[index-(rolling_window_size//2):index+rolling_window_size//2]))
                 rolling_log_mean_dissipation[index] = np.nanmean(log_mean_dissipation[index-(rolling_window_size//2):index+rolling_window_size//2])
                 rolling_arith_mean_dissipation[index] = np.nanmean(arith_mean_dissipation[index-(rolling_window_size//2):index+rolling_window_size//2])
                 rolling_median_dissipation[index] = np.nanmean(median_dissipation[index-(rolling_window_size//2):index+rolling_window_size//2])
-                rolling_lower_percentile_dissip[index] =  np.nanmean(lower_percentile_dissip[index-(rolling_window_size//2):index+rolling_window_size//2])
-                rolling_upper_percentile_dissip[index] =  np.nanmean(upper_percentile_dissip[index-(rolling_window_size//2):index+rolling_window_size//2])
-                rolling_second_upper_percentile_dissip[index] = np.nanmean(second_upper_percentile_dissip[index-(rolling_window_size//2):index+rolling_window_size//2])
-                rolling_second_lower_percentile_dissip[index] = np.nanmean(second_lower_percentile_dissip[index-(rolling_window_size//2):index+rolling_window_size//2])
+                #rolling_lower_percentile_dissip[index] =  np.nanmean(lower_percentile_dissip[index-(rolling_window_size//2):index+rolling_window_size//2])
+                #rolling_upper_percentile_dissip[index] =  np.nanmean(upper_percentile_dissip[index-(rolling_window_size//2):index+rolling_window_size//2])
+                #rolling_second_upper_percentile_dissip[index] = np.nanmean(second_upper_percentile_dissip[index-(rolling_window_size//2):index+rolling_window_size//2])
+                #rolling_second_lower_percentile_dissip[index] = np.nanmean(second_lower_percentile_dissip[index-(rolling_window_size//2):index+rolling_window_size//2])
     
                 #print(index,longitude_list[index],np.round(mean_flux[index-rolling_window_size//2:index+rolling_window_size//2],3))
     
@@ -1027,18 +1046,18 @@ for shift_index,shift_value in enumerate(shift_values):
                 rolling_mean_Shih_flux[index] = np.nan
                 rolling_mean_Osborn_flux[index] = np.nan
                 rolling_median_flux[index] = np.nan  
-                rolling_upper_percentile_flux[index] = np.nan
-                rolling_lower_percentile_flux[index] = np.nan
-                rolling_second_upper_percentile_flux[index] = np.nan
-                rolling_second_lower_percentile_flux[index] = np.nan
+                #rolling_upper_percentile_flux[index] = np.nan
+                #rolling_lower_percentile_flux[index] = np.nan
+                #rolling_second_upper_percentile_flux[index] = np.nan
+                #rolling_second_lower_percentile_flux[index] = np.nan
                                 
                 rolling_log_mean_dissipation[index] = np.nan
                 rolling_arith_mean_dissipation[index] = np.nan
                 rolling_median_dissipation[index] = np.nan   
-                rolling_lower_percentile_dissip[index] =  np.nan
-                rolling_upper_percentile_dissip[index] =  np.nan
-                rolling_second_upper_percentile_dissip[index] =  np.nan
-                rolling_second_lower_percentile_dissip[index] =  np.nan 
+                #rolling_lower_percentile_dissip[index] =  np.nan
+                #rolling_upper_percentile_dissip[index] =  np.nan
+                #rolling_second_upper_percentile_dissip[index] =  np.nan
+                #rolling_second_lower_percentile_dissip[index] =  np.nan 
                 
     print(cruisename,"total number of transects =",number_of_transects)  
     print("total_number_of profiles",total_number_of_correct_profiles)        
@@ -1058,20 +1077,25 @@ for shift_index,shift_value in enumerate(shift_values):
     ##################################################################################################################################     
     
 
-    color = ["tab:blue","tab:green","tab:red","tab:red", "tab:orange"]
+    color = ["tab:blue","tab:green","tab:red", "tab:orange","k"]
+       
+    if shift_value == 0:
+        ls = ":"
+    else:
+        ls = "-"   
                   
-    flux_axarr.plot(longitude_list,rolling_mean_Shih_flux, lw = 2.5, zorder = 3, c = color[shift_index], label = str(shift_value))#"tab:blue")
+    flux_axarr.plot(longitude_list,rolling_mean_Shih_flux, ls, lw = 2.5, zorder = 3, c = color[shift_index], label = "shifted by " + str(shift_value)+" m")#"tab:blue")
     #flux_axarr.plot(longitude_list,rolling_mean_Osborn_flux, ls = "-.", lw = 2.5, zorder = 3, c = color[n], label = str(n))#, label = label_name)
     
         
         
-flux_axarr.set_ylabel("pressure [dbar]")
+#flux_axarr.set_ylabel("pressure [dbar]")
 
 
 
 flux_axarr.legend(loc = "lower left")
 
-flux_axarr.set_ylim((-30,1))    
+#flux_axarr.set_ylim((-30,1))    
          
 flux_axarr.set_ylabel(r"oxygen flux [mmol/(m$^2$*d]")
 
@@ -1082,8 +1106,11 @@ f_flux.subplots_adjust(top=0.94)
 
 
 
-f_flux.suptitle("Shift comparison")
-          
+f_flux.suptitle(cruisename+": Impact of shifting the raw oxygen measurements")
+
+f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/isopycnal_averaging/"+cruisename+"_shift_comparison")
+
+         
 plt.show()
     
     
