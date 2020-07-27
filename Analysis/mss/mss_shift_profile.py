@@ -10,7 +10,8 @@ import geopy.distance as geo
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import gsw 
 import mss_functions as thesis
-
+import warnings
+warnings.filterwarnings('ignore')
 
 
 
@@ -464,6 +465,7 @@ def load_clean_interpolate_and_shift_data(datafile_path, shift_value):
 
 
 datafile_path = "/home/ole/windows/emb217_mss_data/TR1-8.mat"
+datafile_path = "/home/ole/windows/emb177_mss_data/TS1_8.mat"
 
 splitted_filename = datafile_path.split("/")
 cruisename = splitted_filename[4][0:6]
@@ -521,20 +523,40 @@ for shift_index,shift_value in enumerate(shift_values):
         
     
     profile_index = np.argmin(np.abs(lon-20.6)) 
-    a = np.argmin(np.abs(eps_pressure-65))   
-    b = np.argmin(np.abs(eps_pressure-75)) 
-
-    #axarr[0].plot(np.nanmean(eps_oxygen_sat_grid, axis = 0),eps_pressure,label = str(shift_value))
-    #axarr[1].plot(np.nanmean(oxygen_flux_Skif_grid, axis = 0),eps_pressure,label = str(shift_value))
-    axarr[0].plot(eps_oxygen_sat_grid[profile_index],eps_pressure,label = str(shift_value))
-    axarr[1].plot(oxygen_flux_Skif_grid[profile_index],eps_pressure,label = str(shift_value))
-    
-    axarr2[0].plot(lon,np.nanmax(eps_oxygen_sat_grid[:,a:b], axis = 1),label = str(shift_value))
-    #axarr2[1].plot(lon,np.nanmax(oxygen_flux_Skif_grid[:,a:b], axis = 1),label = str(shift_value))
-    axarr2[0].plot(lon,np.nanmin(eps_oxygen_sat_grid[:,a:b], axis = 1),"--",label = str(shift_value))
-    axarr2[1].plot(lon,np.nanmean(oxygen_flux_Skif_grid[:,a:b], axis = 1),"--",label = str(shift_value))    
+    #profile_index = np.argmin(np.abs(lon-20.546))
+    a = np.argmin(np.abs(eps_pressure-53))   
+    b = np.argmin(np.abs(eps_pressure-60)) 
 
 
+    if shift_value == 0:
+        pass
+        axarr[0].plot(eps_oxygen_sat_grid[profile_index],eps_pressure, "k", label = str(shift_value))
+        axarr[1].plot(oxygen_flux_Skif_grid[profile_index],eps_pressure,"k",label = str(shift_value))
+        
+        axarr2[0].plot(lon,np.nanmean(eps_oxygen_sat_grid[:,a:b], axis = 1),"k",label = str(shift_value))
+        #axarr2[0].fill_between(lon,np.nanmax(eps_oxygen_sat_grid[:,a:b], axis =1),np.nanmin(eps_oxygen_sat_grid[:,a:b], axis = 1),"k",alpha = 0.2)
+        axarr2[0].plot(lon,np.nanmax(eps_oxygen_sat_grid[:,a:b], axis =1),"k--",alpha = 0.2)
+        axarr2[0].plot(lon,np.nanmin(eps_oxygen_sat_grid[:,a:b], axis = 1),"k--",alpha = 0.2)
+        axarr2[1].plot(lon,np.nanmean(oxygen_flux_Skif_grid[:,a:b], axis = 1),"k-",label = str(shift_value))  
+
+    else:
+        #axarr[0].plot(np.nanmean(eps_oxygen_sat_grid, axis = 0),eps_pressure,label = str(shift_value))
+        #axarr[1].plot(np.nanmean(oxygen_flux_Skif_grid, axis = 0),eps_pressure,label = str(shift_value))
+        axarr[0].plot(eps_oxygen_sat_grid[profile_index],eps_pressure,label = str(shift_value))
+        axarr[1].plot(oxygen_flux_Skif_grid[profile_index],eps_pressure,label = str(shift_value))
+        
+        axarr2[0].plot(lon,np.nanmean(eps_oxygen_sat_grid[:,a:b], axis = 1),label = str(shift_value))
+        #axarr2[0].fill_between(lon,np.nanmax(eps_oxygen_sat_grid[:,a:b], axis =1),np.nanmin(eps_oxygen_sat_grid[:,a:b], axis = 1),alpha = 0.2)
+        axarr2[0].plot(lon,np.nanmax(eps_oxygen_sat_grid[:,a:b], axis =1),"--",alpha = 0.2)
+        axarr2[0].plot(lon,np.nanmin(eps_oxygen_sat_grid[:,a:b], axis = 1),"--",alpha = 0.2)
+        #axarr2[1].plot(lon,np.nanmax(oxygen_flux_Skif_grid[:,a:b], axis = 1),label = str(shift_value))
+        #axarr2[0].plot(lon,np.nanmin(eps_oxygen_sat_grid[:,a:b], axis = 1),"--",label = str(shift_value))
+        axarr2[1].plot(lon,np.nanmean(oxygen_flux_Skif_grid[:,a:b], axis = 1),"-",label = str(shift_value))    
+
+axarr[0].axhline(eps_pressure[a])
+axarr[0].axhline(eps_pressure[b])
+axarr[1].axhline(eps_pressure[a])
+axarr[1].axhline(eps_pressure[b])
 axarr[0].invert_yaxis()
 axarr[0].legend()
 axarr[1].legend()

@@ -38,7 +38,7 @@ warnings.filterwarnings('ignore')
 #Load raw data and shift the oxygen the defined values
 #################################################
 
-FOLDERNAME_raw = "/home/ole/windows/emb217_mss_data" 
+
 FOLDERNAME_shifted =  "/home/ole/windows/shifted_mss_data"
 shift_values = [-0.5,-0.25,0.25,0.5,0]
 #shift_values = [0.5,0.5,0]
@@ -46,7 +46,6 @@ shift_values = [-0.5,-0.25,0.25,0.5,0]
 
 
 f_flux,flux_axarr = plt.subplots(1)
-#flux_axarr.invert_yaxis()
 
 
 def load_clean_interpolate_and_shift_data(datafile_path, shift_value):
@@ -479,90 +478,93 @@ def load_clean_interpolate_and_shift_data(datafile_path, shift_value):
 ############################
 for shift_index,shift_value in enumerate(shift_values):
 
+    
     print("-----------------------------------------------")
     print("-----------------------------------------------")
     print("compute flux with a shift of "+str(shift_value)+" m")
     print("-----------------------------------------------")
     print("-----------------------------------------------")
 
-    path = pathlib.Path(FOLDERNAME_raw)
-    DATAFILENAMES = []
+    for FOLDERNAME_raw in ["/home/ole/windows/emb177_mss_data"]: #["/home/ole/windows/emb169_mss_data/MSS055/matlab","/home/ole/windows/emb169_mss_data/MSS038/matlab/"]: #["/home/ole/windows/emb217_mss_data"]:
 
-    splitted_foldername = FOLDERNAME_raw.split("/")
-    
-    cruisename = splitted_foldername[4][0:6]
-    
-    print("load, clean and shift data")
-    print(cruisename)    
-   
-                
-    #go through all files of specified folder and select only files ending with .mat
-    for p in path.iterdir():
-        all_files_name = str(p.parts[-1])
+        path = pathlib.Path(FOLDERNAME_raw)
+        DATAFILENAMES = []
 
-        if all_files_name[-4:] == ".mat":
-            DATAFILENAMES.append(str(p.parts[-1]))
-
-    DATAFILENAMES = sorted(DATAFILENAMES) 
-    
-    for DATAFILENAME in DATAFILENAMES:
-        datafile_path = FOLDERNAME_raw+"/"+DATAFILENAME
+        splitted_foldername = FOLDERNAME_raw.split("/")
         
-        #skip this filename, not what thsi program expects
-        if DATAFILENAME == "TS11_TODL_merged.mat":
-            continue
-        if DATAFILENAME[0] == "S":
-            continue   
-
-        transect_name = DATAFILENAME[:-4]
-
+        cruisename = splitted_foldername[4][0:6]
         
-        results = load_clean_interpolate_and_shift_data(datafile_path, shift_value)
-        
-        try:
-            number_of_profiles,lat,lon,distance = results[0]
-            interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid, pot_density_grid = results[1]
-            eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid, eps_pot_density_grid = results[2]
-        except TypeError:
-            print(cruisename,transect_name,"is skipped!")
-            continue
- 
-
-        #calculate the viscosity (2 different formula)
-        eps_wiki_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_salinity_grid,eps_density_grid,"Wikipedia")
-        eps_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_salinity_grid,eps_density_grid, "default")
-
-        #print("eps_viscosity_grid\n",np.shape(eps_viscosity_grid))
-
-        #calculate the Reynolds bouyancy number defined on the pressure values defined in eps_pressure
-        eps_Reynolds_bouyancy_grid = eps_grid/(eps_viscosity_grid*eps_N_squared_grid)
-        eps_wiki_Reynolds_bouyancy_grid = eps_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
-
-
-        #A negative Reynolds bouyancy has no physical meaning, therefore gets replaced by NaNs
-        #These negative values occur through a negative squared bouyancy frequency
-        eps_Reynolds_bouyancy_grid[eps_Reynolds_bouyancy_grid < 0] = np.nan 
-        eps_wiki_Reynolds_bouyancy_grid[eps_wiki_Reynolds_bouyancy_grid < 0] = np.nan            
+        print("load, clean and shift data")
+        print(cruisename)    
+       
                     
-        #apply the correction on the dissipation rate following Garanaik2018           
-        corrected_eps_grid = thesis.correct_dissipation(eps_grid,eps_Reynolds_bouyancy_grid)
-        corrected_eps_wiki_grid = thesis.correct_dissipation(eps_grid,eps_wiki_Reynolds_bouyancy_grid)
+        #go through all files of specified folder and select only files ending with .mat
+        for p in path.iterdir():
+            all_files_name = str(p.parts[-1])
 
-        #from that calculate again the now corrected Bouyancy Reynolds number (in 3D)
-        corrected_eps_Reynolds_bouyancy_grid = corrected_eps_grid/(eps_viscosity_grid*eps_N_squared_grid)
-        corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
+            if all_files_name[-4:] == ".mat":
+                DATAFILENAMES.append(str(p.parts[-1]))
 
-        #use self written function to get BBL
-        results = thesis.find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02)
-        bathymetrie,list_of_bathymetrie_indices = results[0]
-        BBL,list_of_BBL_indices = results[1]
-        BBL_range,list_of_BBL_range_indices = results[2]
+        DATAFILENAMES = sorted(DATAFILENAMES) 
+        
+        for DATAFILENAME in DATAFILENAMES:
+            datafile_path = FOLDERNAME_raw+"/"+DATAFILENAME
+            
+            #skip this filename, not what thsi program expects
+            if DATAFILENAME == "TS11_TODL_merged.mat":
+                continue
+            if DATAFILENAME[0] == "S":
+                continue   
 
-          
-          
- 
-          
-        np.savez("/home/ole/windows/shifted_mss_data/"+cruisename+"_"+transect_name ,number_of_profiles = number_of_profiles, lat = lat,lon = lon,distance = distance, bathymetrie = bathymetrie,list_of_bathymetrie_indices = list_of_bathymetrie_indices,BBL = BBL,list_of_BBL_indices = list_of_BBL_indices,BBL_range = BBL_range,list_of_BBL_range_indices = list_of_BBL_range_indices, interp_pressure = interp_pressure,oxygen_grid = oxygen_grid, oxygen_sat_grid = oxygen_sat_grid, salinity_grid = salinity_grid,consv_temperature_grid = consv_temperature_grid, density_grid = density_grid, pot_density_grid = pot_density_grid, eps_pressure = eps_pressure,eps_grid = eps_grid, corrected_eps_wiki_grid = corrected_eps_wiki_grid, corrected_eps_grid = corrected_eps_grid, eps_salinity_grid = eps_salinity_grid, eps_consv_temperature_grid = eps_consv_temperature_grid, eps_oxygen_grid = eps_oxygen_grid, eps_oxygen_sat_grid = eps_oxygen_sat_grid, eps_N_squared_grid = eps_N_squared_grid,eps_density_grid = eps_density_grid, eps_pot_density_grid = eps_pot_density_grid, eps_Reynolds_bouyancy_grid =  eps_Reynolds_bouyancy_grid, corrected_eps_Reynolds_bouyancy_grid = corrected_eps_Reynolds_bouyancy_grid,  eps_wiki_Reynolds_bouyancy_grid = eps_wiki_Reynolds_bouyancy_grid, corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_Reynolds_bouyancy_grid)
+            transect_name = DATAFILENAME[:-4]
+
+            
+            results = load_clean_interpolate_and_shift_data(datafile_path, shift_value)
+            
+            try:
+                number_of_profiles,lat,lon,distance = results[0]
+                interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid, pot_density_grid = results[1]
+                eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid, eps_pot_density_grid = results[2]
+            except TypeError:
+                print(cruisename,transect_name,"is skipped!")
+                continue
+     
+
+            #calculate the viscosity (2 different formula)
+            eps_wiki_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_salinity_grid,eps_density_grid,"Wikipedia")
+            eps_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_salinity_grid,eps_density_grid, "default")
+
+            #print("eps_viscosity_grid\n",np.shape(eps_viscosity_grid))
+
+            #calculate the Reynolds bouyancy number defined on the pressure values defined in eps_pressure
+            eps_Reynolds_bouyancy_grid = eps_grid/(eps_viscosity_grid*eps_N_squared_grid)
+            eps_wiki_Reynolds_bouyancy_grid = eps_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
+
+
+            #A negative Reynolds bouyancy has no physical meaning, therefore gets replaced by NaNs
+            #These negative values occur through a negative squared bouyancy frequency
+            eps_Reynolds_bouyancy_grid[eps_Reynolds_bouyancy_grid < 0] = np.nan 
+            eps_wiki_Reynolds_bouyancy_grid[eps_wiki_Reynolds_bouyancy_grid < 0] = np.nan            
+                        
+            #apply the correction on the dissipation rate following Garanaik2018           
+            corrected_eps_grid = thesis.correct_dissipation(eps_grid,eps_Reynolds_bouyancy_grid)
+            corrected_eps_wiki_grid = thesis.correct_dissipation(eps_grid,eps_wiki_Reynolds_bouyancy_grid)
+
+            #from that calculate again the now corrected Bouyancy Reynolds number (in 3D)
+            corrected_eps_Reynolds_bouyancy_grid = corrected_eps_grid/(eps_viscosity_grid*eps_N_squared_grid)
+            corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
+
+            #use self written function to get BBL
+            results = thesis.find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02)
+            bathymetrie,list_of_bathymetrie_indices = results[0]
+            BBL,list_of_BBL_indices = results[1]
+            BBL_range,list_of_BBL_range_indices = results[2]
+
+              
+              
+     
+              
+            np.savez("/home/ole/windows/shifted_mss_data/"+cruisename+"_"+transect_name ,number_of_profiles = number_of_profiles, lat = lat,lon = lon,distance = distance, bathymetrie = bathymetrie,list_of_bathymetrie_indices = list_of_bathymetrie_indices,BBL = BBL,list_of_BBL_indices = list_of_BBL_indices,BBL_range = BBL_range,list_of_BBL_range_indices = list_of_BBL_range_indices, interp_pressure = interp_pressure,oxygen_grid = oxygen_grid, oxygen_sat_grid = oxygen_sat_grid, salinity_grid = salinity_grid,consv_temperature_grid = consv_temperature_grid, density_grid = density_grid, pot_density_grid = pot_density_grid, eps_pressure = eps_pressure,eps_grid = eps_grid, corrected_eps_wiki_grid = corrected_eps_wiki_grid, corrected_eps_grid = corrected_eps_grid, eps_salinity_grid = eps_salinity_grid, eps_consv_temperature_grid = eps_consv_temperature_grid, eps_oxygen_grid = eps_oxygen_grid, eps_oxygen_sat_grid = eps_oxygen_sat_grid, eps_N_squared_grid = eps_N_squared_grid,eps_density_grid = eps_density_grid, eps_pot_density_grid = eps_pot_density_grid, eps_Reynolds_bouyancy_grid =  eps_Reynolds_bouyancy_grid, corrected_eps_Reynolds_bouyancy_grid = corrected_eps_Reynolds_bouyancy_grid,  eps_wiki_Reynolds_bouyancy_grid = eps_wiki_Reynolds_bouyancy_grid, corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_Reynolds_bouyancy_grid)
         
         
                
@@ -770,7 +772,7 @@ for shift_index,shift_value in enumerate(shift_values):
                 
             
             if np.nanmean(eps_oxygen_sat_grid[profile]) < 0:
-                print(cruisename,transect_name,"negative oxygen values")
+                print(cruisename,transect_name,"negative oxygen values, mean = ", np.nanmean(eps_oxygen_sat_grid[profile]), np.nanmedian(eps_oxygen_sat_grid[profile]))
                 continue
                 
 
@@ -1098,7 +1100,7 @@ flux_axarr.legend(loc = "lower left")
 #flux_axarr.set_ylim((-30,1))    
          
 flux_axarr.set_ylabel(r"oxygen flux [mmol/(m$^2$*d]")
-
+flux_axarr.set_xlabel(r"longitude [$\degree$E]")
 
 f_flux.set_size_inches(16,10.5)
 f_flux.tight_layout() 
