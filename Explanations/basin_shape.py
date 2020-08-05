@@ -19,7 +19,7 @@ YT_J = dset.variables["YT_J"]
 lon_0 = 20.1
 lat_0 = 57.1
 output_picture, axis = plt.subplots(1)
-map_ax = Basemap(ax = axis, width=550000,height=620000,resolution='h',projection='stere',lat_ts=50,lat_0=lat_0,lon_0=lon_0)
+map_ax = Basemap(ax = axis, width=550000,height=620000,resolution='c',projection='stere',lat_ts=50,lat_0=lat_0,lon_0=lon_0)
 
 #Plot with contourf
 #---------------------------------------------------
@@ -41,15 +41,17 @@ print(np.shape(basin_lat_list),np.shape(basin_lon_list),np.shape(basin_shape_lis
 
 #calculating the edge
 #--------------------------------------
+"""
 left = np.argmin(np.abs(np.mean(lon,axis=0)-18.0))
 right = np.argmin(np.abs(np.mean(lon,axis=0)-21.0))
 bottom = np.argmin(np.abs(np.mean(lat,axis=1)-56.0))
 top = np.argmin(np.abs(np.mean(lat,axis=1)-59.0))
+"""
 
 left = np.argmin(np.abs(np.mean(lon,axis=0)-16.8))
-right = np.argmin(np.abs(np.mean(lon,axis=0)-24.1))
+right = np.argmin(np.abs(np.mean(lon,axis=0)-25))
 bottom = np.argmin(np.abs(np.mean(lat,axis=1)-54.0))
-top = np.argmin(np.abs(np.mean(lat,axis=1)-61.0))
+top = np.argmin(np.abs(np.mean(lat,axis=1)-59.8))
 
 print(lon[0,left],lon[0,right],lat[bottom,0],lat[top,0])
 
@@ -118,8 +120,12 @@ for column in range(np.shape(basin_bath)[0]):
         
 edge_mask = (edge_array != 0) #True if the point is on the edge
 
-   
+pixels_edge =  len(basin_lat[edge_mask])
+pixels_basin = len(basin_lat[basin_mask])
 
+
+ratio = pixels_edge/(pixels_basin-pixels_edge)
+print("\nbasin:",pixels_basin,"\tedge",pixels_edge,"\tratio",ratio,"\tarea",pixels_basin*pixel_area,"\n")
 
 print(np.shape(lat),np.shape(lon),np.shape(bathymetry))
 print(np.shape(basin_lat),np.shape(basin_lon),np.shape(basin_bath))

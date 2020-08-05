@@ -664,7 +664,8 @@ def get_list_of_short_profiles(number_of_profiles,bathymetrie,acceptable_slope):
 def central_differences(array):
     dimensions = len(np.shape(array))
     diff_grid = np.zeros(np.shape(array))
-            
+     
+    #compute the central differences in the 1D array and set the first and last value of the derivative array to NaN    
     if dimensions == 1:
         vertical_points = array.size
         for i in range(1,vertical_points-1):
@@ -672,7 +673,8 @@ def central_differences(array):
 
         diff_grid[0] = np.nan 
         diff_grid[-1] = np.nan
-       
+     
+    #compute the central differences in every row of the 2D array and set the first and last value of each row of the derivative array to NaN       
     elif dimensions == 2:
         number_of_profiles = np.shape(array)[0]
         vertical_points = np.shape(array)[1]

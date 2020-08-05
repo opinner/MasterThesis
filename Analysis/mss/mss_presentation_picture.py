@@ -566,6 +566,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print(">",number_of_fluxes_over_the_threshold,total_number_of_fluxes,100*number_of_fluxes_over_the_threshold/total_number_of_fluxes,"%")
     print("Sum:",100*amount_of_missing_values/total_number_of_fluxes + 100*number_of_zero_flux/total_number_of_fluxes + 100*number_of_fluxes_over_the_threshold/total_number_of_fluxes,"%")
     
+    print("\n\n\n",cruisename,"flux sum:")
+    print("Osborn rolling mean",np.nansum(rolling_mean_Osborn_flux),"Osborn profiles", np.nansum(mean_Osborn_flux))
+    print("Shih rolling mean",np.nansum(rolling_mean_Shih_flux),"Shih profiles", np.nansum(mean_Shih_flux))
+    print("\n\n\n")
+    
+    
+    
     ##################################################################################################################################
     ##################################################################################################################################
     ##################################################################################################################################
@@ -576,7 +583,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
     if cruisename == "emb169":
         color = "tab:green"
-        label_name = "spring cruise" 
+        label_name = "autumn cruise" 
                 
     if cruisename == "emb177":
         color = "tab:blue"
@@ -591,7 +598,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     if textstr != "":
         textstr = textstr + "\n"
     
-    textstr = textstr + label_name + ":\t"+ str(upper_bound_halocline_as_density)+r"< σ < "+str(lower_bound_halocline_as_density)+r" kg/m$^3$"
+    textstr = textstr + label_name +" "+cruisename+ ":\t"+ str(upper_bound_halocline_as_density)+r"< σ < "+str(lower_bound_halocline_as_density)+r" kg/m$^3$"
     
     
                   
@@ -614,7 +621,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     #bathymetrie_axes.plot(bathymetry_longitude_list,interval_list[:,0])
     #bathymetrie_axes.plot(bathymetry_longitude_list,interval_list[:,1])
-    flux_axarr[1].fill_between(bathymetry_longitude_list,interval_list[:,0],interval_list[:,1],color = color, alpha = 0.5, label = label_name)
+    flux_axarr[1].fill_between(bathymetry_longitude_list,interval_list[:,0],interval_list[:,1],color = color, alpha = 0.5, label = label_name+" "+cruisename)
     
 
 
@@ -634,11 +641,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     #bathymetrie_axes2.plot(bathymetry_longitude_list,interval_list[:,0])
     #bathymetrie_axes2.plot(bathymetry_longitude_list,interval_list[:,1])
-    dissip_axarr[1].fill_between(bathymetry_longitude_list,interval_list[:,0],interval_list[:,1],color = color, alpha = 0.5, label = label_name)
+    dissip_axarr[1].fill_between(bathymetry_longitude_list,interval_list[:,0],interval_list[:,1],color = color, alpha = 0.5, label = label_name+" "+cruisename)
     
     #dissip_axarr.plot(longitude_list,log_mean_dissipation,"x", c = "tab:green", alpha = 0.4, label = "mean dissipation")        
     #dissip_axarr.plot(longitude_list,rolling_log_mean_dissipation, "k", label ="rolling logarithmic mean")
-    dissip_axarr[0].plot(longitude_list,rolling_arith_mean_dissipation, lw = 2.5, c = color, label = label_name)
+    dissip_axarr[0].plot(longitude_list,rolling_arith_mean_dissipation, lw = 2.5, c = color, label = label_name+" "+cruisename)
 
     #dissip_axarr.fill_between(longitude_list,rolling_upper_percentile_dissip,rolling_lower_percentile_dissip, color = "tab:blue", alpha = 0.7, label=str(dissip_percentile)+"% percentile") 
     #dissip_axarr.fill_between(longitude_list,rolling_upper_percentile_dissip,rolling_second_upper_percentile_dissip, color = "tab:blue", alpha = 0.4, label=str(second_dissip_percentile)+"% percentile")
@@ -664,7 +671,7 @@ second_max_flux_label =  mpatches.Patch(color='tab:green', alpha = 0.4,label='do
 second_min_flux_label =  mpatches.Patch(color='tab:blue', alpha = 0.4, label='upwards flux '+str(second_flux_percentile)+"% percentile")
 """
 
-emb169_label = mpatches.Patch(color='tab:green', label='spring cruise')
+emb169_label = mpatches.Patch(color='tab:green', label='autumn cruise')
 emb177_label = mpatches.Patch(color='tab:blue', label='winter cruise')
 emb217_label = mpatches.Patch(color='tab:red', label='summer cruise')
 Osborn_label = mlines.Line2D([], [], ls = "-.", lw = 2.5, c = "k", label = "Osborn oxygen flux")
@@ -687,7 +694,7 @@ f_flux.tight_layout()
 f_flux.subplots_adjust(top=0.94)
 
 props = dict(boxstyle='square', facecolor = "white")
-flux_axarr[1].text(0.7, 0.05, textstr, transform=flux_axarr[1].transAxes, fontsize=14,verticalalignment='bottom', bbox=props, multialignment = "right")
+flux_axarr[1].text(0.65, 0.05, textstr, transform=flux_axarr[1].transAxes, fontsize=14,verticalalignment='bottom', bbox=props, multialignment = "right")
 
 f_flux.suptitle("rolling mean oxygen flux (over "+str(rolling_window_size)+" points) around the halocline")
 f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/flux_presentation", dpi = 300)           
@@ -717,7 +724,7 @@ f_dissip.subplots_adjust(top=0.94)
  
     
 props = dict(boxstyle='square', facecolor = "white")
-dissip_axarr[1].text(0.7, 0.05, textstr, transform=dissip_axarr[1].transAxes, fontsize=14,verticalalignment='bottom', bbox=props, multialignment = "right")
+dissip_axarr[1].text(0.65, 0.05, textstr, transform=dissip_axarr[1].transAxes, fontsize=14,verticalalignment='bottom', bbox=props, multialignment = "right")
         
 f_dissip.suptitle("rolling mean dissipation (over "+str(rolling_window_size)+" points) around the halocline")
 f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/dissip_presentation", dpi = 300)
