@@ -20,6 +20,7 @@ plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
+import geopy.distance as geo
 import gsw.conversions as gsw
 import pathlib
 import mss_functions as thesis
@@ -28,6 +29,7 @@ import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
 import warnings
 warnings.filterwarnings('ignore')
+
     
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb169"]
@@ -305,7 +307,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     continue
             
             total_number_of_correct_profiles+=1
-                                    
+             
+            """           
             #if the water colum portion contains only nan values, save only the bathymetrie then skip it
             #useful if the interval to average over is deeper than the current bathymetrie
             if np.all(np.isnan(oxygen_flux_BB_grid[profile,from_index:to_index])): # or  to_index == list_of_bathymetrie_indices[profile]-1:
@@ -329,7 +332,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     bathymetry_longitude_list.insert(list_position,lon[profile])
                     interval_list.insert(list_position,[np.nan,np.nan])
                 continue
-   
+            """
             
             
                 
@@ -345,11 +348,18 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             if len(bathymetry_longitude_list) == 0:   
                 bathymetry_list.append(bathymetrie[profile])
                 bathymetry_longitude_list.append(lon[profile])
-                interval_list.append([eps_pressure[from_index],eps_pressure[to_index]])
+                
+                if from_index == to_index:
+                    interval_list.append([np.nan,np.nan])                
+                else:
+                    interval_list.append([eps_pressure[from_index],eps_pressure[to_index]])
             else:
                 bathymetry_list.insert(list_position,bathymetrie[profile])
                 bathymetry_longitude_list.insert(list_position,lon[profile])
-                interval_list.insert(list_position,[eps_pressure[from_index],eps_pressure[to_index]])
+                if from_index == to_index:
+                    interval_list.insert(list_position,[np.nan,np.nan])
+                else:
+                    interval_list.insert(list_position,[eps_pressure[from_index],eps_pressure[to_index]])
                                             
             #find the correct position in the sorted list
             for index,value in enumerate(longitude_list):
@@ -368,7 +378,6 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 Osborn_flux_list.append(oxygen_flux_Osborn_grid[profile,from_index:to_index])
                 longitude_list.append(lon[profile])
             
-            
             else:
                 
                 #Sort the current profile into the list            
@@ -377,7 +386,6 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 Shih_flux_list.insert(list_position,oxygen_flux_Skif_grid[profile,from_index:to_index])
                 Osborn_flux_list.insert(list_position,oxygen_flux_Osborn_grid[profile,from_index:to_index])
                 longitude_list.insert(list_position,lon[profile])
-
     
             assert(np.all(longitude_list == sorted(longitude_list)))
 
@@ -486,28 +494,28 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print("LONGITUDE GAP",max_longitude_gap)
     #compute rolling average
     for index in range(total_number_of_valid_profiles):
-    
+
         #controls that the mean is not computed over too distant points
-        if max_longitude_gap > 0.001:
-            if ((index+rolling_window_size//2) >= max_longitude_gap_index+1) and ((index-rolling_window_size//2)<=max_longitude_gap_index+1):
-                
-                rolling_mean_Shih_flux[index] = np.nan
-                rolling_mean_Osborn_flux[index] = np.nan
-                rolling_median_flux[index] = np.nan  
-                rolling_upper_percentile_flux[index] = np.nan
-                rolling_lower_percentile_flux[index] = np.nan
-                rolling_second_upper_percentile_flux[index] = np.nan
-                rolling_second_lower_percentile_flux[index] = np.nan
-                                
-                rolling_log_mean_dissipation[index] = np.nan
-                rolling_arith_mean_dissipation[index] = np.nan
-                rolling_median_dissipation[index] = np.nan   
-                rolling_lower_percentile_dissip[index] =  np.nan
-                rolling_upper_percentile_dissip[index] =  np.nan
-                rolling_second_upper_percentile_dissip[index] =  np.nan
-                rolling_second_lower_percentile_dissip[index] =  np.nan
-                continue
-    
+        number_of_nans_in_averaging_window = np.count_nonzero(np.isnan(mean_Shih_flux[index-(rolling_window_size//2):index+rolling_window_size//2])) 
+        if number_of_nans_in_averaging_window > 3/4 * rolling_window_size:
+ 
+            rolling_mean_Shih_flux[index] = np.nan
+            rolling_mean_Osborn_flux[index] = np.nan
+            rolling_median_flux[index] = np.nan  
+            rolling_upper_percentile_flux[index] = np.nan
+            rolling_lower_percentile_flux[index] = np.nan
+            rolling_second_upper_percentile_flux[index] = np.nan
+            rolling_second_lower_percentile_flux[index] = np.nan
+                            
+            rolling_log_mean_dissipation[index] = np.nan
+            rolling_arith_mean_dissipation[index] = np.nan
+            rolling_median_dissipation[index] = np.nan   
+            rolling_lower_percentile_dissip[index] =  np.nan
+            rolling_upper_percentile_dissip[index] =  np.nan
+            rolling_second_upper_percentile_dissip[index] =  np.nan
+            rolling_second_lower_percentile_dissip[index] =  np.nan
+            continue
+
         if rolling_window_size ==1:
             rolling_mean_Shih_flux[index] = mean_Shih_flux[index]
             rolling_mean_Osborn_flux[index] = mean_Osborn_flux[index]
@@ -566,12 +574,22 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print(">",number_of_fluxes_over_the_threshold,total_number_of_fluxes,100*number_of_fluxes_over_the_threshold/total_number_of_fluxes,"%")
     print("Sum:",100*amount_of_missing_values/total_number_of_fluxes + 100*number_of_zero_flux/total_number_of_fluxes + 100*number_of_fluxes_over_the_threshold/total_number_of_fluxes,"%")
     
+    distance_list = np.zeros(np.shape(longitude_list))
+    first_point = (np.mean(lat),longitude_list[0]) 
+    for i in range(len(longitude_list)):
+        current_point = (np.mean(lat),longitude_list[i])
+        distance_list[i] = geo.geodesic(first_point,current_point).km #Distance in km
+        
+
+    delta_X = thesis.central_differences(distance_list)
+    
     print("\n\n\n",cruisename,"flux sum:")
-    print("Osborn rolling mean",np.nansum(rolling_mean_Osborn_flux),"Osborn profiles", np.nansum(mean_Osborn_flux))
-    print("Shih rolling mean",np.nansum(rolling_mean_Shih_flux),"Shih profiles", np.nansum(mean_Shih_flux))
+    print("Osborn rolling mean",np.nansum(rolling_mean_Osborn_flux*delta_X),"Osborn profiles", np.nansum(mean_Osborn_flux*delta_X))
+    print("Shih rolling mean",np.nansum(rolling_mean_Shih_flux*delta_X),"Shih profiles", np.nansum(mean_Shih_flux*delta_X))
     print("\n\n\n")
     
     
+    np.savetxt("./"+cruisename+'_flux_results.txt', np.transpose([longitude_list,distance_list,mean_Osborn_flux,rolling_mean_Osborn_flux,mean_Shih_flux,rolling_mean_Shih_flux]), header = "longitude\tdistance\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")
     
     ##################################################################################################################################
     ##################################################################################################################################
@@ -683,7 +701,7 @@ bathymetrie_label =  mpatches.Patch(color='lightgrey', label='bathymetry')
 flux_axarr[1].legend(loc = "lower left")
 
 
-flux_axarr[0].set_ylim((-50,1))    
+flux_axarr[0].set_ylim((-85,1))    
         
 flux_axarr[1].set_xlabel(r"longitude [$\degree$E]")    
 flux_axarr[0].set_ylabel(r"oxygen flux [mmol/(m$^2$*d]")

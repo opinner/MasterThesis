@@ -27,11 +27,11 @@ import numpy.ma as ma
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
 import warnings
-import datetime as dt
 warnings.filterwarnings('ignore')
-    
+import datetime as dt
+  
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb169"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb169"]
 
 
 search_depth_range = [52,90]
@@ -45,8 +45,10 @@ year_axis.invert_yaxis()
 months = np.arange(1,13)
 carstensen_results = [73.39516129032258,72.69354838709677,72.97177419354838,73.37096774193549,72.76612903225806,72.60887096774194,72.29435483870968,72.37903225806451,71.52016129032258,70.79435483870967,70.86693548387096,71.24193548387096]
 
-year_axis.plot(months,carstensen_results,"k--")
+year_axis.plot(months,carstensen_results,"k--", label = "Carstensen2014")
 year_axis.plot(months,carstensen_results,"k.")
+
+end_results = []
          
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
@@ -282,11 +284,15 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             halocline_positions.append(interp_pressure[upper_boundary+np.nanargmin(thesis.central_differences(oxygen_sat_grid[profile,upper_boundary:lower_boundary]))]) #used argmin because oxygen is decreasing with depth
             halocline_positions.append(interp_pressure[upper_boundary+np.nanargmax(thesis.central_differences(salinity_grid[profile,upper_boundary:lower_boundary]))])
             halocline_positions.append(interp_pressure[upper_boundary+np.nanargmax(thesis.central_differences(consv_temperature_grid[profile,upper_boundary:lower_boundary]))])
-            halocline_positions.append(interp_pressure[upper_boundary+np.nanargmax(thesis.central_differences(density_grid[profile,upper_boundary:lower_boundary]))])
+            #halocline_positions.append(interp_pressure[upper_boundary+np.nanargmax(thesis.central_differences(density_grid[profile,upper_boundary:lower_boundary]))])
                         
             #halocline_positions.append(interp_pressure[upper_boundary+np.argmin(np.abs(oxygen_sat_grid[profile,upper_boundary:lower_boundary])-50)])
     
-            print(np.mean(halocline_positions),np.std(halocline_positions),halocline_positions)
+            #print(np.mean(halocline_positions),np.std(halocline_positions),halocline_positions)
+            
+            
+            #deletion = np.argmin(np.abs(halocline_positions-np.median(halocline_positions)))
+            
             transect_halocline.append(np.median(halocline_positions))
             
             """
@@ -294,9 +300,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             taxis.plot(thesis.central_differences(oxygen_sat_grid[profile]),interp_pressure,"k")
             taxis.hlines(halocline_positions,taxis.get_xlim()[0],taxis.get_xlim()[1], alpha = 0.2)
             taxis.hlines(search_depth_range,taxis.get_xlim()[0],taxis.get_xlim()[1], "tab:red", alpha = 0.2)
-            
-            plt.show()
             """
+            #plt.show()
+
         mean_halocline = np.mean(transect_halocline)
         std_halocline = np.std(transect_halocline)      
     
@@ -317,7 +323,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
     year_axis.errorbar(cruise_start.month+cruise_start.day/31,np.mean(cruise_halocline),np.std(cruise_halocline), color = color, fmt = marker, capsize = 2, label = labelname)
     #year_axis.plot(float_dates,cruise_halocline,"-",color = color,)
-    
+    print("\n\n\n",cruisename,np.mean(cruise_halocline),"\n\n\n")
+    end_results.append([cruisename,np.mean(cruise_halocline)])
+
+print("###########################")
+print(end_results)
+print("###########################")
+
 
 width = 8 #4.7747
 height = width / 1.618

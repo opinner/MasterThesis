@@ -667,7 +667,7 @@ def central_differences(array):
      
     #compute the central differences in the 1D array and set the first and last value of the derivative array to NaN    
     if dimensions == 1:
-        vertical_points = array.size
+        vertical_points = np.asarray(array).size
         for i in range(1,vertical_points-1):
             diff_grid[i] = (array[i+1] - array[i-1])/2
 
