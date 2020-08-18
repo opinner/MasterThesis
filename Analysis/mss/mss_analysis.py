@@ -44,7 +44,7 @@ def colorbar(mappable):
 #contains the MSS Data
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb217_mss_data","/home/ole/windows/emb177_mss_data/","/home/ole/windows/emb169_mss_data/MSS055/matlab","/home/ole/windows/emb169_mss_data/MSS038/matlab/"]
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb177_mss_data/","/home/ole/windows/emb217_mss_data"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb169_mss_data/MSS055/matlab","/home/ole/windows/emb169_mss_data/MSS038/matlab/"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb177_mss_data/","/home/ole/windows/emb217_mss_data","/home/ole/windows/emb169_mss_data/MSS055/matlab","/home/ole/windows/emb169_mss_data/MSS038/matlab/"]
  
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     path = pathlib.Path(FOLDERNAME)
@@ -96,7 +96,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         try:
             number_of_profiles,lat,lon,distance = results[0]
-            interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid, pot_density_grid = results[1]
+            interp_pressure,oxygen_sat_grid,oxygen_grid, fine_eps_grid, salinity_grid,consv_temperature_grid, N_squared_grid, density_grid, pot_density_grid = results[1]
             eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid, eps_pot_density_grid = results[2]
         except TypeError:
             #print(cruisename,transect_name,"is skipped!")
@@ -104,28 +104,33 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
  
 
         #calculate the viscosity (2 different formula)
-        eps_wiki_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_salinity_grid,eps_density_grid,"Wikipedia")
+        #eps_wiki_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_salinity_grid,eps_density_grid,"Wikipedia")
         eps_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_salinity_grid,eps_density_grid, "default")
-
+        viscosity_grid = thesis.get_viscosity(consv_temperature_grid,salinity_grid,density_grid, "default")
+        
         #print("eps_viscosity_grid\n",np.shape(eps_viscosity_grid))
 
         #calculate the Reynolds bouyancy number defined on the pressure values defined in eps_pressure
         eps_Reynolds_bouyancy_grid = eps_grid/(eps_viscosity_grid*eps_N_squared_grid)
-        eps_wiki_Reynolds_bouyancy_grid = eps_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
+        Reynolds_bouyancy_grid = fine_eps_grid/(viscosity_grid*N_squared_grid)
+        #eps_wiki_Reynolds_bouyancy_grid = eps_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
 
 
         #A negative Reynolds bouyancy has no physical meaning, therefore gets replaced by NaNs
         #These negative values occur through a negative squared bouyancy frequency
         eps_Reynolds_bouyancy_grid[eps_Reynolds_bouyancy_grid < 0] = np.nan 
-        eps_wiki_Reynolds_bouyancy_grid[eps_wiki_Reynolds_bouyancy_grid < 0] = np.nan            
+        Reynolds_bouyancy_grid[Reynolds_bouyancy_grid < 0] = np.nan 
+        #eps_wiki_Reynolds_bouyancy_grid[eps_wiki_Reynolds_bouyancy_grid < 0] = np.nan            
                     
         #apply the correction on the dissipation rate following Garanaik2018           
         corrected_eps_grid = thesis.correct_dissipation(eps_grid,eps_Reynolds_bouyancy_grid)
-        corrected_eps_wiki_grid = thesis.correct_dissipation(eps_grid,eps_wiki_Reynolds_bouyancy_grid)
+        corrected_fine_eps_grid = thesis.correct_dissipation(fine_eps_grid,Reynolds_bouyancy_grid)
+        #corrected_eps_wiki_grid = thesis.correct_dissipation(eps_grid,eps_wiki_Reynolds_bouyancy_grid)
 
         #from that calculate again the now corrected Bouyancy Reynolds number (in 3D)
         corrected_eps_Reynolds_bouyancy_grid = corrected_eps_grid/(eps_viscosity_grid*eps_N_squared_grid)
-        corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
+        corrected_Reynolds_bouyancy_grid = corrected_fine_eps_grid/(viscosity_grid*N_squared_grid)
+        #corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_grid/(eps_wiki_viscosity_grid*eps_N_squared_grid)
 
         #use self written function to get BBL
         results = thesis.find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02)
@@ -137,7 +142,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
           
         ##########################################################################################################################################################  
           
-        np.savez("/home/ole/windows/processed_mss/"+cruisename+"/"+transect_name ,number_of_profiles = number_of_profiles, lat = lat,lon = lon,distance = distance, bathymetrie = bathymetrie,list_of_bathymetrie_indices = list_of_bathymetrie_indices,BBL = BBL,list_of_BBL_indices = list_of_BBL_indices,BBL_range = BBL_range,list_of_BBL_range_indices = list_of_BBL_range_indices, interp_pressure = interp_pressure,oxygen_grid = oxygen_grid, oxygen_sat_grid = oxygen_sat_grid, salinity_grid = salinity_grid,consv_temperature_grid = consv_temperature_grid, density_grid = density_grid, pot_density_grid = pot_density_grid, eps_pressure = eps_pressure,eps_grid = eps_grid, corrected_eps_wiki_grid = corrected_eps_wiki_grid, corrected_eps_grid = corrected_eps_grid, eps_salinity_grid = eps_salinity_grid, eps_consv_temperature_grid = eps_consv_temperature_grid, eps_oxygen_grid = eps_oxygen_grid, eps_oxygen_sat_grid = eps_oxygen_sat_grid, eps_N_squared_grid = eps_N_squared_grid,eps_density_grid = eps_density_grid, eps_pot_density_grid = eps_pot_density_grid, eps_Reynolds_bouyancy_grid =  eps_Reynolds_bouyancy_grid, corrected_eps_Reynolds_bouyancy_grid = corrected_eps_Reynolds_bouyancy_grid,  eps_wiki_Reynolds_bouyancy_grid = eps_wiki_Reynolds_bouyancy_grid, corrected_eps_wiki_Reynolds_bouyancy_grid = corrected_eps_wiki_Reynolds_bouyancy_grid)
+        np.savez("/home/ole/windows/processed_mss/"+cruisename+"/"+transect_name ,number_of_profiles = number_of_profiles, lat = lat,lon = lon,distance = distance, bathymetrie = bathymetrie,list_of_bathymetrie_indices = list_of_bathymetrie_indices,BBL = BBL,list_of_BBL_indices = list_of_BBL_indices,BBL_range = BBL_range,list_of_BBL_range_indices = list_of_BBL_range_indices, interp_pressure = interp_pressure,oxygen_grid = oxygen_grid, oxygen_sat_grid = oxygen_sat_grid, salinity_grid = salinity_grid,consv_temperature_grid = consv_temperature_grid, density_grid = density_grid, pot_density_grid = pot_density_grid, N_squared_grid = N_squared_grid, fine_eps_grid = fine_eps_grid, eps_pressure = eps_pressure,eps_grid = eps_grid, corrected_fine_eps_grid = corrected_fine_eps_grid, corrected_eps_grid = corrected_eps_grid, eps_salinity_grid = eps_salinity_grid, eps_consv_temperature_grid = eps_consv_temperature_grid, eps_oxygen_grid = eps_oxygen_grid, eps_oxygen_sat_grid = eps_oxygen_sat_grid, eps_N_squared_grid = eps_N_squared_grid,eps_density_grid = eps_density_grid, eps_pot_density_grid = eps_pot_density_grid, eps_Reynolds_bouyancy_grid =  eps_Reynolds_bouyancy_grid, corrected_eps_Reynolds_bouyancy_grid = corrected_eps_Reynolds_bouyancy_grid,  Reynolds_bouyancy_grid = Reynolds_bouyancy_grid, corrected_Reynolds_bouyancy_grid = corrected_Reynolds_bouyancy_grid)
         
         
         ##########################################################################################################################################################
@@ -172,14 +177,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 
 
         img4_4 = axarr4[4].plot(eps_viscosity_grid[profile_index,:]*10**6,eps_pressure,label = "default")
-        img4_4b = axarr4[4].plot(eps_wiki_viscosity_grid[profile_index,:]*10**6,eps_pressure,"--",label = "Wikipedia")
+        #img4_4b = axarr4[4].plot(eps_wiki_viscosity_grid[profile_index,:]*10**6,eps_pressure,"--",label = "Wikipedia")
         
         img4_5 = axarr4[5].plot(np.log10(eps_grid[profile_index,:]),eps_pressure, label = "eps grid")
         img4_5a = axarr4[5].plot(np.log10(corrected_eps_grid[profile_index,:]),eps_pressure, label = "corrected/default")     
-        img4_5b = axarr4[5].plot(np.log10(corrected_eps_wiki_grid[profile_index,:]),eps_pressure,label = "corrected/Wikipedia")
+        #img4_5b = axarr4[5].plot(np.log10(corrected_eps_wiki_grid[profile_index,:]),eps_pressure,label = "corrected/Wikipedia")
         
         img4_6a = axarr4[6].plot(np.log10(eps_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "default")
-        img4_6b = axarr4[6].plot(np.log10(eps_wiki_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "Wikipedia")
+        #img4_6b = axarr4[6].plot(np.log10(eps_wiki_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "Wikipedia")
 
         
         axarr4[0].set_xlabel("oxygen [%]")

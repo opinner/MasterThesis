@@ -9,6 +9,7 @@ warnings.filterwarnings('ignore')
 
 #integral,integral_axis = plt.subplots(ncols = 3, nrows = 2,sharex = True, sharey = True)
 
+#loop over the three cruises and their mean halocline depth
 for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"],[-71.07,-58.52,-70.35]):
 
 
@@ -39,11 +40,16 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
 
 
     #only inside the rectangle defined by this values
-    left = np.argmin(np.abs(np.mean(lon,axis=0)-18.5))
-    right = np.argmin(np.abs(np.mean(lon,axis=0)-21))
-    bottom = np.argmin(np.abs(np.mean(lat,axis=1)-56.5))
-    top = np.argmin(np.abs(np.mean(lat,axis=1)-57.75))
+    #left = np.argmin(np.abs(np.mean(lon,axis=0)-18.5))
+    #right = np.argmin(np.abs(np.mean(lon,axis=0)-21))
+    #bottom = np.argmin(np.abs(np.mean(lat,axis=1)-56.5))
+    #top = np.argmin(np.abs(np.mean(lat,axis=1)-57.75))
 
+    left = np.argmin(np.abs(np.mean(lon,axis=0)-16.8))
+    right = np.argmin(np.abs(np.mean(lon,axis=0)-25))
+    bottom = np.argmin(np.abs(np.mean(lat,axis=1)-54.0))
+    top = np.argmin(np.abs(np.mean(lat,axis=1)-59.8))
+    
     #print(lon[0,left],lon[0,right],lat[bottom,0],lat[top,0])
 
     #print("lat",np.min(np.mean(lat,axis=1)),np.max(np.mean(lat,axis=1)),np.shape(np.mean(lat,axis=1)))
@@ -129,6 +135,23 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
 
     assert(np.all(np.shape(basin_mask) == np.shape(basin_lon)))
 
+    #left = np.argmin(np.abs(np.mean(lon,axis=0)-16.8))
+    #right = np.argmin(np.abs(np.mean(lon,axis=0)-25))
+    #bottom = np.argmin(np.abs(np.mean(lat,axis=1)-54.0))
+    #top = np.argmin(np.abs(np.mean(lat,axis=1)-59.8))
+    
+    """
+    #set evertything outside this box to 0
+    basin_mask[basin_lat < 56.5] = 0
+    edge_mask[basin_lat < 56.5] = 0
+    basin_mask[basin_lat > 57.75] = 0
+    edge_mask[basin_lat >57.75] = 0
+    basin_mask[basin_lon < 18.5] = 0
+    edge_mask[basin_lon < 18.5] = 0
+    basin_mask[basin_lon > 21] = 0
+    edge_mask[basin_lon >21] = 0
+    """
+    
     pixels_edge =  len(basin_lat[edge_mask])
     total_pixels_basin = len(basin_lat[basin_mask])
     pixels_interior = total_pixels_basin-pixels_edge
@@ -169,9 +192,11 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
         flux = flux * 1000000 #convert flux per m^2 to flux per km^2
         background_flux = background_flux *1000000 #convert flux per m^2 to flux per km^2
         
+        #set all nans to 0
         flux_without_nans = np.copy(flux)
         flux_without_nans[np.isnan(flux_without_nans)] = 0
         
+        """
         unique_distance = []
         unique_flux = []
         averaged = False
@@ -194,22 +219,26 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
         
         #for index in range(len(flux)):
         #    print(longitude[index],flux[index],np.round(delta_X[index],5),flux[index]*delta_X[index])
-        
-
-        
-        edge_flux_own = np.nansum(flux * delta_X) *side_length * number_of_edge_pixels #in units of mmol/d
-        edge_flux_trapz = np.trapz(flux_without_nans,distance) *side_length * number_of_edge_pixels #in units of mmol/d
-        edge_flux_simps = sc.simps(unique_flux,unique_distance) * side_length * number_of_edge_pixels #in units of mmol/d
-        print("integral:",np.nansum(flux * delta_X)*1e-12*365,"Gmol/y/km")
-        print("trapz:",np.trapz(flux_without_nans,distance)*1e-12*365,"Gmol/y/km")
-        print("trapz2:",np.trapz(unique_flux,unique_distance)*1e-12*365,"Gmol/y/km")
-        print("cumtrapz:",sc.cumtrapz(unique_flux,unique_distance)[-1]*1e-12*365,"Gmol/y/km")
-        print("simps:",sc.simps(unique_flux,unique_distance)*1e-12*365,"Gmol/y/km")
-        print("flux through edge",1e-12*365*edge_flux_trapz,"Gmol/y",1e-12*365*edge_flux_own)#,1e-12*365*edge_flux_simps)
+        """
+            
         interior_flux = background_flux * pixel_area * number_of_interior_pixels
         print("flux through interior",1e-12*365*interior_flux,"Gmol/y")
+        
+        #edge_flux_own = np.nansum(flux * delta_X) *side_length * number_of_edge_pixels #in units of mmol/d
+        edge_flux_trapz = np.trapz(flux_without_nans,distance) *side_length * number_of_edge_pixels #in units of mmol/d
+        #edge_flux_simps = sc.simps(unique_flux,unique_distance) * side_length * number_of_edge_pixels #in units of mmol/d
+        #print("Riemann:",np.nansum(flux * delta_X)*1e-12*365,"Gmol/y/km")
+        
+        print("Integral:",np.trapz(flux_without_nans,distance)*1e-12*365,"Gmol/y/km")
+        #print("trapz2:",np.trapz(unique_flux,unique_distance)*1e-12*365,"Gmol/y/km")
+        #print("cumtrapz:",sc.cumtrapz(unique_flux,unique_distance)[-1]*1e-12*365,"Gmol/y/km")
+        #print("simps:",sc.simps(unique_flux,unique_distance)*1e-12*365,"Gmol/y/km")
+        print("flux through edge",1e-12*365*edge_flux_trapz,"Gmol/y") #,1e-12*365*edge_flux_own,1e-12*365*edge_flux_simps)
+
+        
         print("proportion of edge fluxes",np.round(100*edge_flux_trapz/(edge_flux_trapz + interior_flux),2), "%")
         
+        """
         f,a = plt.subplots(1)
         a.plot(distance, flux, label = "original")
         a.plot(distance, flux_without_nans, ".")
@@ -220,6 +249,7 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
         f.set_size_inches(18.5,10)
         f.tight_layout()
         plt.show()
+        """
         
         return 
 
@@ -233,4 +263,3 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
         flux_ratio(flux, distance, -1,pixels_edge, pixels_interior, diff_distance,pixel_area,weighted_mean_pixel_side_length)
         print("\n")
 
-#plt.show()

@@ -261,6 +261,7 @@ def load_clean_and_interpolate_data(datafile_path):
     consv_temperature_grid = np.copy(salinity_grid)
     alpha_grid = np.copy(salinity_grid)
     beta_grid = np.copy(salinity_grid)
+    fine_eps_grid = np.copy(salinity_grid)
 
     if cruisename == "emb217":
         oxygen_sat_grid =  np.copy(salinity_grid)
@@ -302,17 +303,28 @@ def load_clean_and_interpolate_data(datafile_path):
     eps_pressure_grid = np.reshape(eps_pressure,(1,-1))*np.ones(np.shape(eps_grid))
 
     #create a pressure axis where every point is shifted by half the distance to the next one
-    shifted_pressure = eps_pressure + np.mean(np.diff(eps_pressure))/2
+    shifted_eps_pressure = eps_pressure + np.mean(np.diff(eps_pressure))/2
 
     #prepend a point at the beginning to be a point longer than the pressure axis we want from the Nsquared function
-    shifted_pressure = np.append(eps_pressure[0]-np.mean(np.diff(eps_pressure))/2, shifted_pressure)
+    shifted_eps_pressure = np.append(eps_pressure[0]-np.mean(np.diff(eps_pressure))/2, shifted_eps_pressure)
+
+    #from that create a grid, where we have just n-times the pressure axis with n the number of profiles 
+    shifted_eps_pressure_grid = np.reshape(shifted_eps_pressure,(1,-1))*np.ones((number_of_profiles,shifted_eps_pressure.size))
+    shifted_eps_salinity_grid = np.ones((np.shape(shifted_eps_pressure_grid)))
+    shifted_eps_consv_temperature_grid = np.ones((np.shape(shifted_eps_pressure_grid)))
+
+    #create a pressure axis where every point is shifted by half the distance to the next one
+    shifted_pressure = interp_pressure + np.mean(np.diff(interp_pressure))/2
+
+    #prepend a point at the beginning to be a point longer than the pressure axis we want from the Nsquared function
+    shifted_pressure = np.append(interp_pressure[0]-np.mean(np.diff(interp_pressure))/2, shifted_pressure)
 
     #from that create a grid, where we have just n-times the pressure axis with n the number of profiles 
     shifted_pressure_grid = np.reshape(shifted_pressure,(1,-1))*np.ones((number_of_profiles,shifted_pressure.size))
     shifted_salinity_grid = np.ones((np.shape(shifted_pressure_grid)))
     shifted_consv_temperature_grid = np.ones((np.shape(shifted_pressure_grid)))
-
-
+    
+    
 
     #Grid interpolation (loops over all profiles)
     for i in range(number_of_profiles):      
@@ -322,10 +334,14 @@ def load_clean_and_interpolate_data(datafile_path):
         consv_temperature_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
         alpha_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),alpha[i].flatten(), left = np.nan, right = np.nan)
         beta_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),beta[i].flatten(), left = np.nan, right = np.nan)
-            
+        fine_eps_grid[i] = np.interp(interp_pressure,eps_pressure,eps[i].flatten(), left = np.nan, right = np.nan)
         #interpolation to a shifted grid for the Nsquared function
         shifted_salinity_grid[i] = np.interp(shifted_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
         shifted_consv_temperature_grid[i] = np.interp(shifted_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
+            
+        #interpolation to a shifted grid for the Nsquared function
+        shifted_eps_salinity_grid[i] = np.interp(shifted_eps_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
+        shifted_eps_consv_temperature_grid[i] = np.interp(shifted_eps_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
         
         #just changes the format of eps slightly
         assert(eps[i].flatten().size == eps_pressure.size)
@@ -368,12 +384,20 @@ def load_clean_and_interpolate_data(datafile_path):
     #difference = density_grid-density_grid_check
 
     #calculate N^2 with the gsw toolbox, by using the shifted grid we should get a N^2 grid that is defined at the same points as eps_grid
-    eps_N_squared_grid, crosscheck_pressure_grid = gsw.Nsquared(shifted_salinity_grid,shifted_consv_temperature_grid,shifted_pressure_grid, lat = np.mean(lat), axis = 1)
+    eps_N_squared_grid, crosscheck_eps_pressure_grid = gsw.Nsquared(shifted_eps_salinity_grid,shifted_eps_consv_temperature_grid,shifted_eps_pressure_grid, lat = np.mean(lat), axis = 1)
+    crosscheck_eps_pressure = np.mean(crosscheck_eps_pressure_grid, axis = 0)
+
+    #test if we really calculated N^2 for the same points as pressure points from the dissipation measurement
+    assert(np.all(crosscheck_eps_pressure == eps_pressure))
+
+    #calculate N^2 with the gsw toolbox, by using the shifted grid we should get a N^2 grid that is defined at the same points as eps_grid
+    N_squared_grid, crosscheck_pressure_grid = gsw.Nsquared(shifted_salinity_grid,shifted_consv_temperature_grid,shifted_pressure_grid, lat = np.mean(lat), axis = 1)
     crosscheck_pressure = np.mean(crosscheck_pressure_grid, axis = 0)
 
     #test if we really calculated N^2 for the same points as pressure points from the dissipation measurement
-    assert(np.all(crosscheck_pressure == eps_pressure))
+    np.testing.assert_allclose(crosscheck_pressure, interp_pressure, rtol=1e-5, atol=0)
     
+        
     #create grids that have the latitude/longitude values for every depth (size: number_of_profiles x len(interp_pressure))
     lat_grid = np.reshape(lat,(-1,1)) * np.ones((number_of_profiles,max_size))
     lon_grid = np.reshape(lon,(-1,1)) * np.ones((number_of_profiles,max_size))
@@ -421,7 +445,7 @@ def load_clean_and_interpolate_data(datafile_path):
         
         
           
-    return [[number_of_profiles,lat,lon,distance],[interp_pressure,oxygen_sat_grid,oxygen_grid,salinity_grid,consv_temperature_grid,density_grid,pot_density_grid],[eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid,eps_pot_density_grid]]
+    return [[number_of_profiles,lat,lon,distance],[interp_pressure,oxygen_sat_grid,oxygen_grid, fine_eps_grid, salinity_grid,consv_temperature_grid, N_squared_grid, density_grid, pot_density_grid],[eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid, eps_pot_density_grid]]
         
 
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
