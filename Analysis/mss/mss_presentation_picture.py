@@ -63,7 +63,9 @@ f_flux,flux_axarr = plt.subplots(nrows = 2, ncols = 1, sharex = True)
 
 f_dissip,dissip_axarr = plt.subplots(nrows = 2, ncols = 1, sharex = True) 
 textstr = ""
-         
+
+list_of_bad_profiles,reasons = np.loadtxt("./list_of_bad_profiles.txt", dtype=str, unpack=True)
+
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     number_of_fluxes_over_the_threshold = 0
     number_of_transects = 0
@@ -119,15 +121,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         datafile_path = FOLDERNAME+"/"+DATAFILENAME
         
         transect_name = DATAFILENAME[:-4]
-    
-        #skip the short "S206" transects
-        if transect_name[0:4] == "S106":
-            print(transect_name,"skipped")
-            continue
-            
-        #something is not correct with this measurement
-        if cruisename == "emb169" and transect_name[0:4] == "TS13":
-            print(transect_name,"skipped, measurement looks wrong")
+
+        if "_".join((cruisename,transect_name)) in list_of_bad_profiles:
+            print("_".join((cruisename,transect_name)),"skipped")
             continue
                 
         print("\n",transect_name)
@@ -135,7 +131,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         data = np.load(datafile_path)
         
-        try:
+        try:    
             number_of_profiles = data["number_of_profiles"] #
             lat = data["lat"] #Latitude of the profiles
             lon = data["lon"] #Longitude of the profiles
@@ -185,10 +181,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             eps_Reynolds_bouyancy_grid
             corrected_eps_Reynolds_bouyancy_grid 
             """
-        
+            
         except KeyError:
-            print(transect_name," is skipped, Error during loading data")
-            continue
+            print(transect_name," Error during loading data")
+            raise AssertionError
         
         number_of_transects+=1 
             
@@ -236,113 +232,18 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         transect_oxygen_flux_statistic = []
         
-
-        #compare the pressure value of the lowest valid data point per profile th the neighbouring profiles to determine outliers
-        list_of_short_profiles = thesis.get_list_of_short_profiles(number_of_profiles,bathymetrie,acceptable_slope)
-        
-        #hard coded to accout for one short profile, that my condtions doesn't recognize
-        #if the boolean array contains at least one true
-        if np.any(lon == 20.466176666666666):
-            list_of_short_profiles.append(np.argmax(lon == 20.466176666666666))
         
         for profile in range(number_of_profiles):
         
 
-        
-            #if the current profile is too short, skip it
-            if profile in list_of_short_profiles:
-                print(str(lon[profile])+": short profile")
+            if "_".join((cruisename,transect_name,str(profile))) in list_of_bad_profiles:
+                print("_".join((cruisename,transect_name,str(profile))),"skipped")
                 continue
                 
-            
-            if np.nanmean(eps_oxygen_sat_grid[profile]) < 0:
-                print(cruisename,transect_name,"negative oxygen values")
-                continue
-                
-            #Determine the averaging intervall
-            if flux_through_halocline == True:
-                if density_interval == True:
-                    #print("\n\n",np.shape(eps_pot_density_grid),np.shape(eps_pot_density_grid[profile]),np.nanmin(eps_pot_density_grid[profile]), np.nanmax(eps_pot_density_grid[profile]))
-                    
-                    from_index =  np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])-upper_bound_halocline_as_density))     
-                    to_index = np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])-lower_bound_halocline_as_density))
-                     
-                    #print(from_index,to_index,"\n\n")
-                                    
-                else: #use pressure intervall
-                    from_index =  np.argmin(abs(eps_pressure-upper_bound_halocline_in_db))     
-                    to_index = np.argmin(abs(eps_pressure-lower_bound_halocline_in_db))
-            
-            #use the indices that are {height_above_ground} meters above the bathymetry
-            else:     
-                from_index = int(list_of_BBL_range_indices[profile]) 
-                to_index = int(list_of_bathymetrie_indices[profile])
-                
-                
-            #if the profile contains only nan values, profile is skipped
-            if np.all(np.isnan(oxygen_flux_BB_grid[profile,:])): #from_index:to_index
-                print("NaN profile")
-                continue
-
-                               
-            #right now the criterion is only valid for emb217
-            if cruisename == "emb217":
-            #check for an outlier profile, ergo too high dissipation rates compared with the surrounding
-                if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+2*spread_of_profile_medians):      
-                    #print("\toutlier")
-                    outlier_count += 1
-                    continue
-          
-            if cruisename == "emb177":
-                #index for a depth of 50db
-                test_index = np.nanargmin(np.abs(eps_pressure-50))
-                #print(eps_pressure[test_index],eps_oxygen_sat_grid[profile,test_index])
-                
-                #test if the saturation at that depth is under a certain level
-                if eps_oxygen_sat_grid[profile,test_index] < 50:
-                    print("Halocline is too high!")
-                    outlier_count += 1
-                    continue
-            
             total_number_of_correct_profiles+=1
-
-            """
-            print(from_index,to_index,interp_pressure[from_index],interp_pressure[to_index])
-            print(np.nanmean(eps_grid[profile,from_index:to_index]))
-            print(oxygen_flux_Skif_grid[profile,from_index:to_index])  
-            test,taxis = plt.subplots(1)
-            taxis.plot(oxygen_flux_Skif_grid[profile],eps_pressure)
-            taxis.set_ylim(0,150)
-            taxis.invert_yaxis()
-            plt.show()
-            """
-             
-            """           
-            #if the water colum portion contains only nan values, save only the bathymetrie then skip it
-            #useful if the interval to average over is deeper than the current bathymetrie
-            if np.all(np.isnan(oxygen_flux_BB_grid[profile,from_index:to_index])): # or  to_index == list_of_bathymetrie_indices[profile]-1:
-
-                #find the correct position in the sorted list
-                for index,value in enumerate(bathymetry_longitude_list):
-                    if value > lon[profile]:
-                        list_position = index
-                        break
-                    elif index == len(bathymetry_longitude_list)-1:
-                        list_position = index+1
-                        break
-                
-                #if the list is empty                   
-                if len(bathymetry_longitude_list) == 0:   
-                    bathymetry_list.append(bathymetrie[profile])
-                    bathymetry_longitude_list.append(lon[profile])
-                    interval_list.append([np.nan,np.nan])
-                else:
-                    bathymetry_list.insert(list_position,bathymetrie[profile])
-                    bathymetry_longitude_list.insert(list_position,lon[profile])
-                    interval_list.insert(list_position,[np.nan,np.nan])
-                continue
-            """
-            
+                    
+            from_index =  np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])-upper_bound_halocline_as_density))     
+            to_index = np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])-lower_bound_halocline_as_density))
             
                 
             #find the correct position in the sorted list
@@ -398,6 +299,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
             assert(np.all(longitude_list == sorted(longitude_list)))
 
+            print(profile)
             total_number_of_valid_profiles+=1
 
         
@@ -724,7 +626,7 @@ props = dict(boxstyle='square', facecolor = "white")
 flux_axarr[1].text(0.65, 0.05, textstr, transform=flux_axarr[1].transAxes, fontsize=14,verticalalignment='bottom', bbox=props, multialignment = "right")
 
 f_flux.suptitle("rolling mean oxygen flux (over "+str(rolling_window_size)+" points) around the halocline (coarse grid)")
-#f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/flux_presentation", dpi = 300)           
+f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/flux_presentation", dpi = 300)           
 
    
 #------------------------------------------------------------------------------------------------------------#
@@ -754,7 +656,7 @@ props = dict(boxstyle='square', facecolor = "white")
 dissip_axarr[1].text(0.65, 0.05, textstr, transform=dissip_axarr[1].transAxes, fontsize=14,verticalalignment='bottom', bbox=props, multialignment = "right")
         
 f_dissip.suptitle("rolling mean dissipation (over "+str(rolling_window_size)+" points) around the halocline (coarse grid)")
-#f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/dissip_presentation", dpi = 300)
+f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/dissip_presentation", dpi = 300)
 
    
 plt.show()

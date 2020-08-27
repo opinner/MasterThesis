@@ -32,7 +32,7 @@ bathymetry[bathymetry == -1.000e+34] = np.nan
 #index,set_depth in enumerate([-71.07,-58.52,-70.35]):
 
 set_depths = [-71.07,-58.52,-70.35]
-index = 0
+index = 2
 set_depth = set_depths[index]
 
 #set the desired depth of the <<halocline>> 
@@ -227,7 +227,7 @@ axis.legend()
 output_picture.set_size_inches(9,10.5)
 
 output_picture.tight_layout()
-output_picture.savefig("./basin_shape",dpi=300)
+output_picture.savefig("./basin_shape"+str(index),dpi=300)
 
 
 

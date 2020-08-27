@@ -165,7 +165,7 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
     #print("\nbasin:",total_pixels_basin,"\tedge",pixels_edge,"\tratio",ratio,"\tarea",total_pixels_basin*pixel_area,"\n")
 
 
-    longitude,distance,raw_Osborn,rolling_mean_Osborn,raw_Shih,rolling_mean_Shih = np.loadtxt("./"+cruisename+"_flux_results.txt", unpack=True)
+    longitude,distance,raw_Osborn,rolling_mean_Osborn,raw_Shih,rolling_mean_Shih = np.loadtxt("./"+cruisename+"_bin_flux_results.txt", unpack=True)
 
     diff_distance = thesis.central_differences(distance)
     #diff_distance = np.diff(distance)

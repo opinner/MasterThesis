@@ -47,6 +47,7 @@ def load_clean_and_interpolate_data(datafile_path):
     import geopy.distance as geo
     import numpy as np
     import gsw 
+    import scipy.stats as scs
     
     splitted_path = datafile_path.split("/")
     cruisename = splitted_path[4][0:6]
@@ -293,12 +294,16 @@ def load_clean_and_interpolate_data(datafile_path):
     #needed for the interpolation of S and T to the same grid as the eps
     eps_salinity_grid = np.ones((np.shape(eps_grid)))
     eps_consv_temperature_grid = np.ones(np.shape(eps_grid))
-
+    bin_salinity_grid = np.ones((np.shape(eps_grid)))
+    bin_consv_temperature_grid = np.ones(np.shape(eps_grid))
+    
     if cruisename == "emb217":
         eps_oxygen_sat_grid = np.copy(eps_salinity_grid)
+        bin_oxygen_sat_grid = np.copy(eps_salinity_grid)
     elif cruisename == "emb177" or cruisename == "emb169": 
         eps_oxygen_grid = np.copy(eps_salinity_grid)
-
+        bin_oxygen_grid = np.copy(eps_salinity_grid)
+        
     #vector times matrix multiplication to get a 2D array, where every column is equal to eps_pressure
     eps_pressure_grid = np.reshape(eps_pressure,(1,-1))*np.ones(np.shape(eps_grid))
 
@@ -307,18 +312,17 @@ def load_clean_and_interpolate_data(datafile_path):
 
     #prepend a point at the beginning to be a point longer than the pressure axis we want from the Nsquared function
     shifted_eps_pressure = np.append(eps_pressure[0]-np.mean(np.diff(eps_pressure))/2, shifted_eps_pressure)
-
     #from that create a grid, where we have just n-times the pressure axis with n the number of profiles 
     shifted_eps_pressure_grid = np.reshape(shifted_eps_pressure,(1,-1))*np.ones((number_of_profiles,shifted_eps_pressure.size))
     shifted_eps_salinity_grid = np.ones((np.shape(shifted_eps_pressure_grid)))
     shifted_eps_consv_temperature_grid = np.ones((np.shape(shifted_eps_pressure_grid)))
-
+    shifted_bin_salinity_grid = np.ones((np.shape(shifted_eps_pressure_grid)))
+    shifted_bin_consv_temperature_grid = np.ones((np.shape(shifted_eps_pressure_grid)))
+    
     #create a pressure axis where every point is shifted by half the distance to the next one
     shifted_pressure = interp_pressure + np.mean(np.diff(interp_pressure))/2
-
     #prepend a point at the beginning to be a point longer than the pressure axis we want from the Nsquared function
     shifted_pressure = np.append(interp_pressure[0]-np.mean(np.diff(interp_pressure))/2, shifted_pressure)
-
     #from that create a grid, where we have just n-times the pressure axis with n the number of profiles 
     shifted_pressure_grid = np.reshape(shifted_pressure,(1,-1))*np.ones((number_of_profiles,shifted_pressure.size))
     shifted_salinity_grid = np.ones((np.shape(shifted_pressure_grid)))
@@ -335,6 +339,7 @@ def load_clean_and_interpolate_data(datafile_path):
         alpha_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),alpha[i].flatten(), left = np.nan, right = np.nan)
         beta_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),beta[i].flatten(), left = np.nan, right = np.nan)
         fine_eps_grid[i] = np.interp(interp_pressure,eps_pressure,eps[i].flatten(), left = np.nan, right = np.nan)
+        
         #interpolation to a shifted grid for the Nsquared function
         shifted_salinity_grid[i] = np.interp(shifted_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
         shifted_consv_temperature_grid[i] = np.interp(shifted_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
@@ -342,7 +347,13 @@ def load_clean_and_interpolate_data(datafile_path):
         #interpolation to a shifted grid for the Nsquared function
         shifted_eps_salinity_grid[i] = np.interp(shifted_eps_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
         shifted_eps_consv_temperature_grid[i] = np.interp(shifted_eps_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
-        
+
+        #bin edges of eps_pressure for the Nsquared function, so that the bins are centered around shifted_eps_pressure
+        shift_sal_pressure = pressure[i].flatten()[~np.isnan(absolute_salinity[i].flatten())]
+        shift_sal = absolute_salinity[i].flatten()[~np.isnan(absolute_salinity[i].flatten())]
+        shifted_bin_salinity_grid[i] = scs.binned_statistic(x = shift_sal_pressure, values = shift_sal, statistic = "mean", bins = np.append([0.5],np.append(eps_pressure,160.5)))[0]
+        shifted_bin_consv_temperature_grid[i] = scs.binned_statistic(pressure[i].flatten()[~np.isnan(consv_temperature[i].flatten())],consv_temperature[i].flatten()[~np.isnan(consv_temperature[i].flatten())], statistic = "mean", bins = np.append([0.5],np.append(eps_pressure,160.5)))[0]
+                
         #just changes the format of eps slightly
         assert(eps[i].flatten().size == eps_pressure.size)
         eps_grid[i] = eps[i].flatten()
@@ -351,16 +362,29 @@ def load_clean_and_interpolate_data(datafile_path):
         eps_salinity_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
         eps_consv_temperature_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
         
+        #bin S and T with bin_edges of shifted_eps_pressure, so that the bins are centered around eps_pressure
+        bin_salinity_grid[i] = scs.binned_statistic(pressure[i].flatten()[~np.isnan(absolute_salinity[i].flatten())],absolute_salinity[i].flatten()[~np.isnan(absolute_salinity[i].flatten())], statistic = "mean", bins = shifted_eps_pressure)[0]
+        bin_consv_temperature_grid[i] = scs.binned_statistic(pressure[i].flatten()[~np.isnan(consv_temperature[i].flatten())],consv_temperature[i].flatten()[~np.isnan(consv_temperature[i].flatten())], statistic = "mean", bins = shifted_eps_pressure)[0]
+        
         #interpolation of the oxygen depends on which source it is
         if cruisename == "emb217":
             oxygen_sat_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)
-            eps_oxygen_sat_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)       
+            eps_oxygen_sat_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan) 
+            oxygen_wo_nan_pressure = pressure[i].flatten()[~np.isnan(oxygen_sat[i].flatten())]
+            oxygen_wo_nan = oxygen_sat[i].flatten()[~np.isnan(oxygen_sat[i].flatten())]  
+            bin_oxygen_sat_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0]     
         elif cruisename == "emb177":
             oxygen_grid[i] = np.interp(interp_pressure,emb177_oxygen_pressure[i],emb177_oxygen[i],left=np.nan,right=np.nan)
-            eps_oxygen_grid[i] = np.interp(eps_pressure,emb177_oxygen_pressure[i],emb177_oxygen[i].flatten(), left = np.nan, right = np.nan)  
+            eps_oxygen_grid[i] = np.interp(eps_pressure,emb177_oxygen_pressure[i],emb177_oxygen[i].flatten(), left = np.nan, right = np.nan) 
+            oxygen_wo_nan_pressure = emb177_oxygen_pressure[i][~np.isnan(emb177_oxygen[i].flatten())]
+            oxygen_wo_nan = emb177_oxygen[i].flatten()[~np.isnan(emb177_oxygen[i].flatten())] 
+            bin_oxygen_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0] 
         elif cruisename == "emb169": 
             oxygen_grid[i] = np.interp(interp_pressure,emb169_oxygen_pressure[i],emb169_oxygen[i],left=np.nan,right=np.nan)
-            eps_oxygen_grid[i] = np.interp(eps_pressure,emb169_oxygen_pressure[i],emb169_oxygen[i].flatten(), left = np.nan, right = np.nan)  
+            eps_oxygen_grid[i] = np.interp(eps_pressure,emb169_oxygen_pressure[i],emb169_oxygen[i].flatten(), left = np.nan, right = np.nan) 
+            oxygen_wo_nan_pressure = emb169_oxygen_pressure[i][~np.isnan(emb169_oxygen[i].flatten())]
+            oxygen_wo_nan = emb169_oxygen[i].flatten()[~np.isnan(emb169_oxygen[i].flatten())] 
+            bin_oxygen_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0]  
             
         
     if cruisename == "emb217":
@@ -378,6 +402,12 @@ def load_clean_and_interpolate_data(datafile_path):
     #density grid on the same points as the eps grid
     eps_density_grid = gsw.rho(eps_salinity_grid,eps_consv_temperature_grid,eps_pressure_grid)
     eps_pot_density_grid = 1000+gsw.density.sigma0(eps_salinity_grid,eps_consv_temperature_grid)
+    
+    #density grid on the same points as the eps grid from binned data
+    bin_density_grid = gsw.rho(bin_salinity_grid,bin_consv_temperature_grid,eps_pressure_grid)
+    bin_pot_density_grid = 1000+gsw.density.sigma0(bin_salinity_grid,bin_consv_temperature_grid)
+    
+    
     
     #TODO compare with density_grid?
     #density_grid_check = (1 - alpha_grid * (consv_temperature_grid) + beta_grid * (salinity_grid))*rho_0
@@ -397,6 +427,11 @@ def load_clean_and_interpolate_data(datafile_path):
     #test if we really calculated N^2 for the same points as pressure points from the dissipation measurement
     np.testing.assert_allclose(crosscheck_pressure, interp_pressure, rtol=1e-5, atol=0)
     
+    #calculate N^2 with the gsw toolbox, by using the shifted grid we should get a N^2 grid that is defined at the same points as eps_grid
+    bin_N_squared_grid, crosscheck_bin_pressure_grid = gsw.Nsquared(shifted_bin_salinity_grid,shifted_bin_consv_temperature_grid,shifted_eps_pressure_grid, lat = np.mean(lat), axis = 1)
+    crosscheck_bin_pressure = np.mean(crosscheck_bin_pressure_grid, axis = 0)
+    #test if we really calculated N^2 for the same points as pressure points from the dissipation measurement
+    assert(np.all(crosscheck_bin_pressure == eps_pressure))
         
     #create grids that have the latitude/longitude values for every depth (size: number_of_profiles x len(interp_pressure))
     lat_grid = np.reshape(lat,(-1,1)) * np.ones((number_of_profiles,max_size))
@@ -413,39 +448,51 @@ def load_clean_and_interpolate_data(datafile_path):
         #convert oxygen saturation to oxygen concentration (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
         oxygen_grid = oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
         eps_oxygen_grid = oxygen_saturation_to_concentration(eps_oxygen_sat_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid) 
-              
+        bin_oxygen_grid = oxygen_saturation_to_concentration(bin_oxygen_sat_grid,bin_salinity_grid, bin_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid) 
+                      
     elif cruisename == "emb177":
         #scale the oxygen to be at 100% at the surface
         maximum_concentration_grid = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
-        
+        bin_maximum_concentration_grid = gsw.O2sol(bin_salinity_grid, bin_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)
         correction_factor = np.ones((number_of_profiles,1))
+        bin_correction_factor = np.ones((number_of_profiles,1))
         
         for profile in range(number_of_profiles):
+            #at maximum 100 data points deep
             for i in range(100):   
                 if np.isnan(oxygen_grid[profile,i]) or np.isnan(maximum_concentration_grid[profile,i]):
                     continue
                 else:
                     correction_factor[profile] = maximum_concentration_grid[profile,i]/oxygen_grid[profile,i]
                     break
-                    
+                        #at maximum 100 data points deep
+            for i in range(20):   
+                if np.isnan(bin_oxygen_grid[profile,i]) or np.isnan(bin_maximum_concentration_grid[profile,i]):
+                    continue
+                else:
+                    bin_correction_factor[profile] = bin_maximum_concentration_grid[profile,i]/bin_oxygen_grid[profile,i]
+                    break
+                            
         oxygen_grid = oxygen_grid * correction_factor
         eps_oxygen_grid = eps_oxygen_grid * correction_factor
-        
+        bin_oxygen_grid = bin_oxygen_grid * bin_correction_factor
+                
         #convert oxygen concentration to oxygen saturation (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
         oxygen_sat_grid = oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
         eps_oxygen_sat_grid = oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)  
-    
+        bin_oxygen_sat_grid = oxygen_concentration_to_saturation(bin_oxygen_grid,bin_salinity_grid, bin_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)
+            
     elif cruisename == "emb169":
         #convert oxygen concentration to oxygen saturation (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
         oxygen_sat_grid = oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
         eps_oxygen_sat_grid = oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)  
-    
+        bin_oxygen_sat_grid = oxygen_concentration_to_saturation(bin_oxygen_grid,bin_salinity_grid, bin_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)    
     else:
         raise AssertionError
         
         
           
-    return [[number_of_profiles,lat,lon,distance],[interp_pressure,oxygen_sat_grid,oxygen_grid, fine_eps_grid, salinity_grid,consv_temperature_grid, N_squared_grid, density_grid, pot_density_grid],[eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid, eps_pot_density_grid]]
+    return [[number_of_profiles,lat,lon,distance],[interp_pressure,oxygen_sat_grid,oxygen_grid, fine_eps_grid, salinity_grid,consv_temperature_grid, N_squared_grid, density_grid, pot_density_grid],[eps_pressure,eps_oxygen_sat_grid,eps_oxygen_grid,eps_grid,eps_salinity_grid,eps_consv_temperature_grid,eps_N_squared_grid,eps_density_grid, eps_pot_density_grid],[eps_pressure,bin_oxygen_sat_grid,bin_oxygen_grid,eps_grid,bin_salinity_grid,bin_consv_temperature_grid,bin_N_squared_grid,bin_density_grid, bin_pot_density_grid]]
         
 
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -519,7 +566,7 @@ def oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperat
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_grid,oxygen_sat_grid,height_above_ground = 10,minimal_density_difference = 0.02):
+def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_grid,oxygen_sat_grid,height_above_ground = 10,minimal_density_difference = 0.01):
     import numpy as np
 
     """
@@ -533,7 +580,7 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
        interp_pressure
        
        density_grid                     density in kg/m^3 as a grid (number_of_profiles x len(interp_pressure))
-       oxygen_sat_grid                      oxygen concentration in percent as a grid (number_of_profiles x len(interp_pressure))
+       oxygen_sat_grid                  oxygen concentration in percent as a grid (number_of_profiles x len(interp_pressure))
        
        height_above_ground              Default value 10m
        minimal_density_difference       Default value 0.02 kg/m^3
@@ -551,7 +598,7 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
     
     
     """    
-    #search for bottom currents
+    #search for a BBL
     ###########################################################################################################################################################
     bathymetrie = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
     list_of_bathymetrie_indices = np.zeros(number_of_profiles)
@@ -593,14 +640,21 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
         #index of maximal distance bottom plus 15m 
         
         BBL_boundary_index = np.argmax(interp_pressure >= (bathymetrie[i]-height_above_ground))
-        assert(interp_pressure[BBL_boundary_index]<bathymetrie[i]) #tests if the point 15m above the ground is really above
+        assert interp_pressure[BBL_boundary_index]<bathymetrie[i] #tests if the point 15m above the ground is really above
+        assert nan_index>=0
         
         #TODO get the index (and from that the pressure) where the density difference is bigger than 0.01
         #BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:density_grid[i,:].size + nan_index])>0.01))
+
+        #get the index (and from that the pressure) where the density difference is bigger than 0.01
+        print(nan_index,density_grid[i,nan_index-1],np.nanargmax(np.flip(density_grid[i,:]) <= density_grid[i,nan_index-1] - minimal_density_difference))
+        BBL_index =  np.nanargmin(np.abs(density_grid[i,:] - (density_grid[i,nan_index-1] - minimal_density_difference)))
+        if BBL_index == len(interp_pressure)-1 or BBL_index == 0:
+            BBL_index = nan_index -1
         
+        """        
         #get the index (and from that the pressure) where the density difference is at maximum (in the lowermost 15 m)
-        assert(nan_index>=0)
-        BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
+        #BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:nan_index]))) -1 
         
         density_jump = np.diff(density_grid[i,:])[BBL_index-1]
         #print(density_jump)
@@ -617,7 +671,7 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
         elif (density_jump < minimal_density_difference):
             #print(nan_index,BBL_index, "maximum to small")
             BBL_index = nan_index
-    
+        """
                     
         #print(BBL_index,nan_index)
         #print("BBL",interp_pressure[BBL_index])
