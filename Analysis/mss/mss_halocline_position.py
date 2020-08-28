@@ -35,6 +35,9 @@ LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177","/home/ole/windo
 
 
 search_depth_range = [52,90]
+
+
+list_of_bad_profiles,reasons = np.loadtxt("./data/list_of_bad_profiles.txt", dtype=str, unpack=True)
  
 f,axis = plt.subplots(1) 
 axis.invert_yaxis()
@@ -95,14 +98,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         transect_name = DATAFILENAME[:-4]
     
     
-        #skip the short "S106" transect
-        if transect_name[0:4] == "S106":
-            print(transect_name,"skipped")
-            continue
-            
-        #something is not correct with this measurement
-        if cruisename == "emb169" and transect_name[0:4] == "TS13":
-            print(transect_name,"skipped, measurement looks wrong")
+        if "_".join((cruisename,transect_name)) in list_of_bad_profiles:
+            print("_".join((cruisename,transect_name)),"skipped")
             continue
                 
         print("\n",transect_name)
@@ -138,6 +135,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             consv_temperature_grid = data["consv_temperature_grid"]
             density_grid = data["density_grid"]
             
+            """
             eps_pressure = data["eps_pressure"]
             eps_grid = data["eps_grid"]
             corrected_eps_grid = data["corrected_eps_grid"]
@@ -154,6 +152,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             corrected_eps_Reynolds_bouyancy_grid = data["corrected_eps_Reynolds_bouyancy_grid"]
             eps_wiki_Reynolds_bouyancy_grid = data["eps_wiki_Reynolds_bouyancy_grid"]
             corrected_eps_wiki_Reynolds_bouyancy_grid = data["corrected_eps_wiki_Reynolds_bouyancy_grid"]
+            """
             
             """
             number_of_profiles              number of profiles/casts in the transect
@@ -187,80 +186,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
             
         print("Number of profiles:",number_of_profiles)
-        
-        #print(min(eps_pressure),max(eps_pressure),len(eps_pressure))
-        
-        #calculate the idices of the bottom and some meters above that
-        results = thesis.find_bottom_and_bottom_currents(number_of_profiles,eps_pressure,eps_density_grid,eps_oxygen_grid)
-        """
-        bathymetrie                     pressure values of the first NaN value (in most cases this corresponds to the bottom, but is sometimes off due to missing data
-        list_of_bathymetrie_indices     corresponding index (eg for interp_pressure or other arrays of the same size)
-        BBL                             pressure values of the calculated Bottom Boundary Layer (exact position depends on the criteria)
-        list_of_BBL_indices             corresponding index (eg for interp_pressure or other arrays of the same size)
-        BBL_range                       pressure values of "height_above_ground" meters. Follows therefore the batyhmetrie. 
-        list_of_BBL_range_indices       corresponding index (eg for interp_pressure or other arrays of the same size)
-        """
-        bathymetry,list_of_bathymetrie_indices = results[0]
-        #BBL,list_of_BBL_indices = results[1] #not needed here
-        BBL_range,list_of_BBL_range_indices = results[2]
-
-        
-        spread_of_profile_medians = np.nanstd(np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
-        transect_median = np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = None)
-        outlier_count = 0
-        
-
-        #compare the pressure value of the lowest valid data point per profile th the neighbouring profiles to determine outliers
-        list_of_short_profiles = thesis.get_list_of_short_profiles(number_of_profiles,bathymetry,acceptable_slope = 2)
-        
-        #hard coded to accout for one short profile, that my condtions doesn't recognize
-        #if the boolean array contains at least one true
-        if np.any(lon == 20.466176666666666):
-            list_of_short_profiles.append(np.argmax(lon == 20.466176666666666))
+                
         
         for profile in range(number_of_profiles):
         
-            #if the current profile is too short, skip it
-            if profile in list_of_short_profiles:
-                print(str(lon[profile])+": short profile")
+            if "_".join((cruisename,transect_name,str(profile))) in list_of_bad_profiles:
+                print("_".join((cruisename,transect_name,str(profile))),"skipped")
                 continue
-                
-            
-            if np.nanmean(eps_oxygen_sat_grid[profile]) < 0:
-                print(cruisename,transect_name,"negative oxygen values")
-                continue
-                
-            
-            #use the indices that are {height_above_ground} meters above the bathymetry
-            else:     
-                from_index = int(list_of_BBL_range_indices[profile]) 
-                to_index = int(list_of_bathymetrie_indices[profile])
-                
-                
-            #if the profile contains only nan values, profile is skipped
-            if np.all(np.isnan(eps_oxygen_sat_grid[profile,:])): #from_index:to_index
-                print("NaN profile")
-                continue
-
-                               
-            #right now the criterion is only valid for emb217
-            if cruisename == "emb217":
-            #check for an outlier profile, ergo too high dissipation rates compared with the surrounding
-                if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+2*spread_of_profile_medians):      
-                    #print("\toutlier")
-                    outlier_count += 1
-                    continue
-          
-            if cruisename == "emb177":
-                #index for a depth of 50db
-                test_index = np.nanargmin(np.abs(eps_pressure-50))
-                #print(eps_pressure[test_index],eps_oxygen_sat_grid[profile,test_index])
-                
-                #test if the saturation at that depth is under a certain level
-                if eps_oxygen_sat_grid[profile,test_index] < 50:
-                    print("Halocline is too high!")
-                    outlier_count += 1
-                    continue
             
             
             #if bathymetry[profile] <= 1/2*(search_depth_range[0]+search_depth_range[0]):
@@ -271,29 +203,30 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             lower_boundary = np.argmin(np.abs(interp_pressure-search_depth_range[1]))
             
             data = oxygen_sat_grid[profile,upper_boundary:lower_boundary]
+            
+            #if more than 80% of the data are NANs, skip the profile
             if np.count_nonzero(np.isnan(data)) >= 0.8 * len(data): 
                 #print(oxygen_sat_grid[profile,upper_boundary:lower_boundary])
                 #print("\nWhy the hell?\n")
                 continue
             
-            #print(upper_boundary,interp_pressure[upper_boundary])
-            #print(lower_boundary,interp_pressure[lower_boundary])
-                        
+            
             halocline_positions = []
+                            
             
-            halocline_positions.append(interp_pressure[upper_boundary+np.nanargmin(thesis.central_differences(oxygen_sat_grid[profile,upper_boundary:lower_boundary]))]) #used argmin because oxygen is decreasing with depth
-            halocline_positions.append(interp_pressure[upper_boundary+np.nanargmax(thesis.central_differences(salinity_grid[profile,upper_boundary:lower_boundary]))])
-            halocline_positions.append(interp_pressure[upper_boundary+np.nanargmax(thesis.central_differences(consv_temperature_grid[profile,upper_boundary:lower_boundary]))])
-            #halocline_positions.append(interp_pressure[upper_boundary+np.nanargmax(thesis.central_differences(density_grid[profile,upper_boundary:lower_boundary]))])
-                        
-            #halocline_positions.append(interp_pressure[upper_boundary+np.argmin(np.abs(oxygen_sat_grid[profile,upper_boundary:lower_boundary])-50)])
-    
-            #print(np.mean(halocline_positions),np.std(halocline_positions),halocline_positions)
+            #if the watercolumn is wellmixed, no halocline is present
+            #print(np.nanstd(data),np.nanmax(data),np.nanmin(data),0.02*np.nanmax(data))
+            if np.nanstd(data) < 0.05 * np.nanmax(data):
+                halocline_positions.append(np.nan)
+                halocline_positions.append(np.nan)
+                halocline_positions.append(np.nan)
             
+            else:            
+                halocline_positions.append(interp_pressure[upper_boundary+np.nanargmin(thesis.central_differences(oxygen_sat_grid[profile,upper_boundary:lower_boundary]))]) #used argmin because oxygen is decreasing with depth
+                halocline_positions.append(interp_pressure[upper_boundary+np.nanargmax(thesis.central_differences(salinity_grid[profile,upper_boundary:lower_boundary]))])
+                halocline_positions.append(interp_pressure[upper_boundary+np.nanargmax(thesis.central_differences(consv_temperature_grid[profile,upper_boundary:lower_boundary]))])
             
-            #deletion = np.argmin(np.abs(halocline_positions-np.median(halocline_positions)))
-            
-            transect_halocline.append(np.median(halocline_positions))
+            transect_halocline.append(np.nanmedian(halocline_positions))
             
             """
             taxis.plot(oxygen_sat_grid[profile],interp_pressure)
@@ -303,8 +236,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             """
             #plt.show()
 
-        mean_halocline = np.mean(transect_halocline)
-        std_halocline = np.std(transect_halocline)      
+        mean_halocline = np.nanmean(transect_halocline)
+        std_halocline = np.nanstd(transect_halocline)      
     
         cruise_halocline.append(mean_halocline)
         cruise_halocline_std.append(std_halocline)
