@@ -99,7 +99,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     
         if "_".join((cruisename,transect_name)) in list_of_bad_profiles:
-            print("_".join((cruisename,transect_name)),"skipped")
+            print("transect", "_".join((cruisename,transect_name)),"skipped")
             continue
                 
         print("\n",transect_name)
@@ -181,8 +181,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             """
         
         except KeyError:
-            print(transect_name," is skipped, Error during loading data")
-            continue
+            print(transect_name,"Error during loading data")
+            raise AssertionError
         
             
         print("Number of profiles:",number_of_profiles)
@@ -191,7 +191,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         for profile in range(number_of_profiles):
         
             if "_".join((cruisename,transect_name,str(profile))) in list_of_bad_profiles:
-                print("_".join((cruisename,transect_name,str(profile))),"skipped")
+                print("profile","_".join((cruisename,transect_name,str(profile))),"skipped")
                 continue
             
             

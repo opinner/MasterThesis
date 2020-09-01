@@ -12,9 +12,9 @@ output,axis = plt.subplots(1) #plt.subplots(ncols = 3, nrows = 2,sharex = True, 
 cruisenames = ["emb169","emb177","emb217"]
 cruisename = cruisenames[0]
 
-longitude,distance,raw_Osborn,rolling_mean_Osborn,raw_Shih,rolling_mean_Shih = np.loadtxt("./"+cruisename+"_coarse_flux_results.txt", unpack=True)
-fine_longitude,fine_distance,fine_raw_Osborn,fine_rolling_mean_Osborn,fine_raw_Shih,fine_rolling_mean_Shih = np.loadtxt("./"+cruisename+"_fine_flux_results.txt", unpack=True)
-bin_longitude,bin_distance,bin_raw_Osborn,bin_rolling_mean_Osborn,bin_raw_Shih,bin_rolling_mean_Shih = np.loadtxt("./"+cruisename+"_bin_flux_results.txt", unpack=True)
+longitude,distance,bathymetry,raw_Osborn,rolling_mean_Osborn,raw_Shih,rolling_mean_Shih = np.loadtxt("./data"+cruisename+"_coarse_flux_results.txt", unpack=True)
+fine_longitude,fine_distance,fine_bathymetry, fine_raw_Osborn,fine_rolling_mean_Osborn,fine_raw_Shih,fine_rolling_mean_Shih = np.loadtxt("./data"+cruisename+"_fine_flux_results.txt", unpack=True)
+bin_longitude,bin_distance,bin_bathymetry, bin_raw_Osborn,bin_rolling_mean_Osborn,bin_raw_Shih,bin_rolling_mean_Shih = np.loadtxt("./data"+cruisename+"_bin_flux_results.txt", unpack=True)
 
 """
 print(len(longitude),len(distance))

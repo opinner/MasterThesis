@@ -583,7 +583,7 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
        oxygen_sat_grid                  oxygen concentration in percent as a grid (number_of_profiles x len(interp_pressure))
        
        height_above_ground              Default value 10m
-       minimal_density_difference       Default value 0.02 kg/m^3
+       minimal_density_difference       Default value 0.01 kg/m^3
     
     
     return values:
@@ -647,10 +647,20 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
         #BBL_index =  nan_index - np.argmax(np.flip(np.diff(density_grid[i,BBL_boundary_index:density_grid[i,:].size + nan_index])>0.01))
 
         #get the index (and from that the pressure) where the density difference is bigger than 0.01
-        print(nan_index,density_grid[i,nan_index-1],np.nanargmax(np.flip(density_grid[i,:]) <= density_grid[i,nan_index-1] - minimal_density_difference))
+        
         BBL_index =  np.nanargmin(np.abs(density_grid[i,:] - (density_grid[i,nan_index-1] - minimal_density_difference)))
+        
+        #if the BBL index is the first or last index, set it to the lowermost data point
         if BBL_index == len(interp_pressure)-1 or BBL_index == 0:
             BBL_index = nan_index -1
+        
+        #if the complete water column is well mixed, set the BBL to the ground (TODO is that reasonable?)
+        if np.abs(np.nanmean(density_grid[i,0:nan_index-1]) - density_grid[i,nan_index-1]) <= minimal_density_difference:
+            BBL_index = nan_index -1
+        
+        
+        print(nan_index,BBL_index,  np.abs(np.nanmean(density_grid[i,0:nan_index-1]) - density_grid[i,nan_index-1]))
+        
         
         """        
         #get the index (and from that the pressure) where the density difference is at maximum (in the lowermost 15 m)
@@ -1004,9 +1014,7 @@ def get_oxygen_flux_osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_gri
 
     #remove negative diffusivity 
     turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = np.nan
-    
-    #print(np.nanmean(turbulent_diffusivity_Osborn_grid),np.nanstd(turbulent_diffusivity_Osborn_grid))
-        
+    #print(np.nanmean(turbulent_diffusivity_Osborn_grid),np.nanstd(turbulent_diffusivity_Osborn_grid)) 
     oxygen_flux_osborn_grid = - turbulent_diffusivity_Osborn_grid[:,:] * central_differences(eps_oxygen_grid)/central_differences(eps_depth)
     #convert from m*micromol/(kg*s) to mmol/(m^2*d)
     oxygen_flux_osborn_grid = oxygen_flux_osborn_grid*86400*(1000/eps_density_grid)        
@@ -1034,9 +1042,68 @@ def get_oxygen_flux_skif(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,
     #convert from m*micromol/(kg*s) to mmol/(m^2*d)
     oxygen_flux_Skif_grid = oxygen_flux_Skif_grid*86400*(1000/eps_density_grid)
     return oxygen_flux_Skif_grid   
+  
         
 
-#####################################################################################################
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////    
+"""
+compute the turbulent diffusivity using the osborn model for 3 different parametrizations of the mixing effiency 
+negative diffusivities get set to NaN
+"""    
+
+
+def get_turbulent_diffusivity_Osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid):
+    Gamma_Osborn_eps_grid = Osborn(eps_Reynolds_bouyancy_grid)
+    turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
+    #remove negative diffusivity 
+    turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid<0] = np.nan
+    return turbulent_diffusivity_Osborn_grid
+
+
+def get_turbulent_diffusivity_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid):
+    Gamma_BB_eps_grid = BB(eps_Reynolds_bouyancy_grid)
+    turbulent_diffusivity_BB_grid = Gamma_BB_eps_grid * eps_grid / (eps_N_squared_grid)
+    #remove negative diffusivity    
+    turbulent_diffusivity_BB_grid[turbulent_diffusivity_BB_grid<0] = np.nan
+    return turbulent_diffusivity_BB_grid
+
+    
+def get_turbulent_diffusivity_Shih(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid):        
+    Gamma_Skif_eps_grid = Skif(eps_Reynolds_bouyancy_grid)
+    turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
+    #remove negative diffusivity
+    turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid<0] = np.nan
+    return turbulent_diffusivity_Skif_grid
+    
+
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////    
+"""
+compute the shear_velocit for the turbulent diffusivity using the Law of the Wall
+only valid for non_stratified flow
+"""        
+
+
+def get_shear_velocity(eps_grid,distance_from_ground_grid): 
+    von_Karman_constant = 0.40
+    shear_velocity_grid = (eps_grid*von_Karman_constant * distance_from_ground_grid) **(1/3)
+    #check if shear_velocity is strictly positive
+    assert np.all(shear_velocity_grid>0)
+    return shear_velocity_grid
+ 
+    
+    
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 def colorbar(mappable, ax = None):
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     
