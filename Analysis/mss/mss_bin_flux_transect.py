@@ -36,16 +36,6 @@ LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windo
 
 rolling_window_size = 12
 
-flux_through_halocline = True #set to True if the flux trough the Halocline instead of the BBL should be computed 
-density_interval = True
-
-#only important for a pressure interval 
-upper_bound_halocline_in_db = 57 #67
-lower_bound_halocline_in_db = 72 #77
-
-#only important for a density interval
-#upper_bound_halocline_as_density = 1007.25 #1006.24 
-#lower_bound_halocline_as_density = 1007.75 #1008.90 
 
 height_above_ground = 5 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
 maximum_reasonable_flux = 500 #float('Inf') #200 #Fluxes with absolute values above this cut off value will be discarded
@@ -116,11 +106,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     #print(DATAFILENAMES)
     
     
-    for DATAFILENAME in DATAFILENAMES:
+    for transect_name in DATAFILENAMES:
     
-        datafile_path = FOLDERNAME+"/"+DATAFILENAME
+        datafile_path = FOLDERNAME+"/"+transect_name
         
-        transect_name = DATAFILENAME[:-4]
+        transect_name = transect_name[:-4]
     
         if "_".join((cruisename,transect_name)) in list_of_bad_profiles:
             print("_".join((cruisename,transect_name)),"skipped")
@@ -256,6 +246,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             to_index = np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])-lower_bound_halocline_as_density))
             
             """
+            #remove the last 3 indexes above the sea floor
             sea_floor_index =  -np.argmax(np.flip(~np.isnan(eps_grid[profile,:]))) #at the moment the index is negative
             sea_floor_index = eps_grid[profile,:].size + sea_floor_index #now defined as positive index
             
