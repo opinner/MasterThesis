@@ -3,6 +3,21 @@
 #TODO better documentation
 #######################################################################
    
+
+
+von_Karman_constant = 0.40
+
+######################################################################################################################
+######################################################################################################################
+######################################################################################################################
+######################################################################################################################
+######################################################################################################################
+######################################################################################################################
+######################################################################################################################
+######################################################################################################################
+######################################################################################################################
+######################################################################################################################
+
    
 import numpy as np   
    
@@ -386,6 +401,8 @@ def load_clean_and_interpolate_data(datafile_path):
             oxygen_wo_nan = emb169_oxygen[i].flatten()[~np.isnan(emb169_oxygen[i].flatten())] 
             bin_oxygen_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0]  
             
+   
+   
         
     if cruisename == "emb217":
         assert(np.shape(oxygen_sat_grid) == np.shape(salinity_grid))
@@ -566,7 +583,7 @@ def oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperat
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_grid,oxygen_sat_grid,height_above_ground = 10,minimal_density_difference = 0.01):
+def find_bottom_and_bottom_currents(number_of_profiles,pressure,density_grid,oxygen_sat_grid,height_above_ground = 10,density_difference = 0.01):
     import numpy as np
 
     """
@@ -583,7 +600,7 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
        oxygen_sat_grid                  oxygen concentration in percent as a grid (number_of_profiles x len(interp_pressure))
        
        height_above_ground              Default value 10m
-       minimal_density_difference       Default value 0.01 kg/m^3
+       density_difference       Default value 0.01 kg/m^3
     
     
     return values:
@@ -624,10 +641,10 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
        
         if nan_index == density_grid[i,:].size:
             if not np.isnan(density_grid[i,-1]): #if there are no NAN values towards the bottom
-                nan_index = len(interp_pressure)-1 #set the last index as the index of the bottom
+                nan_index = len(pressure)-1 #set the last index as the index of the bottom
                 
         list_of_bathymetrie_indices[i] = nan_index 
-        bathymetrie[i] = interp_pressure[nan_index]
+        bathymetrie[i] = pressure[nan_index]
         
       
         #TODO
@@ -639,8 +656,8 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
         
         #index of maximal distance bottom plus 15m 
         
-        BBL_boundary_index = np.argmax(interp_pressure >= (bathymetrie[i]-height_above_ground))
-        assert interp_pressure[BBL_boundary_index]<bathymetrie[i] #tests if the point 15m above the ground is really above
+        BBL_boundary_index = np.argmax(pressure >= (bathymetrie[i]-height_above_ground))
+        assert pressure[BBL_boundary_index]<bathymetrie[i] #tests if the point 15m above the ground is really above
         assert nan_index>=0
         
         #TODO get the index (and from that the pressure) where the density difference is bigger than 0.01
@@ -648,14 +665,15 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
 
         #get the index (and from that the pressure) where the density difference is bigger than 0.01
         
-        BBL_index =  np.nanargmin(np.abs(density_grid[i,:] - (density_grid[i,nan_index-1] - minimal_density_difference)))
+        BBL_index =  np.nanargmin(np.abs(density_grid[i,:] - (density_grid[i,nan_index-1] - density_difference)))
         
         #if the BBL index is the first or last index, set it to the lowermost data point
-        if BBL_index == len(interp_pressure)-1 or BBL_index == 0:
+        if BBL_index == len(pressure)-1 or BBL_index == 0:
             BBL_index = nan_index -1
         
         #if the complete water column is well mixed, set the BBL to the ground (TODO is that reasonable?)
-        if np.abs(np.nanmean(density_grid[i,0:nan_index-1]) - density_grid[i,nan_index-1]) <= minimal_density_difference:
+        #if np.abs(np.nanmean(density_grid[i,0:nan_index-1]) - density_grid[i,nan_index-1]) <= density_difference:
+        if np.nanstd(density_grid[i,0:nan_index-1]) <= density_difference: 
             BBL_index = nan_index -1
         
         
@@ -678,20 +696,20 @@ def find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,density_g
             BBL_index = nan_index
 
         #check if the maximum is too small
-        elif (density_jump < minimal_density_difference):
+        elif (density_jump < density_difference):
             #print(nan_index,BBL_index, "maximum to small")
             BBL_index = nan_index
         """
                     
         #print(BBL_index,nan_index)
-        #print("BBL",interp_pressure[BBL_index])
+        #print("BBL",pressure[BBL_index])
         #print(bathymetrie[i])
        
         list_of_BBL_indices[i] = BBL_index 
-        BBL[i] = interp_pressure[BBL_index]
+        BBL[i] = pressure[BBL_index]
         
         list_of_BBL_range_indices[i] = BBL_boundary_index 
-        BBL_range[i] = interp_pressure[BBL_boundary_index]
+        BBL_range[i] = pressure[BBL_boundary_index]
         
 
                 
@@ -720,7 +738,7 @@ def get_halocline_and_halocline_density(pressure,oxygen,salinity,temperature,pot
     oxygen_subset = oxygen[upper_boundary:lower_boundary]
 
     #if the interval consists to 80% of NaN values, return NaN
-    if np.count_nonzero(np.isnan(oxygen_subset)) >= 0.9 * len(oxygen_subset): 
+    if np.count_nonzero(np.isnan(central_differences(oxygen_subset))) >= 0.9 * len(oxygen_subset): 
         result = [np.nan,np.nan]
         return result
 
@@ -1139,10 +1157,11 @@ only valid for non_stratified flow
 
 
 def get_shear_velocity(eps_grid,distance_from_ground_grid): 
-    von_Karman_constant = 0.40
     shear_velocity_grid = (eps_grid*von_Karman_constant * distance_from_ground_grid) **(1/3)
+    
     #check if shear_velocity is strictly positive
-    assert np.all(shear_velocity_grid>0)
+    #np.testing.assert_array_less( - shear_velocity_grid, 0) 
+    assert np.all(shear_velocity_grid[~np.isnan(shear_velocity_grid)] >0)
     return shear_velocity_grid
  
     

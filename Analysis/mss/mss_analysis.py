@@ -105,6 +105,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             #print(cruisename,transect_name,"is skipped!")
             continue
  
+        assert np.all(eps_grid[~np.isnan(eps_grid)] > 0)
 
         #calculate the viscosity (2 different formula)
         #eps_wiki_viscosity_grid = thesis.get_viscosity(eps_consv_temperature_grid,eps_salinity_grid,eps_density_grid,"Wikipedia")
