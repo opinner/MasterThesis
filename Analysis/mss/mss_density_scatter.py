@@ -28,19 +28,20 @@ import mss_functions as thesis
 import numpy.ma as ma
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
+import matplotlib.cm as cm
+import matplotlib.colors as plc
 import warnings
 warnings.filterwarnings('ignore')
     
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/share-windows/processed_mss/emb169",
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb177"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177"]
 
 vmin = 20.47
 vmax = 20.7
 
-acceptable_slope = 2
-
-  
+list_of_bad_profiles,reasons = np.loadtxt("./data/list_of_bad_profiles.txt", dtype=str, unpack=True)
+ 
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     f_density, density_axarr = plt.subplots(nrows = 1, ncols = 2, sharey = True) 
     f_oxygen, oxygen_axarr = plt.subplots(nrows = 1, ncols = 2, sharey = True)
@@ -50,17 +51,17 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     splitted_foldername = FOLDERNAME.split("/")
     
     #get the cruise name from the folder name
-    cruisename = splitted_foldername[-1]
+    cruise_name = splitted_foldername[-1]
     
-    print(cruisename)
+    print(cruise_name)
            
-    if cruisename == "emb217":
+    if cruise_name == "emb217":
         upper_boundary = 1006.4 #1006.10 #1005.75
         lower_boundary = 1008.5 #1006.6 #1006.25
-    elif cruisename == "emb177":
+    elif cruise_name == "emb177":
         upper_boundary = 1006.9 #1006.6 #1007.4
         lower_boundary = 1008.2 #1007.6 #1007.9 
-    elif cruisename == "emb169":
+    elif cruise_name == "emb169":
         upper_boundary = 1006.5 
         lower_boundary = 1008.6 
             
@@ -87,7 +88,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     oxygen_flux_Shih_statistic = [None] * number_of_transects
     oxygen_flux_Osborn_statistic = [None] * number_of_transects
 
-    
+    minima = 0
+    maxima = len(DATAFILENAMES)
+
+    norm = plc.Normalize(vmin=minima, vmax=maxima, clip=True)
+    mapper = cm.ScalarMappable(norm=norm, cmap = cm.viridis) #cmap=cm.Greys_r)
+
     profile_count = 0
     
     for transect_index,DATAFILENAME in enumerate(DATAFILENAMES):
@@ -96,16 +102,15 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         transect_name = DATAFILENAME[:-4]
     
-        #skip the short "S206" transects
-        if transect_name[0:4] == "S106":
-            print(transect_name,"skipped")
+        if "_".join((cruise_name,transect_name)) in list_of_bad_profiles:
+            print("_".join((cruise_name,transect_name)),"skipped")
             continue
         
-        #something is not correct with this measurement
-        if transect_name[0:4] == "TS13":
-            print(transect_name,"skipped")
+        #if transect_name not in ["TR1-4","TR1-7","TR1-10"]:
+        #    continue
+        if transect_name not in ["TS1_4","TS1_7","TS1_10"]:
             continue
-                
+                                
         print("\n",transect_name)
         
         data = np.load(datafile_path)
@@ -115,35 +120,31 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             lon = data["lon"] #Longitude of the profiles
             distance = data["distance"] #distance from the starting profile (monotonically increasing)
             
-            interp_pressure = data["interp_pressure"]
-            oxygen_grid = data["oxygen_grid"]
-            salinity_grid = data["salinity_grid"]
-            consv_temperature_grid = data["consv_temperature_grid"]
-            density_grid = data["density_grid"]
+            #interp_pressure = data["interp_pressure"]
+            #oxygen_grid = data["oxygen_grid"]
+            #salinity_grid = data["salinity_grid"]
+            #consv_temperature_grid = data["consv_temperature_grid"]
+            #density_grid = data["density_grid"]
             
-            eps_pressure = data["eps_pressure"]
-            eps_grid = data["eps_grid"]
-            corrected_eps_grid = data["corrected_eps_grid"]
-            corrected_eps_wiki_grid = data["corrected_eps_wiki_grid"]
-            eps_consv_temperature_grid = data["eps_consv_temperature_grid"]
-            eps_salinity_grid = data["eps_salinity_grid"]
-            eps_oxygen_grid = data["eps_oxygen_grid"] 
-            eps_oxygen_sat_grid = data["eps_oxygen_sat_grid"] 
-                    
-            eps_N_squared_grid = data["eps_N_squared_grid"]
-            eps_density_grid = data["eps_density_grid"]
-            eps_pot_density_grid = data["eps_pot_density_grid"]
+            eps_pressure = data["bin_pressure"]
+            eps_grid = data["bin_eps_grid"]
+            corrected_eps_grid = data["corrected_bin_eps_grid"]
+            eps_consv_temperature_grid = data["bin_consv_temperature_grid"]
+            eps_oxygen_sat_grid = data["bin_oxygen_sat_grid"]
+            eps_oxygen_grid = data["bin_oxygen_grid"] 
+            
+            eps_N_squared_grid = data["bin_N_squared_grid"]
+            eps_density_grid = data["bin_density_grid"]
+            eps_pot_density_grid = data["bin_pot_density_grid"]
             #eps_viscosity_grid = data["eps_viscosity_grid"]
-            eps_Reynolds_bouyancy_grid = data["eps_Reynolds_bouyancy_grid"]
-            corrected_eps_Reynolds_bouyancy_grid = data["corrected_eps_Reynolds_bouyancy_grid"]
-            eps_wiki_Reynolds_bouyancy_grid = data["eps_wiki_Reynolds_bouyancy_grid"]
-            corrected_eps_wiki_Reynolds_bouyancy_grid = data["corrected_eps_wiki_Reynolds_bouyancy_grid"]
+            eps_Reynolds_bouyancy_grid = data["bin_Reynolds_bouyancy_grid"]
+            corrected_eps_Reynolds_bouyancy_grid = data["corrected_bin_Reynolds_bouyancy_grid"]
         
         except KeyError:
             print(transect_name," is skipped, Error during loading data")
             continue
             
-        print(min(eps_pressure),max(eps_pressure),len(eps_pressure))
+        #print(min(eps_pressure),max(eps_pressure),len(eps_pressure))
             
         """
         number_of_profiles              number of profiles/casts in the transect
@@ -185,56 +186,19 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         oxygen_flux_BB_grid = thesis.get_oxygen_flux_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
         oxygen_flux_Skif_grid = thesis.get_oxygen_flux_skif(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid,eps_oxygen_grid,eps_depth,eps_density_grid)
       
-                
-        list_of_short_profiles = thesis.get_list_of_short_profiles(number_of_profiles,bathymetry,acceptable_slope)
-        count_of_short_profiles = len(list_of_short_profiles)
-        
-        
-        spread_of_profile_medians = np.nanstd(np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = 1))
-        transect_median = np.nanmedian(np.log10(eps_grid[:,30:-30]),axis = None)
-        
-        outlier_count = 0
-       
+        example_profile_index = [np.argmin(np.abs(lon-20.55)),np.argmin(np.abs(lon-20.57)),np.argmin(np.abs(lon-20.61))]
         
         for profile in range(number_of_profiles):
         
-            #if the current profile is too short, skip it
-            if profile in list_of_short_profiles:
-                print(str(lon[profile])+": short profile")
+            if "_".join((cruise_name,transect_name,str(profile))) in list_of_bad_profiles:
+                print("_".join((cruise_name,transect_name,str(profile))),"skipped")
                 continue
-            
-            if np.nanmean(eps_oxygen_sat_grid[profile]) < 0:
-                print(cruisename,transect_name,"negative oxygen values")
-                continue
-                
-                
-            #if the profile contains only nan values, profile is skipped
-            if np.all(np.isnan(oxygen_flux_BB_grid[profile,:])): #from_index:to_index
-                print("NaN profile")
-                continue
-                  
-            #right now the criterion is only valid for emb217
-            if cruisename == "emb217":
-            #check for an outlier profile, ergo too high dissipation rates compared with the surrounding
-                if np.nanmedian(np.log10(eps_grid[profile,30:-30])) > (transect_median+2*spread_of_profile_medians):      
-                    #print("\toutlier")
-                    outlier_count += 1
-                    continue
-          
-            #filter out outliers with a too shallow halocline (due to measurement errors)
-            if cruisename == "emb177":
-                #index for a depth of 50db
-                test_index = np.nanargmin(np.abs(eps_pressure-50))
-                #print(eps_pressure[test_index],eps_oxygen_sat_grid[profile,test_index])
-                
-                #test if the saturation at that depth is under a certain level
-                if eps_oxygen_sat_grid[profile,test_index] < 50:
-                    print("Halocline is too high!")
-                    outlier_count += 1
-                    continue
                                     
             
-            color = np.ones(np.shape(eps_pot_density_grid[profile]))*lon[profile]
+            if profile not in example_profile_index:
+                pass #continue
+            
+            color = np.ones((np.shape(eps_pot_density_grid[profile])[0],4)) * mapper.to_rgba(transect_index) #np.ones(np.shape(eps_pot_density_grid[profile]))*lon[profile]
             
 
             density_axarr[0].scatter(np.log10(eps_grid[profile,:]),eps_pot_density_grid[profile,:], c = color , cmap = "viridis", vmin = vmin , vmax = vmax, marker = ",", s= 1.4)           
@@ -243,9 +207,6 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             image_oxy = oxygen_axarr[1].scatter(eps_pressure,eps_pot_density_grid[profile,:], c = color, cmap = "viridis", vmin = vmin , vmax = vmax, marker = ",", s= 1.4)
 
 
-
-        print("removed",outlier_count,"profiles as outliers")
-        print("removed",count_of_short_profiles,"profiles as they did not reach the sea floor")
 
     def colorbar(mappable):
         from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -270,15 +231,15 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     f_oxygen.set_size_inches(18,10.5)
     f_oxygen.tight_layout()
     f_oxygen.subplots_adjust(top=0.95)
-    f_oxygen.suptitle(cruisename+": potential density vs Oxygen gradient and pressure")
-    f_oxygen.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_pot_density_scatter_oxy")
+    f_oxygen.suptitle(cruise_name+": potential density vs Oxygen gradient and pressure")
+    f_oxygen.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruise_name+"_pot_density_scatter_oxy")
 
     
     colorbar(image).set_label(r"longitude $[\degree$E]")        
 
     density_axarr[1].set_xlim(-10.5,-3)
     density_axarr[0].invert_yaxis()
-    if cruisename == "emb177":
+    if cruise_name == "emb177":
         density_axarr[1].set_xlim(-300,100)
     else:  
         density_axarr[1].set_xlim(-200,100)
@@ -292,8 +253,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     f_density.set_size_inches(18,10.5)
     f_density.tight_layout()
     f_density.subplots_adjust(top=0.95)
-    f_density.suptitle(cruisename+": potential density vs Turbulence and Fluxes")
-    f_density.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruisename+"_pot_density_scatter")
+    f_density.suptitle(cruise_name+": potential density vs Turbulence and Fluxes")
+    f_density.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/"+cruise_name+"_pot_density_scatter")
     
 plt.show()
    
