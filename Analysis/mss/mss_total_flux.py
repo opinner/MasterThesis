@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import geopy.distance as geo
 import mss_functions as thesis
-from scipy import integrate as sc
+#from scipy import integrate as sc
+import scipy.stats as ss 
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -165,7 +166,11 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
     #print("\nbasin:",total_pixels_basin,"\tedge",pixels_edge,"\tratio",ratio,"\tarea",total_pixels_basin*pixel_area,"\n")
 
 
-    longitude,distance,raw_Osborn,rolling_mean_Osborn,raw_Shih,rolling_mean_Shih = np.loadtxt("./"+cruisename+"_bin_flux_results.txt", unpack=True)
+    longitude,distance,transect_bathymetry,raw_Osborn,rolling_mean_Osborn,raw_Shih,rolling_mean_Shih = np.loadtxt("./data/"+cruisename+"_bin_flux_results.txt", unpack=True)
+
+
+    depth_array = sorted(list(set(transect_bathymetry)))
+
 
     diff_distance = thesis.central_differences(distance)
     #diff_distance = np.diff(distance)
@@ -174,19 +179,38 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
     #print(diff_distance >= 0)
     
     
-    hist_diff = np.copy(diff_distance)
-    hist_diff[0] = 0
-    hist_diff[-1] = hist_diff[-2]
-    #print(hist_diff > 0)    
-    
-    #print(distance+hist_diff)
-    #print(np.diff(distance) > 0)
-    
     #integral_axis[0,cruise_index].bar(distance,raw_Osborn,alpha = 0.5, width = diff_distance, align = "edge")
     #integral_axis[0,cruise_index].plot(distance,raw_Osborn,"k-")
     #integral_axis[1,cruise_index].bar(distance,rolling_mean_Shih,alpha = 0.5, width = diff_distance, align = "edge")
     #integral_axis[1,cruise_index].plot(distance,rolling_mean_Shih,"k-")
-
+    def flux_look_up_table(flux, transect_bathymetry, depth_array, basin_bathymetry):
+    
+        bin_edges = np.append(depth_array[0]-0.5,depth_array)
+    
+        flux = flux * 1000000 #convert flux per m^2 to flux per km^2
+        flux_wo_nans = flux[~np.isnan(flux)]
+        transect_bathymetry_wo_nans = transect_bathymetry[~np.isnan(flux)]
+    
+        total_flux_mean_bin = 0
+        total_flux_median_bin = 0
+        binned_flux_mean, _bin_edges, _bin_number = ss.binned_statistic(transect_bathymetry_wo_nans,flux_wo_nans,"mean", bin_edges) 
+        binned_flux_median, _bin_edges, _bin_number = ss.binned_statistic(transect_bathymetry_wo_nans,flux_wo_nans,"median", bin_edges) 
+            
+        for column in range(np.shape(basin_bath)[0]):
+            for row in range(np.shape(basin_bath)[1]): 
+            
+                #check if bathymetry tile has a defined depth
+                if not np.isnan(basin_bath[column,row]):
+                    depth_index = np.nanargmin(np.abs(depth_array - abs(basin_bath[column,row]))) 
+                    
+                    #check if the bin is not empty
+                    if not np.isnan(binned_flux_mean[depth_index]): 
+                        total_flux_mean_bin += binned_flux_mean[depth_index]
+                        total_flux_median_bin += binned_flux_median[depth_index]
+                        
+        print("Total flux from depth binned mean fluxes",1e-12*365*total_flux_mean_bin,"Gmol/y")
+        print("Total flux from depth binned median fluxes",1e-12*365*total_flux_median_bin,"Gmol/y")
+    
     def flux_ratio(flux, distance, background_flux, number_of_edge_pixels, number_of_interior_pixels, delta_X,pixel_area,side_length):
         
         flux = flux * 1000000 #convert flux per m^2 to flux per km^2
@@ -238,6 +262,9 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
         
         print("proportion of edge fluxes",np.round(100*edge_flux_trapz/(edge_flux_trapz + interior_flux),2), "%")
         
+        print("Total flux from integral",1e-12*365*(edge_flux_trapz + interior_flux),"Gmol/y")
+        
+        
         """
         f,a = plt.subplots(1)
         a.plot(distance, flux, label = "original")
@@ -261,5 +288,14 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
         print("mean flux:", np.nanmean(flux),"mmol/m^2/d")
         print("max flux:",np.nanmin(flux),"mmol/m^2/d")
         flux_ratio(flux, distance, -1,pixels_edge, pixels_interior, diff_distance,pixel_area,weighted_mean_pixel_side_length)
+        
+        flux_look_up_table(flux, transect_bathymetry, depth_array, basin_bath)
         print("\n")
+
+
+
+
+
+
+
 
