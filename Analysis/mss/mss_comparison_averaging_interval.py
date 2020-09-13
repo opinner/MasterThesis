@@ -13,7 +13,7 @@ SMALL_SIZE = 12
 MEDIUM_SIZE = 14
 BIGGER_SIZE = 16
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
 plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
@@ -51,9 +51,11 @@ acceptable_slope = 2 #float('Inf') #acceptable bathymetry difference in dbar bet
 
 number_of_dissipation_subplots = 1 #Decide if both the mean and the median subplots is shown or only the mean
 
-#datafile_paths = ["/home/ole/windows/processed_mss/emb177/TS1_8.npz","/home/ole/windows/processed_mss/emb177/TS1_10.npz","/home/ole/windows/processed_mss/emb169/TS112.npz"]
-datafile_paths = ["/home/ole/windows/processed_mss/emb169/TS112.npz"]
+datafile_paths = ["/home/ole/windows/processed_mss/emb177/TS1_10.npz","/home/ole/windows/processed_mss/emb217/TR1-10.npz","/home/ole/windows/processed_mss/emb169/TS112.npz"]
+#datafile_paths = ["/home/ole/windows/processed_mss/emb169/TS112.npz"]
 #datafile_paths = ["/home/ole/windows/processed_mss/emb177/TS1_10.npz"]
+datafile_paths = ["/home/ole/windows/processed_mss/emb217/TR1-4.npz","/home/ole/windows/processed_mss/emb217/TR1-7.npz","/home/ole/windows/processed_mss/emb217/TR1-10.npz"]
+
 
 list_of_bad_profiles,reasons = np.loadtxt("./data/list_of_bad_profiles.txt", dtype=str, unpack=True)
 
@@ -69,13 +71,12 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
     transect_halocline_depths = []
     transect_halocline_densities = []
 
-
     splitted_filename = datafile_path.split("/")
-    cruisename = splitted_filename[4][0:6]
+    cruise_name = splitted_filename[5][0:6]
     transect_name = splitted_filename[-1][:-4]
 
-    if "_".join((cruisename,transect_name)) in list_of_bad_profiles:
-        print("_".join((cruisename,transect_name)),"skipped")
+    if "_".join((cruise_name,transect_name)) in list_of_bad_profiles:
+        print("_".join((cruise_name,transect_name)),"skipped")
         continue
         
             
@@ -181,7 +182,7 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
 
     edge_Shih_flux_for_different_intervals = []
     edge_Osborn_flux_for_different_intervals = []
-    
+   
 
     
     example_profile_index = np.argmin(np.abs(lon-example_transect_longitude))
@@ -195,25 +196,21 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
         Osborn_flux_list = []
         longitude_list = []
         bathymetry_list = []
-        bathymetry_longitude_list = []
-        interval_list = []    
     
         total_number_of_valid_profiles = 0
     
         for profile in range(number_of_profiles):
     
     
-            if "_".join((cruisename,transect_name,str(profile))) in list_of_bad_profiles:
+            if "_".join((cruise_name,transect_name,str(profile))) in list_of_bad_profiles:
                 if profile == example_profile_index: example_profile_index+=1
-                print("_".join((cruisename,transect_name,str(profile))),"skipped")
+                print("_".join((cruise_name,transect_name,str(profile))),"skipped")
                 continue
             
             total_number_of_valid_profiles+=1
                 
             halocline_depth,halocline_density = thesis.get_halocline_and_halocline_density(eps_pressure,eps_oxygen_sat_grid[profile],eps_salinity_grid[profile],eps_consv_temperature_grid[profile],eps_pot_density_grid[profile])
         
-            transect_halocline_depths.append(halocline_depth)
-            transect_halocline_densities.append(halocline_density)
             
             if np.isnan(halocline_depth):
                 #find the correct position in the sorted list
@@ -234,6 +231,9 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
                     Osborn_flux_list.append(np.nan)
                     longitude_list.append(lon[profile])
                     bathymetry_list.append(bathymetry[profile])
+                    if width_index == 0:    
+                        transect_halocline_depths.append(halocline_depth)
+                        transect_halocline_densities.append(halocline_density)
                                                 
                 else:
                     
@@ -244,11 +244,14 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
                     Osborn_flux_list.insert(list_position,np.nan)
                     longitude_list.insert(list_position,lon[profile])
                     bathymetry_list.insert(list_position,bathymetry[profile])
+                    if width_index == 0: 
+                        transect_halocline_depths.insert(list_position,halocline_depth)
+                        transect_halocline_densities.insert(list_position,halocline_density)
                 continue
         
             #choose the vertical averaging interval dependent on the box size
-            from_index =  np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile]) - (halocline_density - density_box_width)))     
-            to_index = np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])- (halocline_density + density_box_width)))
+            from_index =  np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile]) - (halocline_density - density_box_width/2)))     
+            to_index = np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])- (halocline_density + density_box_width/2)))
            
             if profile == example_profile_index:
                 box_sizes_in_dbar[width_index] = np.abs(eps_pressure[to_index] - eps_pressure[from_index])
@@ -293,7 +296,9 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
                 Osborn_flux_list.append(oxygen_flux_Osborn_grid[profile,from_index:to_index])
                 longitude_list.append(lon[profile])
                 bathymetry_list.append(bathymetry[profile])
-                                            
+                if width_index == 0: 
+                    transect_halocline_depths.append(halocline_depth)
+                    transect_halocline_densities.append(halocline_density)                           
             else:
                 
                 #Sort the current profile into the list            
@@ -303,7 +308,9 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
                 Osborn_flux_list.insert(list_position,oxygen_flux_Osborn_grid[profile,from_index:to_index])
                 longitude_list.insert(list_position,lon[profile])
                 bathymetry_list.insert(list_position,bathymetry[profile])
-                
+                if width_index == 0: 
+                    transect_halocline_depths.insert(list_position,halocline_depth)
+                    transect_halocline_densities.insert(list_position,halocline_density)
                 #print(np.nanmean(oxygen_flux_Shih_grid[profile,from_index:to_index]))
 
             
@@ -313,7 +320,6 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
         print(len(longitude_list),"used profiles")
         assert(len(longitude_list) != 0)
         assert(np.all(longitude_list == sorted(longitude_list)))      
-        interval_list = np.asarray(interval_list)
 
         #compute mean and std over the saved intervals
         mean_Osborn_flux = [None] * total_number_of_valid_profiles
@@ -321,7 +327,7 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
         arith_mean_dissipation = [None] * total_number_of_valid_profiles
 
 
-        #average vertically in the denisty interval
+        #average vertically in the density interval
         for index in range(len(longitude_list)):
             temp_Shih_flux = np.asarray(Shih_flux_list[index])    
             temp_Shih_flux[np.abs(temp_Shih_flux)>maximum_reasonable_flux] = np.nan
@@ -365,34 +371,45 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
     ##################################################################################################################################
     ##################################################################################################################################     
     
-    box_axis[0].plot(np.arange(0.1,4,0.2),np.abs(edge_Osborn_flux_for_different_intervals),"k")
-    box_axis[0].plot(np.arange(0.1,4,0.2),np.abs(interior_Osborn_flux_for_different_intervals),"r--")
+    print(cruise_name)
+    for color,labelname,cruise in zip(["tab:red","tab:blue","tab:green"],["summer cruise emb217","winter cruise emb177","autumn cruise emb169"],["emb217","emb177","emb169"]):
+        if cruise_name == cruise:
+            break
+            
+    box_axis[0].plot(np.arange(0.1,4,0.2),np.abs(edge_Osborn_flux_for_different_intervals), c = color, label = " ".join((cruise_name,transect_name)))
+    box_axis[0].plot(np.arange(0.1,4,0.2),np.abs(interior_Osborn_flux_for_different_intervals), "--", c = color)
 
-    box_axis[1].plot(np.arange(0.1,4,0.2),np.abs(edge_Shih_flux_for_different_intervals),"k")
-    box_axis[1].plot(np.arange(0.1,4,0.2),np.abs(interior_Shih_flux_for_different_intervals),"r--")
-###############################################################################################################
-###############################################################################################################
-###############################################################################################################
-###############################################################################################################
-###############################################################################################################
-###############################################################################################################
+    box_axis[1].plot(np.arange(0.1,4,0.2),np.abs(edge_Shih_flux_for_different_intervals), c = color, label = " ".join((cruise_name,transect_name)))
+    box_axis[1].plot(np.arange(0.1,4,0.2),np.abs(interior_Shih_flux_for_different_intervals), "--", c = color)
 
-    assert np.all(transect_halocline_depths[0:total_number_of_valid_profiles] == transect_halocline_depths[total_number_of_valid_profiles:2*total_number_of_valid_profiles])
-
-    iso_axis[0].plot(longitude_list,transect_halocline_depths[0:total_number_of_valid_profiles])
-    iso_axis[1].plot(longitude_list,transect_halocline_densities[0:total_number_of_valid_profiles])
+    iso_axis[0].plot(longitude_list,transect_halocline_depths, c = color, label = " ".join((cruise_name,transect_name)))
+    iso_axis[1].plot(longitude_list,transect_halocline_densities, c = color, label = " ".join((cruise_name,transect_name)))
     iso_axis[0].plot(longitude_list,bathymetry_list,"k")
 
 
 
+box_axis[0].set_ylabel("mean Osborn flux")
+box_axis[1].set_ylabel("mean Shih flux")
+
+iso_axis[0].set_title("Halocline depths")
+iso_axis[1].set_title("Halocline densities")
+
 iso_axis[0].invert_yaxis()
+
+
 box_m0 = box_axis[0].twiny()
 #box_m1 = box_axis[1].twiny()
 locs = box_axis[0].get_xticks()
 box_m0.set_xticks(locs)
 box_m0.set_xticklabels(box_sizes_in_dbar)
-#box_m1.set_xticks(locs)
-#box_m1.set_xticklabels(box_sizes_in_dbar)
+box_axis[1].set_xlabel("Averaging interval in kg/m³")
+box_m0.set_xlabel("Averaging interval in meter")
+
+box_axis[0].legend()
+box_axis[1].legend()
+iso_axis[0].legend()
+iso_axis[1].legend()
+
 plt.show()
 
     
