@@ -7,8 +7,21 @@ import mss_functions as thesis
 import scipy.stats as ss 
 import warnings
 warnings.filterwarnings('ignore')
+#matplotlib preferences:
+MINI_SIZE = 9
+SMALL_SIZE = 10.95
+MEDIUM_SIZE = 12
+BIGGER_SIZE = 12
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE, titleweight = "bold")     # fontsize of the axes title
+plt.rc('axes', labelsize=SMALL_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=MINI_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=MEDIUM_SIZE, titleweight = "bold")  # fontsize of the figure title
 
 #integral,integral_axis = plt.subplots(ncols = 3, nrows = 2,sharex = True, sharey = True)
+out,axis = plt.subplots(ncols = 3, sharex = True, sharey = True)
 
 #loop over the three cruises and their mean halocline depth
 for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"],[-71.07,-58.52,-70.35]):
@@ -41,15 +54,15 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
 
 
     #only inside the rectangle defined by this values
-    #left = np.argmin(np.abs(np.mean(lon,axis=0)-18.5))
-    #right = np.argmin(np.abs(np.mean(lon,axis=0)-21))
-    #bottom = np.argmin(np.abs(np.mean(lat,axis=1)-56.5))
-    #top = np.argmin(np.abs(np.mean(lat,axis=1)-57.75))
+    left = np.argmin(np.abs(np.mean(lon,axis=0)-18.5))
+    right = np.argmin(np.abs(np.mean(lon,axis=0)-21))
+    bottom = np.argmin(np.abs(np.mean(lat,axis=1)-56.5))
+    top = np.argmin(np.abs(np.mean(lat,axis=1)-57.75))
 
-    left = np.argmin(np.abs(np.mean(lon,axis=0)-16.8))
-    right = np.argmin(np.abs(np.mean(lon,axis=0)-25))
-    bottom = np.argmin(np.abs(np.mean(lat,axis=1)-54.0))
-    top = np.argmin(np.abs(np.mean(lat,axis=1)-59.8))
+    #left = np.argmin(np.abs(np.mean(lon,axis=0)-16.8))
+    #right = np.argmin(np.abs(np.mean(lon,axis=0)-25))
+    #bottom = np.argmin(np.abs(np.mean(lat,axis=1)-54.0))
+    #top = np.argmin(np.abs(np.mean(lat,axis=1)-59.8))
     
     #print(lon[0,left],lon[0,right],lat[bottom,0],lat[top,0])
 
@@ -168,8 +181,20 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
 
     longitude,distance,transect_bathymetry,raw_Osborn,rolling_mean_Osborn,raw_Shih,rolling_mean_Shih = np.loadtxt("./data/"+cruisename+"_bin_flux_results.txt", unpack=True)
 
+    ##########################################################################################
+    sorted_transect_bathymetry = sorted(transect_bathymetry)
+    sorted_raw_Shih = [x for _,x in sorted(zip(transect_bathymetry,raw_Shih))]
+    sorted_mean_Shih = [x for _,x in sorted(zip(transect_bathymetry,rolling_mean_Shih))]
+    
+    axis[cruise_index].plot(sorted_raw_Shih,sorted_transect_bathymetry,"-", label = r"$\langle$Shih flux$\rangle_{\mathrm{z}}$ ")
+    axis[cruise_index].plot(sorted_mean_Shih,sorted_transect_bathymetry,"-", label = r"$\langle$Shih flux$\rangle_{\mathrm{z,lon}}$ ")
+    axis[cruise_index].set_title(cruisename)
+    axis[cruise_index].legend(loc = "lower center")
+    axis[cruise_index].set_xlabel("Shih Oxygen flux")
+    ##########################################################################################
 
-    depth_array = sorted(list(set(transect_bathymetry)))
+    
+    depth_array = np.arange(0,400,5) #sorted(list(set(transect_bathymetry)))
 
 
     diff_distance = thesis.central_differences(distance)
@@ -185,7 +210,10 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
     #integral_axis[1,cruise_index].plot(distance,rolling_mean_Shih,"k-")
     def flux_look_up_table(flux, transect_bathymetry, depth_array, basin_bathymetry):
     
-        bin_edges = np.append(depth_array[0]-0.5,depth_array)
+        #because depth_array contains the center point of the bins, the bin edges has to be calculated
+        bin_size = abs(depth_array[0]-depth_array[1])
+        expanded_array = np.append(depth_array[0]-bin_size,depth_array)
+        bin_edges = expanded_array + bin_size/2
     
         flux = flux * 1000000 #convert flux per m^2 to flux per km^2
         flux_wo_nans = flux[~np.isnan(flux)]
@@ -195,6 +223,10 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
         total_flux_median_bin = 0
         binned_flux_mean, _bin_edges, _bin_number = ss.binned_statistic(transect_bathymetry_wo_nans,flux_wo_nans,"mean", bin_edges) 
         binned_flux_median, _bin_edges, _bin_number = ss.binned_statistic(transect_bathymetry_wo_nans,flux_wo_nans,"median", bin_edges) 
+           
+        #############################################################################   
+        #TODO: Check if tiles below the lowest transect depth have a contribution. (As they should have)   
+        #############################################################################   
             
         for column in range(np.shape(basin_bath)[0]):
             for row in range(np.shape(basin_bath)[1]): 
@@ -207,6 +239,10 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
                     if not np.isnan(binned_flux_mean[depth_index]): 
                         total_flux_mean_bin += binned_flux_mean[depth_index]
                         total_flux_median_bin += binned_flux_median[depth_index]
+         
+        #multiply with the tile size in km² to get rid of the area dependency / to get Gmol/y 
+        total_flux_mean_bin *= pixel_area  
+        total_flux_median_bin *= pixel_area
                         
         print("Total flux from depth binned mean fluxes",1e-12*365*total_flux_mean_bin,"Gmol/y")
         print("Total flux from depth binned median fluxes",1e-12*365*total_flux_median_bin,"Gmol/y")
@@ -294,8 +330,12 @@ for cruise_index,cruisename,set_depth in zip([0,1,2],["emb169","emb177","emb217"
 
 
 
-
-
+axis[0].set_ylabel("sea floor depth")
+axis[0].invert_yaxis()
+out.set_size_inches(6.2012,6.2012/1.618)
+out.subplots_adjust(top=0.904,bottom=0.161,left=0.122,right=0.962,hspace=0.2,wspace=0.182)
+out.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/flux_bathymetry_relation", dpi = 600)
+plt.show()
 
 
 
