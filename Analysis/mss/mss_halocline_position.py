@@ -9,16 +9,17 @@ import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
 #matplotlib preferences:
-SMALL_SIZE = 12
-MEDIUM_SIZE = 14
-BIGGER_SIZE = 16
+MINI_SIZE = 9
+SMALL_SIZE = 10.95
+MEDIUM_SIZE = 12
+BIGGER_SIZE = 12
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('axes', titlesize=SMALL_SIZE, titleweight = "bold")     # fontsize of the axes title
+plt.rc('axes', labelsize=SMALL_SIZE)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+plt.rc('legend', fontsize=MINI_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=MEDIUM_SIZE, titleweight = "bold")  # fontsize of the figure title
 
 import gsw.conversions as gsw
 import pathlib
@@ -298,24 +299,24 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         cruise_time_delta.append(transect_point_since_cruise_start / dt.timedelta(days=1))  #convert time delta objects into a float of days
         cruise_time.append(transect_point_in_time)
     
-    for color,labelname,marker,cruise in zip(["tab:red","tab:blue","tab:green"],["summer cruise emb217","winter cruise emb177","autumn cruise emb169"],["D","x","o"],["emb217","emb177","emb169"]):
+    for color,labelname,marker,cruise in zip(['#d95f02','#7570b3','#1b9e77'],["summer cruise emb217","winter cruise emb177","autumn cruise emb169"],["D","x","o"],["emb217","emb177","emb169"]):
         if cruisename == cruise:
             break
     
-    axis.errorbar(cruise_time_delta,cruise_halocline,cruise_halocline_std, color = "k", fmt = marker, capsize = 2, label = labelname)
+    #axis.errorbar(cruise_time_delta,cruise_halocline,cruise_halocline_std, color = "k", fmt = marker, capsize = 2, label = labelname)
     axis.errorbar(cruise_time_delta,bin_cruise_halocline,bin_cruise_halocline_std, color = color, fmt = marker, capsize = 2, label = labelname)
 
-    axis_rho.errorbar(cruise_time_delta,cruise_halocline_density,cruise_halocline_std_density, color = "k", fmt = marker, capsize = 2, label = labelname)
+    #axis_rho.errorbar(cruise_time_delta,cruise_halocline_density,cruise_halocline_std_density, color = "k", fmt = marker, capsize = 2, label = labelname)
     axis_rho.errorbar(cruise_time_delta,bin_cruise_halocline_density,bin_cruise_halocline_std_density, color = color, fmt = marker, capsize = 2, label = labelname)
         
     float_dates = []
     for date in cruise_time:
         float_dates.append(date.month+date.day/31)
 
-    year_axis.errorbar(cruise_start.month+cruise_start.day/31,np.mean(cruise_halocline),np.std(cruise_halocline), color = "k", fmt = marker, capsize = 2, label = labelname)
+    #year_axis.errorbar(cruise_start.month+cruise_start.day/31,np.mean(cruise_halocline),np.std(cruise_halocline), color = "k", fmt = marker, capsize = 2, label = labelname)
     year_axis.errorbar(cruise_start.month+cruise_start.day/31,np.mean(bin_cruise_halocline),np.std(bin_cruise_halocline), color = color, fmt = marker, capsize = 2, label = labelname)
 
-    year_axis_rho.errorbar(cruise_start.month+cruise_start.day/31,np.mean(cruise_halocline_density),np.std(cruise_halocline_density), color = "k", fmt = marker, capsize = 2, label = labelname)
+    #year_axis_rho.errorbar(cruise_start.month+cruise_start.day/31,np.mean(cruise_halocline_density),np.std(cruise_halocline_density), color = "k", fmt = marker, capsize = 2, label = labelname)
     year_axis_rho.errorbar(cruise_start.month+cruise_start.day/31,np.mean(bin_cruise_halocline_density),np.std(bin_cruise_halocline_density), color = color, fmt = marker, capsize = 2, label = labelname)
     
     #year_axis.plot(float_dates,cruise_halocline,"-",color = color,)
@@ -328,8 +329,11 @@ print(end_results)
 print(bin_end_results)
 print("###########################")
 
+#f_iso.set_size_inches(6.2012,6.2012/1.618)
+#f_iso.subplots_adjust(top=0.925,bottom=0.174,left=0.122,right=0.955,hspace=0.153,wspace=0.2)
+#f_box.set_size_inches(6.2012,6.2012/1.618)
 
-width = 8 #4.7747
+width = 6.2012
 height = width / 1.618
 
 axis.set_title("Halocline depth")
@@ -338,7 +342,7 @@ axis.set_ylabel("pressure [dbar]")
 
 axis.legend() 
 f.set_size_inches(width, height)
-f.tight_layout()
+f.subplots_adjust(top=0.925,bottom=0.174,left=0.122,right=0.955,hspace=0.153,wspace=0.2)
 
 year_axis.set_title("Halocline depth")
 year_axis.set_xlim(0.5,12.5)

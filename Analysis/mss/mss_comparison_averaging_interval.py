@@ -9,16 +9,17 @@ import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
 #matplotlib preferences:
-SMALL_SIZE = 12
-MEDIUM_SIZE = 14
-BIGGER_SIZE = 16
+MINI_SIZE = 9
+SMALL_SIZE = 10.95
+MEDIUM_SIZE = 12
+BIGGER_SIZE = 12
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('axes', titlesize=SMALL_SIZE, titleweight = "bold")     # fontsize of the axes title
+plt.rc('axes', labelsize=SMALL_SIZE)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+plt.rc('legend', fontsize=MINI_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=MEDIUM_SIZE, titleweight = "bold")  # fontsize of the figure title
 
 import geopy.distance as geo
 import gsw.conversions as gsw
@@ -31,6 +32,9 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
+color_iterator = iter(['#fed98e','#fe9929','#cc4c02'])
+    
+
 rolling_window_size = 12
 
 
@@ -40,9 +44,10 @@ f_iso,iso_axis = plt.subplots(2, sharex = True)
 #plot mean oxygen flux dependent on in pressure and density coordinates (once for shih and once for Osborn)
 f_box, box_axis = plt.subplots(2, sharex = True, sharey = True)
 
-height_above_ground = 5 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
-maximum_reasonable_flux = float('Inf') #200 #Fluxes with absolute values above this cut off value will be discarded
-acceptable_slope = 2 #float('Inf') #acceptable bathymetry difference in dbar between two neighboring data points. 
+maximum_reasonable_flux = 500 #float('Inf') #200 #Fluxes with absolute values above this cut off value will be discarded
+
+
+
 
 #flux_percentile = 84.13 #percentile which is displayed as the error bar (variable spread)
 #second_flux_percentile = 97.72
@@ -54,7 +59,7 @@ number_of_dissipation_subplots = 1 #Decide if both the mean and the median subpl
 datafile_paths = ["/home/ole/windows/processed_mss/emb177/TS1_10.npz","/home/ole/windows/processed_mss/emb217/TR1-10.npz","/home/ole/windows/processed_mss/emb169/TS112.npz"]
 #datafile_paths = ["/home/ole/windows/processed_mss/emb169/TS112.npz"]
 #datafile_paths = ["/home/ole/windows/processed_mss/emb177/TS1_10.npz"]
-datafile_paths = ["/home/ole/windows/processed_mss/emb217/TR1-4.npz","/home/ole/windows/processed_mss/emb217/TR1-7.npz","/home/ole/windows/processed_mss/emb217/TR1-10.npz"]
+#datafile_paths = ["/home/ole/windows/processed_mss/emb217/TR1-2.npz","/home/ole/windows/processed_mss/emb217/TR1-6.npz","/home/ole/windows/processed_mss/emb217/TR1-8.npz"]
 
 
 list_of_bad_profiles,reasons = np.loadtxt("./data/list_of_bad_profiles.txt", dtype=str, unpack=True)
@@ -62,9 +67,10 @@ list_of_bad_profiles,reasons = np.loadtxt("./data/list_of_bad_profiles.txt", dty
 interior_longitude_interval = [20.53,20.57]
 edge_longitude_interval = [20.57,20.64]
       
-box_sizes = np.arange(0.1,4,0.2)
+box_sizes = np.arange(0.1,4,0.2) #in density units [kg/m³]
 box_sizes_in_dbar = np.zeros(box_sizes.size)
-example_transect_longitude = 20.57
+ 
+label_list = []
         
 for datafile_index,datafile_path in enumerate(datafile_paths):
 
@@ -136,11 +142,20 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
     #print(min(eps_pressure),max(eps_pressure),len(eps_pressure))
     
     #calculate the idices of the bottom and some meters above that
-    results = thesis.find_bottom_and_bottom_currents(number_of_profiles,eps_pressure,eps_density_grid,eps_oxygen_grid,height_above_ground = height_above_ground)
-
+    results = thesis.find_bottom_and_bottom_currents(number_of_profiles,eps_pressure,eps_density_grid,eps_oxygen_grid)
+    """
+    bathymetry                     pressure values of the first NaN value (in most cases this corresponds to the bottom, but is sometimes wrong due to missing data
+    list_of_bathymetry_indices     corresponding index (eg for interp_pressure or other arrays of the same size)
+    BBL                             pressure values of the calculated Bottom Boundary Layer (exact position depends on the criteria)
+    list_of_BBL_indices             corresponding index (eg for interp_pressure or other arrays of the same size)
+    BBL_range                       pressure values of "height_above_ground" meters. Follows therefore the batyhmetrie. 
+    list_of_BBL_range_indices       corresponding index (eg for interp_pressure or other arrays of the same size)
+    """
     bathymetry,list_of_bathymetry_indices = results[0]
-    #BBL,list_of_BBL_indices = results[1] #not needed here
-    BBL_range,list_of_BBL_range_indices = results[2]
+    BBL,list_of_BBL_indices = results[1] #not needed here
+    #BBL_range,list_of_BBL_range_indices = results[2]
+    
+    #print(np.asarray(list_of_bathymetry_indices) - np.asarray(list_of_BBL_indices))
     
     eps_N_grid = np.sqrt(eps_N_squared_grid)
     #ozmidov scale
@@ -156,19 +171,28 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
     distance_from_ground_grid[distance_from_ground_grid < 0] = np.nan
     boundary_check_grid = ~(distance_from_ground_grid < ozmidov_scale_grid)
     
+    #get the turbulent diffusivity im Osborn Model with three different parametrizations
     turbulent_diffusivity_Osborn_grid = thesis.get_turbulent_diffusivity_Osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid)
     turbulent_diffusivity_BB_grid = thesis.get_turbulent_diffusivity_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid)
-    turbulent_diffusivity_Shih_grid = thesis.get_turbulent_diffusivity_Shih(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid)
-
-    """
+    turbulent_diffusivity_Shih_grid = thesis.get_turbulent_diffusivity_Shih(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid)           
+   
     shear_velocity_grid = thesis.get_shear_velocity(eps_grid,distance_from_ground_grid)
-    boolean_array_for_law_of_the_wall = distance_from_ground_grid < 1.5
     
-    turbulent_diffusivity_Osborn_grid[boolean_array_for_law_of_the_wall] = law_of_the_wall_turbulent_diffusivity_Osborn_grid[boolean_array_for_law_of_the_wall]
-    turbulent_diffusivity_BB_grid[boolean_array_for_law_of_the_wall] = law_of_the_wall_turbulent_diffusivity_BB_grid[boolean_array_for_law_of_the_wall]
-    turbulent_diffusivity_Shih_grid[boolean_array_for_law_of_the_wall] = law_of_the_wall_turbulent_diffusivity_Shih_grid[boolean_array_for_law_of_the_wall]
-    """
-            
+    #compute the mean shear velocity in the BBL as theoretically it should be constant
+    shear_velocity = np.zeros(number_of_profiles)
+    for profile in range(number_of_profiles):
+        BBL_from = int(list_of_BBL_indices[profile])
+        BBL_to = int(list_of_bathymetry_indices[profile])
+    
+        #print(list_of_BBL_indices[profile],list_of_bathymetry_indices[profile])
+        BBL_shear_velocity = np.nanmean(shear_velocity_grid[BBL_from:BBL_to])
+        
+        law_of_the_wall_turbulent_diffusivity = thesis.von_Karman_constant * BBL_shear_velocity * distance_from_ground_grid[profile,BBL_from:BBL_to]
+        
+        #replace the corresponding bins with the turbulent diffusivity from the law of the wall
+        turbulent_diffusivity_Osborn_grid[profile,BBL_from:BBL_to] = law_of_the_wall_turbulent_diffusivity
+        turbulent_diffusivity_Shih_grid[profile,BBL_from:BBL_to] = law_of_the_wall_turbulent_diffusivity
+    
     oxygen_gradient_grid = thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
     unit_conversion_grid = 86400*(1000/eps_density_grid) #to convert from m*micromol/(kg*s) to mmol/(m^2*d)
 
@@ -182,10 +206,6 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
 
     edge_Shih_flux_for_different_intervals = []
     edge_Osborn_flux_for_different_intervals = []
-   
-
-    
-    example_profile_index = np.argmin(np.abs(lon-example_transect_longitude))
     
     for width_index,density_box_width in enumerate(box_sizes):
     
@@ -250,8 +270,17 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
                 continue
         
             #choose the vertical averaging interval dependent on the box size
-            from_index =  np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile]) - (halocline_density - density_box_width/2)))     
-            to_index = np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])- (halocline_density + density_box_width/2)))
+            #around the halocline
+            #from_index =  np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile]) - (halocline_density - density_box_width/2)))     
+            #to_index = np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])- (halocline_density + density_box_width/2)))
+            
+            #above the halocline
+            from_index =  np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile]) - (halocline_density - density_box_width)))   
+            to_index = np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])- (halocline_density)))
+            
+            #below the halocline
+            #from_index =  np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile]) - (halocline_density))) 
+            #to_index = np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile])- (halocline_density + density_box_width)))
            
             if profile == example_profile_index:
                 box_sizes_in_dbar[width_index] = np.abs(eps_pressure[to_index] - eps_pressure[from_index])
@@ -372,9 +401,11 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
     ##################################################################################################################################     
     
     print(cruise_name)
-    for color,labelname,cruise in zip(["tab:red","tab:blue","tab:green"],["summer cruise emb217","winter cruise emb177","autumn cruise emb169"],["emb217","emb177","emb169"]):
+    for color,labelname,cruise in zip(['#d95f02','#7570b3','#1b9e77'],["summer cruise emb217","winter cruise emb177","autumn cruise emb169"],["emb217","emb177","emb169"]):
         if cruise_name == cruise:
             break
+    
+    #color = next(color_iterator)
             
     box_axis[0].plot(np.arange(0.1,4,0.2),np.abs(edge_Osborn_flux_for_different_intervals), c = color, label = " ".join((cruise_name,transect_name)))
     box_axis[0].plot(np.arange(0.1,4,0.2),np.abs(interior_Osborn_flux_for_different_intervals), "--", c = color)
@@ -386,32 +417,50 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
     iso_axis[1].plot(longitude_list,transect_halocline_densities, c = color, label = " ".join((cruise_name,transect_name)))
     iso_axis[0].plot(longitude_list,bathymetry_list,"k")
 
+    label_list.append(mpatches.Patch(color= color, label= " ".join((cruise_name,transect_name))))
+    
+    
+iso_axis[0].legend(handles = label_list, loc = "lower right")
+iso_axis[1].legend(handles = label_list, loc = "lower right")
+    
+label_list.append(mlines.Line2D([0], [0], color= "k", ls = "-", label='basin edge'))
+label_list.append(mlines.Line2D([], [], color = "k", ls = "--", label='basin interior'))
 
-
-box_axis[0].set_ylabel("mean Osborn flux")
-box_axis[1].set_ylabel("mean Shih flux")
-
-iso_axis[0].set_title("Halocline depths")
-iso_axis[1].set_title("Halocline densities")
 
 iso_axis[0].invert_yaxis()
-
+iso_axis[1].invert_yaxis()
 
 box_m0 = box_axis[0].twiny()
 #box_m1 = box_axis[1].twiny()
 locs = box_axis[0].get_xticks()
 box_m0.set_xticks(locs)
 box_m0.set_xticklabels(box_sizes_in_dbar)
-box_axis[1].set_xlabel("Averaging interval in kg/m³")
+
 box_m0.set_xlabel("Averaging interval in meter")
 
-box_axis[0].legend()
-box_axis[1].legend()
-iso_axis[0].legend()
-iso_axis[1].legend()
+box_axis[0].set_ylabel(r"|$\langle$ Osborn OF $\rangle$|")
+box_axis[1].set_ylabel(r"|$\langle$ Shih OF $\rangle$|")
+box_axis[1].set_xlabel("Averaging interval in kg/m³")
+
+iso_axis[0].set_title("Halocline depths")
+iso_axis[1].set_title("Halocline densities")
+iso_axis[0].set_ylabel("pressure [dbar]")
+iso_axis[1].set_ylabel("potential density [kg/m³]")
+iso_axis[1].set_xlabel(r"longitude [$\degree$E]")
+
+box_axis[0].legend(handles = label_list, loc = "upper right")
+box_axis[1].legend(handles = label_list, loc = "upper right")
+
+f_iso.set_size_inches(6.2012,6.2012/1.618)
+f_iso.subplots_adjust(top=0.904,bottom=0.174,left=0.161,right=0.974,hspace=0.467,wspace=0.2)#top=0.925,bottom=0.174,left=0.122,right=0.955,hspace=0.273,wspace=0.2)
+f_iso.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/above_halocline_depth_and_density.png", dpi = 600)
+
+f_box.suptitle("Impact of vertical averaging interval size (above the halocline)")
+f_box.set_size_inches(6.2012,6.2012/1.618)
+f_box.subplots_adjust(top=0.815,bottom=0.174,left=0.122,right=0.955,hspace=0.153,wspace=0.2)
+f_box.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/above_interval_box_comparison.png", dpi = 600)
 
 plt.show()
-
     
     
     

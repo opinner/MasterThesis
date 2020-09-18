@@ -600,7 +600,7 @@ def find_bottom_and_bottom_currents(number_of_profiles,pressure,density_grid,oxy
        oxygen_sat_grid                  oxygen concentration in percent as a grid (number_of_profiles x len(interp_pressure))
        
        height_above_ground              Default value 10m
-       density_difference       Default value 0.01 kg/m^3
+       density_difference               Default value 0.01 kg/m^3
     
     
     return values:
@@ -1011,10 +1011,10 @@ def Skif(Reb):
             return 0.2
             
         else:
-            return 2*Reb**(-0.5)
-
-
+            return min(0.2,2*Reb**(-0.5))
+            
     vSkif = np.vectorize(basic_Skif, otypes=[float]) 
+    
     return vSkif(Reb)
      
         

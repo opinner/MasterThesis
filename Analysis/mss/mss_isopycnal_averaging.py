@@ -45,7 +45,7 @@ maximum_reasonable_flux = 500 #float('Inf') #200 #Fluxes above this value will b
 acceptable_slope = 2 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
 
 density_axis = np.linspace(1004,1010.5,20) #maybe change to a non equidistant array?
-
+#density_axis = np.arange(1004,1010.5,0.02)
 
  
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:

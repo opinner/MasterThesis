@@ -138,7 +138,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         corrected_bin_Reynolds_bouyancy_grid = corrected_bin_eps_grid/(bin_viscosity_grid*bin_N_squared_grid)
 
         #use self written function to get BBL
-        results = thesis.find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,pot_density_grid,oxygen_grid,height_above_ground = 10,minimal_density_difference = 0.02)
+        results = thesis.find_bottom_and_bottom_currents(number_of_profiles,interp_pressure,pot_density_grid,oxygen_grid) #with a default density difference for the BBL of 0.01 kg/m^3
         bathymetrie,list_of_bathymetrie_indices = results[0]
         BBL,list_of_BBL_indices = results[1]
         BBL_range,list_of_BBL_range_indices = results[2]
@@ -179,36 +179,40 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             print("Profile at Longitude",lon[profile_index])
             #print(lon)
             #print(np.all(np.diff(lon)>0))
-            img4_0 = axarr4[0].plot(oxygen_sat_grid[profile_index,:],interp_pressure, label = "fine grid")
-            img4_0a = axarr4[0].plot(eps_oxygen_sat_grid[profile_index,:],eps_pressure, label = "eps grid")
-            img4_0b = axarr4[0].plot(0,BBL[profile_index],"Dr")
-            img4_0c = axarr4[0].plot(0,bathymetrie[profile_index],"Dg")
-            img4_0d = axarr4[0].plot(0,BBL_range[profile_index],"ok")
+            img4_0 = axarr4[0].plot(oxygen_sat_grid[profile_index,:],interp_pressure, label = "raw data")
+            img4_0a = axarr4[0].plot(bin_oxygen_sat_grid[profile_index,:],eps_pressure, label = "bined data")
+            #img4_0b = axarr4[0].plot(0,BBL[profile_index],"Dr")
+            #img4_0c = axarr4[0].plot(0,bathymetrie[profile_index],"Dg")
+            #img4_0d = axarr4[0].plot(0,BBL_range[profile_index],"ok")
             
+            axarr4[1].axhline(BBL[profile_index], c = "g")
+            axarr4[1].axhline(bathymetrie[profile_index], c = "k")
+            axarr4[1].axhline(BBL_range[profile_index], c = "k")
+                        
             
             print("Bottom",bathymetrie[profile_index],"BBL",BBL[profile_index])#,"max BBL",interp_pressure[profile_index],)
 
 
             #img4_1 = axarr4[1].plot(salinity_grid[profile_index,:],interp_pressure, label = "fine grid")
-            img4_1 = axarr4[1].plot(pot_density_grid[profile_index,:],interp_pressure, label = "fine grid")
-            img4_1b = axarr4[1].plot(eps_pot_density_grid[profile_index,:],eps_pressure, label = "eps grid")
+            img4_1 = axarr4[1].plot(pot_density_grid[profile_index,:],interp_pressure, label = "raw data")
+            img4_1b = axarr4[1].plot(bin_pot_density_grid[profile_index,:],eps_pressure, label = "binned data")
 
-            img4_2 = axarr4[2].plot(consv_temperature_grid[profile_index,:],interp_pressure, label = "fine grid")
-            img4_2b = axarr4[2].plot(eps_consv_temperature_grid[profile_index,:],eps_pressure, label = "eps grid")
+            img4_2 = axarr4[2].plot(consv_temperature_grid[profile_index,:],interp_pressure, label = "raw grid")
+            img4_2b = axarr4[2].plot(bin_consv_temperature_grid[profile_index,:],eps_pressure, label = "binned data")
 
-            #img4_3 = axarr4[3].plot(BV_freq_squared_grid_gsw[profile_index,:],mid_point_pressure, label = "fine grid")
-            img4_3b = axarr4[3].plot(eps_N_squared_grid[profile_index,:],eps_pressure, label = "eps grid")
+            #img4_3 = axarr4[3].plot(BV_freq_squared_grid_gsw[profile_index,:],mid_point_pressure, label = "raw grid")
+            img4_3b = axarr4[3].plot(bin_N_squared_grid[profile_index,:],eps_pressure, label = "binned data")
 
 
-            img4_4 = axarr4[4].plot(eps_viscosity_grid[profile_index,:]*10**6,eps_pressure,label = "default")
+            img4_4 = axarr4[4].plot(bin_viscosity_grid[profile_index,:]*10**6,eps_pressure,label = "binned data")
             #img4_4b = axarr4[4].plot(eps_wiki_viscosity_grid[profile_index,:]*10**6,eps_pressure,"--",label = "Wikipedia")
             
-            img4_5 = axarr4[5].plot(np.log10(eps_grid[profile_index,:]),eps_pressure, label = "eps grid")
-            img4_5a = axarr4[5].plot(np.log10(corrected_eps_grid[profile_index,:]),eps_pressure, label = "corrected/default")     
+            img4_5 = axarr4[5].plot(np.log10(bin_eps_grid[profile_index,:]),eps_pressure, label = "binned data")
+            img4_5a = axarr4[5].plot(np.log10(corrected_bin_eps_grid[profile_index,:]),eps_pressure, label = "corrected binned data")     
             #img4_5b = axarr4[5].plot(np.log10(corrected_eps_wiki_grid[profile_index,:]),eps_pressure,label = "corrected/Wikipedia")
             
-            img4_6a = axarr4[6].plot(np.log10(eps_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "default")
-            #img4_6b = axarr4[6].plot(np.log10(eps_wiki_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "Wikipedia")
+            img4_6a = axarr4[6].plot(np.log10(bin_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "binned data")
+            img4_6b = axarr4[6].plot(np.log10(corrected_bin_Reynolds_bouyancy_grid[profile_index,:]),eps_pressure,label = "corrected binned data")
 
             
             axarr4[0].set_xlabel("oxygen [%]")
@@ -271,7 +275,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
             
             
-            density_steps = np.arange(np.nanmin(pot_density_grid),np.nanmax(pot_density_grid),0.4)
+            density_steps = np.arange(np.nanmin(pot_density_grid),np.nanmax(pot_density_grid),0.2)
             #compute and plot isopycnals
             for density_step in density_steps:
                 isopycnal = np.zeros(number_of_profiles)
@@ -290,7 +294,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 axarr3[1].plot(lon,isopycnal,"k")
                 axarr3[2].plot(lon,isopycnal,"k")
             
-           
+            """
             #compute and plot halocline boundaries
             for density_step in [upper_bound_halocline_as_density, lower_bound_halocline_as_density]:
                 isopycnal = np.zeros(number_of_profiles)
@@ -308,15 +312,19 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 axarr3[0].plot(lon,isopycnal,"g",lw = 4)
                 axarr3[1].plot(lon,isopycnal,"g",lw = 4)
                 axarr3[2].plot(lon,isopycnal,"g",lw = 4)
+            """
                                             
             #draw the calculated layers in the plot    
             axarr1[0].plot(lon,bathymetrie)
             axarr1[0].plot(lon,BBL,"g")
-               
+              
             axarr2[0].plot(lon,bathymetrie)
             axarr2[0].plot(lon,BBL,"g")
 
-
+            axarr3[0].plot(lon,BBL,"g")
+            axarr3[1].plot(lon,BBL,"g")
+            axarr3[2].plot(lon,BBL,"g")
+            
             axarr1[3].set_xlabel("Longitude")#("distance [km]")
             axarr2[3].set_xlabel("Longitude")
             axarr3[2].set_xlabel(r"Longitude [$\degree$E]")
