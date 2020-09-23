@@ -38,7 +38,7 @@ rolling_window_size = 9 # for longitudinal averaging
 density_box_width = 1.5 #in kg/m³ (for vertical averaging)
 
 height_above_ground = 20 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
-maximum_reasonable_flux = 500 #float('Inf') #200 #Fluxes with absolute values above this cut off value will be discarded
+maximum_reasonable_flux = float('Inf') #200 #Fluxes with absolute values above this cut off value will be discarded
 maximum_halocline_thickness = 20 #float('Inf') #30
 
 #density_bin_edges = np.linspace(1004,1010.5,20)
@@ -232,7 +232,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         turbulent_diffusivity_Osborn_grid = thesis.get_turbulent_diffusivity_Osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid)
         turbulent_diffusivity_Shih_grid = thesis.get_turbulent_diffusivity_Shih(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid)
         #turbulent_diffusivity_BB_grid = thesis.get_turbulent_diffusivity_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid)
-                       
+          
+                     
         shear_velocity_grid = thesis.get_shear_velocity(eps_grid,distance_from_ground_grid)
         
         #compute the mean shear velocity in the BBL as theoretically it should be constant
@@ -258,7 +259,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #oxygen_flux_BB_grid =  - turbulent_diffusivity_BB_grid * oxygen_gradient_grid * unit_conversion_grid
 
         
-        # check if the absolute Osborn fluxes are higher than the absolute Shih fluxes
+        # check if the absolute Osborn fluxes are higher than the absolute Shih fluxes (as they should be, because Gamma_Osborn >= Gamma_Shih)
         assert np.all(np.isnan(oxygen_flux_Osborn_grid) == np.isnan(oxygen_flux_Shih_grid))
         test_Osborn = oxygen_flux_Osborn_grid[~np.isnan(oxygen_flux_Osborn_grid)]
         test_Shih = oxygen_flux_Shih_grid[~np.isnan(oxygen_flux_Shih_grid)]
@@ -688,10 +689,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print("Shih rolling mean",np.nansum(rolling_mean_Shih_flux*delta_X),"Shih profiles", np.nansum(mean_Shih_flux*delta_X))
     print("\n\n\n")
     """
-    #np.savetxt("./data/"+cruise_name+'_bin_flux_results_wo_BBL.txt', np.transpose([longitude_list,distance_list,bathymetry_list,mean_Osborn_flux,rolling_mean_Osborn_flux,mean_Shih_flux,rolling_mean_Shih_flux]), header = "longitude\tdistance\tdepth[dbar]\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")
-    
-    
-    #print(np.shape(longitude_list),np.shape(distance_list),np.shape(bathymetry_list),np.shape(mean_Osborn_flux),np.shape(iso_vertical_mean_Osborn_flux),np.shape(mean_Shih_flux),np.shape(iso_vertical_mean_Shih_flux))
+    #np.savetxt("./data/"+cruise_name+'_iso_flux_results_woBBL.txt', np.transpose([longitude_list,distance_list,bathymetry_list,mean_Osborn_flux,iso_vertical_mean_Osborn_flux,mean_Shih_flux,iso_vertical_mean_Shih_flux]), header = "longitude\tdistance\tdepth[dbar]\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")
     np.savetxt("./data/"+cruise_name+'_iso_flux_results.txt', np.transpose([longitude_list,distance_list,bathymetry_list,mean_Osborn_flux,iso_vertical_mean_Osborn_flux,mean_Shih_flux,iso_vertical_mean_Shih_flux]), header = "longitude\tdistance\tdepth[dbar]\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")
     
     ##################################################################################################################################
@@ -707,26 +705,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     for color,label_name,cruise in zip(['#d95f02','#7570b3','#1b9e77'],["summer cruise emb217","winter cruise emb177","autumn cruise emb169"],["emb217","emb177","emb169"]):
         if cruise_name == cruise:
             break
-    
-    """              
-    if cruise_name == "emb169":
-        emb169_densi
-                
-    if cruise_name == "emb177":
-        color = "tab:blue"
-        label_name = "winter cruise" 
-        
-        
-    if cruise_name == "emb217":
-        color = "tab:red"      
-        label_name = "summer cruise" 
-    
-    
-    if textstr != "":
-        textstr = textstr + "\n"
-    
-    textstr = textstr + label_name +":\t"+ str(upper_bound_halocline_as_density)+r" < σ < "+str(lower_bound_halocline_as_density)+r" kg/m$^3$"
-    """
+ 
     
     #print(np.shape(mean_Shih_flux), np.shape(longitude_list))
     #nan_lon = np.asarray(longitude_list)[np.isnan(mean_Shih_flux)]
@@ -771,6 +750,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 width = 6.2012
 height = width #* 4/3 #1.618
 
+#beamer figure sizes
+#width = 1.7*4.252 #6.2012
+#height = 1.5*3.7341 #* 4/3 #1.618
 
 flux_axarr[1].set_ylim((np.nanmin(total_bathymetry_list)-5,np.nanmax(total_bathymetry_list)))
 flux_axarr[1].invert_yaxis()
@@ -800,13 +782,13 @@ second_max_flux_label =  mpatches.Patch(color='tab:green', alpha = 0.4,label='do
 second_min_flux_label =  mpatches.Patch(color='tab:blue', alpha = 0.4, label='upwards flux '+str(second_flux_percentile)+"% percentile")
 """
 
-emb169_label = mpatches.Patch(color='#1b9e77', label='autumn cruise')
-emb177_label = mpatches.Patch(color='#7570b3', label='winter cruise')
-emb217_label = mpatches.Patch(color='#d95f02', label='summer cruise')
+emb169_label = mpatches.Patch(color='#1b9e77', label='autumn cruise emb169')
+emb177_label = mpatches.Patch(color='#7570b3', label='winter cruise emb177')
+emb217_label = mpatches.Patch(color='#d95f02', label='summer cruise emb217')
 Osborn_label = mlines.Line2D([], [], ls = ":", lw = 2.5, c = "k", label = "Osborn oxygen flux")
 Shih_label = mlines.Line2D([], [], ls = "-", lw = 2.5, c = "k", label = "Shih oxygen flux")
 
-flux_axarr[0].legend(handles=[emb217_label,emb177_label,emb169_label,Osborn_label,Shih_label],loc = "lower left")
+flux_axarr[0].legend(handles=[emb169_label,emb177_label,emb217_label,Osborn_label,Shih_label],loc = "lower left")
  
 bathymetry_label =  mpatches.Patch(color='lightgrey', label='bathymetry')
 flux_axarr[1].legend(loc = "lower right")
@@ -816,21 +798,24 @@ flux_tick_spacing = 25
 #flux_axarr[0].yaxis.set_major_locator(mticker.MultipleLocator(flux_tick_spacing)) 
 pressure_tick_spacing = 25
 #flux_axarr[1].yaxis.set_major_locator(mticker.MultipleLocator(pressure_tick_spacing)) 
-    
-flux_axarr[0].set_ylim((-85,5))    #(-110,5)) #
+
+flux_axarr[0].set_ylim((-85,5))    
+#flux_axarr[0].set_ylim((-180,5)) #(-85,5))    #(-110,5)) #
         
 flux_axarr[1].set_xlabel(r"longitude [$\degree$E]")    
 flux_axarr[0].set_ylabel(r"$\langle$OF$\rangle$ [mmol/(m$^2$d)]")
-
+#flux_axarr[0].set_ylabel(r"$\langle$Oxygen flux$\rangle$ [mmol/(m$^2$d)]")
 
 f_flux.set_size_inches(width,height) #set_size_inches(16,10.5)
 f_flux.subplots_adjust(top=0.95,bottom=0.09,left=0.12,right=0.975,hspace=0.058,wspace=0.185)
+#f_flux.subplots_adjust(top=0.98,bottom=0.09,left=0.12,right=0.975,hspace=0.058,wspace=0.185)
 
 props = dict(boxstyle='square', facecolor = "white")
 #flux_axarr[1].text(0.62, 0.05, textstr, transform=flux_axarr[1].transAxes, fontsize= MINI_SIZE ,verticalalignment='bottom', bbox=props, multialignment = "right")
 
-f_flux.suptitle("Mean oxygen flux through the halocline") # along the transect: rolling isopycnal mean over "+str(rolling_window_size)+" points", weight = "bold") # (binned data)")
-f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/iso_flux_transect", dpi = 600)           
+f_flux.suptitle("Mean oxygen flux through the halocline") #along the transect: rolling isopycnal mean over "+str(rolling_window_size)+" points", weight = "bold") # (binned data)")
+f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/iso_flux_transect", dpi = 600) 
+#f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_iso_flux_transect", dpi = 600)           
 
    
 #------------------------------------------------------------------------------------------------------------#
@@ -845,8 +830,7 @@ dissip_percent_label =  mpatches.Patch(color='tab:blue', label=str(dissip_percen
 dissip_second_percent_label =  mpatches.Patch(color='tab:blue', alpha = 0.4, label=str(second_dissip_percentile)+"% percentile")           
 dissip_axarr.legend(handles=[dissip_mean_label,dissip_median_label,dissip_percent_label,dissip_second_percent_label,bathymetry_label])
 """
-#f_dissip.suptitle(cruise_name+": mean dissipation in the lowermost "+str(height_above_ground)+" meters above ground")
-#f_dissip.suptitle(cruise_name+": mean dissipation above the halocline (67-77dbar) ("+str(number_of_intervals)+" intervals)")
+
 
 dissip_axarr[0].legend(loc = "upper left")
 dissip_axarr[1].legend(loc = "lower right")
@@ -858,18 +842,20 @@ dissip_axarr[1].yaxis.set_major_locator(mticker.MultipleLocator(pressure_tick_sp
 f_dissip.set_size_inches(width,height)
 #f_dissip.tight_layout() 
 f_dissip.subplots_adjust(top=0.95,bottom=0.09,left=0.125,right=0.975,hspace=0.058,wspace=0.185) #top=0.925,bottom=0.1,left=0.137,right=0.965,hspace=0.153,wspace=0.2)
+#f_dissip.subplots_adjust(top=0.98,bottom=0.09,left=0.125,right=0.975,hspace=0.058,wspace=0.185)
     
 #props = dict(boxstyle='square', facecolor = "white")
 #dissip_axarr[1].text(0.65, 0.05, textstr, transform=dissip_axarr[1].transAxes, fontsize= MINI_SIZE,verticalalignment='bottom', bbox=props, multialignment = "right")
         
 f_dissip.suptitle("Mean dissipation around the halocline") #(over "+str(rolling_window_size)+" points) ")# (binned data)")
 f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/iso_dissip_transect", dpi = 600)
-
+#f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_iso_dissip_transect", dpi = 600)
 
 interval_axarr.legend(loc = "lower right")
 interval_axarr.set_xlim((20.465,20.705))
 f_interval.set_size_inches(width,height)
 f_interval.subplots_adjust(top=0.95,bottom=0.09,left=0.12,right=0.975,hspace=0.058,wspace=0.185)
+#f_interval.subplots_adjust(top=0.98,bottom=0.09,left=0.12,right=0.975,hspace=0.058,wspace=0.185)
    
 plt.show()
     

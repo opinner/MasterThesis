@@ -27,12 +27,15 @@ import mss_functions as thesis
 import numpy.ma as ma
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
+import matplotlib.ticker as mticker
 import warnings
 warnings.filterwarnings('ignore')
 import datetime as dt
+import locale
+locale.setlocale(locale.LC_TIME,'en_US.utf8')
   
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217"]#,"/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217","/home/ole/windows/processed_mss/emb169"]
+LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
 
 
 search_depth_range = [52,90]
@@ -182,10 +185,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             #if bathymetry[profile] <= 1/2*(search_depth_range[0]+search_depth_range[0]):
             #    continue
             
-            halocline_depth,halocline_density = thesis.get_halocline_and_halocline_density(interp_pressure,oxygen_sat_grid[profile],salinity_grid[profile],consv_temperature_grid[profile],pot_density_grid[profile])
+            #halocline_depth,halocline_density = thesis.get_halocline_and_halocline_density(interp_pressure,oxygen_sat_grid[profile],salinity_grid[profile],consv_temperature_grid[profile],pot_density_grid[profile])
             
-            transect_halocline.append(halocline_depth)    
-            transect_halocline_density.append(halocline_density)
+            #transect_halocline.append(halocline_depth)    
+            #transect_halocline_density.append(halocline_density)
             
             """
             #to confine the search for the maximum gradient to the area around the halocline
@@ -276,20 +279,20 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 print(bin_halocline_positions)        
               """    
 
-        mean_halocline = np.nanmean(transect_halocline)
-        std_halocline = np.nanstd(transect_halocline)  
-        mean_halocline_density = np.nanmean(transect_halocline_density)
-        std_halocline_density = np.nanstd(transect_halocline_density)     
+        #mean_halocline = np.nanmean(transect_halocline)
+        #std_halocline = np.nanstd(transect_halocline)  
+        #mean_halocline_density = np.nanmean(transect_halocline_density)
+        #std_halocline_density = np.nanstd(transect_halocline_density)     
         bin_mean_halocline = np.nanmean(bin_transect_halocline)
         bin_std_halocline = np.nanstd(bin_transect_halocline) 
         bin_mean_halocline_density = np.nanmean(bin_transect_halocline_density)
         bin_std_halocline_density = np.nanstd(bin_transect_halocline_density) 
         print(bin_mean_halocline)
                     
-        cruise_halocline.append(mean_halocline)
-        cruise_halocline_std.append(std_halocline)
-        cruise_halocline_density.append(mean_halocline_density)
-        cruise_halocline_std_density.append(std_halocline_density)
+        #cruise_halocline.append(mean_halocline)
+        #cruise_halocline_std.append(std_halocline)
+        #cruise_halocline_density.append(mean_halocline_density)
+        #cruise_halocline_std_density.append(std_halocline_density)
                 
         bin_cruise_halocline.append(bin_mean_halocline)
         bin_cruise_halocline_std.append(bin_std_halocline)
@@ -329,15 +332,16 @@ print(end_results)
 print(bin_end_results)
 print("###########################")
 
-#f_iso.set_size_inches(6.2012,6.2012/1.618)
-#f_iso.subplots_adjust(top=0.925,bottom=0.174,left=0.122,right=0.955,hspace=0.153,wspace=0.2)
-#f_box.set_size_inches(6.2012,6.2012/1.618)
+
+x_tick_spacing = 1
+#flux_axarr[0].yaxis.set_major_locator(mticker.MultipleLocator(flux_tick_spacing)) 
 
 width = 6.2012
 height = width / 1.618
 
 axis.set_title("Halocline depth")
 axis.set_xlabel("days since cruise start")
+axis.xaxis.set_major_locator(mticker.MultipleLocator(x_tick_spacing))
 axis.set_ylabel("pressure [dbar]")
 
 axis.legend() 
@@ -348,10 +352,16 @@ year_axis.set_title("Halocline depth")
 year_axis.set_xlim(0.5,12.5)
 year_axis.legend()    
 year_axis.set_xlabel("months")
+ticklabels = ["Jan","Feb","Mar","Apr","May","June","July","Aug","Sept","Oct","Nov","Dec"] #[dt.date(1900, item, 1).strftime('%b') for item in np.arange(1,13)]
+year_axis.set_xticks(np.arange(1,13))
+year_axis.set_xticklabels(ticklabels) #add monthlabels to the xaxis
 year_axis.set_ylabel("pressure [dbar]")
+
 
 y.tight_layout()
 y.set_size_inches(width, height)
+
+#################################################################
 
 axis_rho.set_title("Halocline density")
 axis_rho.set_xlabel("days since cruise start")
