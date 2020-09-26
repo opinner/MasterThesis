@@ -1,5 +1,17 @@
 import matplotlib.pyplot as plt
 import numpy as np
+#matplotlib preferences:
+MINI_SIZE = 9
+SMALL_SIZE = 10.95
+MEDIUM_SIZE = 12
+BIGGER_SIZE = 12
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE, titleweight = "bold")     # fontsize of the axes title
+plt.rc('axes', labelsize=SMALL_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=MINI_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=MEDIUM_SIZE, titleweight = "bold")  # fontsize of the figure title
 
 #basic version
 def basic_BB(Reb):
@@ -58,6 +70,13 @@ def Osborn(Reb):
     return vOsborn(Reb)
 
 
+width = 6.2012
+height = width * 1.618
+
+#beamer figure sizes
+width = 1.7*4.252 #6.2012
+height = 1.5*3.7341 #* 4/3 #1.618
+
 f1,axis1 = plt.subplots()
 
  
@@ -66,19 +85,20 @@ Reb = np.linspace(0,1000,1000)
 #bigger linewidths
 linewidth = 4
 
-axis1.plot(Reb,Osborn(Reb), linewidth=linewidth, label = "Osborn")
+axis1.plot(Reb,Osborn(Reb), linewidth=linewidth, label = "Osborn, 1980")
 #axis1.plot(Reb,BB(Reb), linewidth=linewidth, label = "Bouffard & Boegman")
-axis1.plot(Reb,Skif(Reb), "--", linewidth=linewidth ,label = "Shih et al")
+axis1.plot(Reb,Skif(Reb), "--", linewidth=linewidth ,label = "Shih et al, 2005")
 
 
 axis1.set_ylim(-0.01,0.21) 
 
-axis1.set_xlabel(r"$Re_b$")
+axis1.set_xlabel(r"Reynolds Buoyancy Number $Re_b$")
 axis1.set_ylabel(r"$\Gamma$")
 
 axis1.legend(loc = "lower right")
 axis1.set_title("Turbulence parametrizations")
 
-plt.tight_layout
-plt.savefig("./parametrization",dpi = 300)
+f1.set_size_inches(width,height)
+f1.subplots_adjust(top=0.923,bottom=0.136,left=0.142,hspace=0.058,wspace=0.185)
+f1.savefig("./parametrization",dpi = 600)
 plt.show()      

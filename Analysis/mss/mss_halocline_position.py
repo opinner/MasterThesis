@@ -325,11 +325,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     #year_axis.plot(float_dates,cruise_halocline,"-",color = color,)
     print("\n\n\n",cruisename,np.mean(cruise_halocline),"\n\n\n")
     end_results.append([cruisename,np.mean(cruise_halocline)])
-    bin_end_results.append([cruisename,np.mean(bin_cruise_halocline)])
+    bin_end_results.append([cruisename,np.mean(bin_cruise_halocline),np.std(bin_cruise_halocline)])
     
 print("###########################")
-print(end_results)
-print(bin_end_results)
+for result in bin_end_results:
+    print(result)
 print("###########################")
 
 

@@ -1011,7 +1011,7 @@ def Skif(Reb):
             return 0.2
             
         else:
-            return min(0.2,2*Reb**(-0.5))
+            return 2*Reb**(-0.5)
             
     vSkif = np.vectorize(basic_Skif, otypes=[float]) 
     

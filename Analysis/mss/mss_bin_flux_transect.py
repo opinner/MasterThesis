@@ -621,14 +621,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             try:
                 while True:
                     #if the mean position of that density bin is too far away from the halocline, start with the next density bin and check again
-                    if abs(iso_mean_pressure[profile,start_interval_index] - halocline_position_list[profile]) < maximum_halocline_thickness/2:
+                    if abs(iso_mean_pressure[profile,start_interval_index] - halocline_position_list[profile]) <= maximum_halocline_thickness/2:
                         break
                     else:
                         start_interval_index += 1
                            
                 while True:
                     #if the mean position of that density bin is too far away from the halocline, stop at the previous density bin and check again
-                    if abs(iso_mean_pressure[profile,stop_interval_index] - halocline_position_list[profile]) < maximum_halocline_thickness/2:
+                    if abs(iso_mean_pressure[profile,stop_interval_index] - halocline_position_list[profile]) <= maximum_halocline_thickness/2:
                         break
                     else:
                         stop_interval_index -= 1
@@ -637,8 +637,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 #print(start_interval_index,stop_interval_index,iso_mean_pressure[profile,start_interval_index],iso_mean_pressure[profile,stop_interval_index])
                 assert start_interval_index < stop_interval_index
                 assert iso_mean_pressure[profile,start_interval_index] < iso_mean_pressure[profile,stop_interval_index]
-                #average over the bins inside that interval 
-                iso_vertical_mean_Shih_flux[profile] = np.nanmean(iso_rolling_mean_Shih_flux[profile,start_interval_index:stop_interval_index+1]) #TODO Why the plus 1???
+                
+                #average over the bins inside that interval including the (therefore the plus 1)
+                iso_vertical_mean_Shih_flux[profile] = np.nanmean(iso_rolling_mean_Shih_flux[profile,start_interval_index:stop_interval_index+1])
                 iso_vertical_mean_Osborn_flux[profile] = np.nanmean(iso_rolling_mean_Osborn_flux[profile,start_interval_index:stop_interval_index+1])
                 iso_vertical_mean_dissipation[profile] = np.log10(np.nanmean(iso_rolling_mean_dissipation[profile,start_interval_index:stop_interval_index+1]))
 
@@ -659,9 +660,17 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             iso_interval_pressure_list.append([np.nan,np.nan])  
     
     
+    
     iso_interval_pressure_list = np.asarray(iso_interval_pressure_list)
     assert np.shape(iso_interval_pressure_list) == np.shape(interval_pressure_list)
+ 
+     
+    # distance between the lower edge of the vertical averaging interval and the sea floor. Used to estimate if the flux is classified as interior or edge flux
+    distance_lower_edge_iso_interval_sea_floor = bathymetry_list - iso_interval_pressure_list[:,1] 
+    #distance_lower_edge_interval_sea_floor = bathymetry_list - interval_pressure_list[:,1] 
     
+    
+       
     print(cruise_name,"total number of transects =",number_of_transects)        
     print("total_number_of_valid_profiles",total_number_of_valid_profiles)     
     #print(np.shape(iso_vertical_mean_Shih_flux),np.shape(mean_Shih_flux))
@@ -689,8 +698,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print("Shih rolling mean",np.nansum(rolling_mean_Shih_flux*delta_X),"Shih profiles", np.nansum(mean_Shih_flux*delta_X))
     print("\n\n\n")
     """
+    print("#################### INTERVAL ##############################")
+    print(np.nanmean(iso_interval_pressure_list[:,0]),np.nanstd(iso_interval_pressure_list[:,0]))
+    print(np.nanmean(iso_interval_pressure_list[:,1]),np.nanstd(iso_interval_pressure_list[:,1]))
+    
+    
     #np.savetxt("./data/"+cruise_name+'_iso_flux_results_woBBL.txt', np.transpose([longitude_list,distance_list,bathymetry_list,mean_Osborn_flux,iso_vertical_mean_Osborn_flux,mean_Shih_flux,iso_vertical_mean_Shih_flux]), header = "longitude\tdistance\tdepth[dbar]\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")
-    np.savetxt("./data/"+cruise_name+'_iso_flux_results.txt', np.transpose([longitude_list,distance_list,bathymetry_list,mean_Osborn_flux,iso_vertical_mean_Osborn_flux,mean_Shih_flux,iso_vertical_mean_Shih_flux]), header = "longitude\tdistance\tdepth[dbar]\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")
+    np.savetxt("./data/"+cruise_name+'_iso_flux_results.txt', np.transpose([longitude_list,distance_list,bathymetry_list,distance_lower_edge_iso_interval_sea_floor,mean_Osborn_flux,iso_vertical_mean_Osborn_flux,mean_Shih_flux,iso_vertical_mean_Shih_flux]), header = "longitude\tdistance\tdepth[dbar]\tdistance interval-ground\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")
     
     ##################################################################################################################################
     ##################################################################################################################################
