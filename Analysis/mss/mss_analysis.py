@@ -174,7 +174,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         if plots == True:
 
             #choose which profile get exemplarily plotted
-            profile_index = -5
+            profile_index = np.argmin(np.abs(lon-20.585))
             
             print("Profile at Longitude",lon[profile_index])
             #print(lon)

@@ -620,8 +620,8 @@ def find_bottom_and_bottom_currents(number_of_profiles,pressure,density_grid,oxy
     bathymetrie = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
     list_of_bathymetrie_indices = np.zeros(number_of_profiles)
 
-    halocline = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
-    list_of_halocline_indices = np.zeros(number_of_profiles)
+    #halocline = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
+    #list_of_halocline_indices = np.zeros(number_of_profiles)
 
     BBL = np.zeros(number_of_profiles)-99 #fill value (or error value) of -99
     list_of_BBL_indices = np.zeros(number_of_profiles)
@@ -731,6 +731,7 @@ def find_bottom_and_bottom_currents(number_of_profiles,pressure,density_grid,oxy
 
 def get_halocline_and_halocline_density(pressure,oxygen,salinity,temperature,pot_density, pressure_interval_range = [52,90]):
 
+    
     upper_boundary = np.argmin(np.abs(pressure-pressure_interval_range[0]))
     lower_boundary = np.argmin(np.abs(pressure-pressure_interval_range[1]))
 
@@ -758,12 +759,12 @@ def get_halocline_and_halocline_density(pressure,oxygen,salinity,temperature,pot
         temp_index = upper_boundary+np.nanargmax(central_differences(temperature[upper_boundary:lower_boundary]))
         
         halocline_depth.append(pressure[oxy_index])
-        halocline_depth.append(pressure[salt_index])
-        halocline_depth.append(pressure[temp_index])
+        #halocline_depth.append(pressure[salt_index])
+        #halocline_depth.append(pressure[temp_index])
         
         halocline_density.append(pot_density[oxy_index]) 
-        halocline_density.append(pot_density[salt_index])
-        halocline_density.append(pot_density[temp_index]) 
+        #halocline_density.append(pot_density[salt_index])
+        #halocline_density.append(pot_density[temp_index]) 
         
         result = [np.nanmedian(halocline_depth), np.nanmedian(halocline_density)]
         

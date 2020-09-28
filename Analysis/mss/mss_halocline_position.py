@@ -38,7 +38,7 @@ locale.setlocale(locale.LC_TIME,'en_US.utf8')
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
 
 
-search_depth_range = [52,90]
+#search_depth_range = [52,90]
 
 
 list_of_bad_profiles,reasons = np.loadtxt("./data/list_of_bad_profiles.txt", dtype=str, unpack=True)

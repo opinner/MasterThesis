@@ -29,20 +29,15 @@ bathymetry = np.asarray(z_topo)
 #replace the fill_values with NaN
 bathymetry[bathymetry == -1.000e+34] = np.nan
 
-#index,set_depth in enumerate([-71.07,-58.52,-70.35]):
 
-set_depths = [-71.07,-58.52,-70.35]
-index = 2
-set_depth = set_depths[index]
-
-#set the desired depth of the <<halocline>> 
-#set_depth = -70
+halocline_depths = [-73.23,-58.16,-72.15]
+halocline_depth = halocline_depths[0]
 
 #basin_shape = np.copy(bathymetry)
-basin_shape_list = bathymetry[bathymetry < set_depth]
+basin_shape_list = bathymetry[bathymetry < halocline_depth]
 
-basin_lat_list = lat[bathymetry < set_depth]
-basin_lon_list = lon[bathymetry < set_depth]
+basin_lat_list = lat[bathymetry < halocline_depth]
+basin_lon_list = lon[bathymetry < halocline_depth]
 print(np.shape(basin_lat_list),np.shape(basin_lon_list),np.shape(basin_shape_list))
 
 #calculating the edge
@@ -76,7 +71,7 @@ print(left,right,bottom,top)
 basin_bath = bathymetry[bottom:top,left:right]
 basin_lat = lat[bottom:top,left:right]
 basin_lon = lon[bottom:top,left:right]
-basin_mask = (basin_bath < set_depth) #True for everything deeper that the set_depth
+basin_mask = (basin_bath < halocline_depth) #True for everything deeper that the halocline_depth
 
 #calculate average pixel size:
 lat_array = np.mean(basin_lat,axis=1)
@@ -216,7 +211,7 @@ cbar = map_ax.colorbar(cs, location='right', pad="2%")
 cbar.set_label("depth [m]",size = 14)
 
 # Add Title
-axis.set_title('Eastern Gotland Basin with hypoxic area below '+str(set_depth)+" m", size = 16, weight = "bold")
+axis.set_title('Eastern Gotland Basin with hypoxic area below '+str(halocline_depth)+" m", size = 16, weight = "bold")
 x,y = map_ax(18.45,57.4)
 axis.text(x,y,'Gotland',ha = "center", va = "center",rotation=40, size = 14 )
 x,y = map_ax(21.7,57.2)

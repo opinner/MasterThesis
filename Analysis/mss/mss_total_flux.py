@@ -45,9 +45,7 @@ def flux_look_up_table(flux, transect_bathymetry, depth_array, basin_bathymetry,
     #############################################################################   
     #TODO: Check if tiles below the lowest transect depth have a contribution. (As they should have)   
     #############################################################################   
-    
-    binned_flux_mean
-        
+           
     for column in range(np.shape(basin_bath)[0]):
         for row in range(np.shape(basin_bath)[1]): 
         

@@ -31,7 +31,7 @@ import matplotlib.patches as mpatches
 import warnings
 warnings.filterwarnings('ignore')
 
-
+#red sequential color scheme
 color_iterator = iter(['#fed98e','#fe9929','#cc4c02'])
     
 
@@ -59,7 +59,7 @@ number_of_dissipation_subplots = 1 #Decide if both the mean and the median subpl
 datafile_paths = ["/home/ole/windows/processed_mss/emb177/TS1_10.npz","/home/ole/windows/processed_mss/emb217/TR1-10.npz","/home/ole/windows/processed_mss/emb169/TS112.npz"]
 #datafile_paths = ["/home/ole/windows/processed_mss/emb169/TS112.npz"]
 #datafile_paths = ["/home/ole/windows/processed_mss/emb177/TS1_10.npz"]
-#datafile_paths = ["/home/ole/windows/processed_mss/emb217/TR1-2.npz","/home/ole/windows/processed_mss/emb217/TR1-6.npz","/home/ole/windows/processed_mss/emb217/TR1-8.npz"]
+datafile_paths = ["/home/ole/windows/processed_mss/emb169/TS11.npz","/home/ole/windows/processed_mss/emb169/TS12.npz","/home/ole/windows/processed_mss/emb169/TS18.npz"]
 
 
 list_of_bad_profiles,reasons = np.loadtxt("./data/list_of_bad_profiles.txt", dtype=str, unpack=True)
@@ -206,6 +206,9 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
 
     edge_Shih_flux_for_different_intervals = []
     edge_Osborn_flux_for_different_intervals = []
+    
+    example_profile_index = np.argmin(abs(lon-20.56))
+    
     
     for width_index,density_box_width in enumerate(box_sizes):
     
@@ -401,11 +404,13 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
     ##################################################################################################################################     
     
     print(cruise_name)
+    """
     for color,labelname,cruise in zip(['#d95f02','#7570b3','#1b9e77'],["summer cruise emb217","winter cruise emb177","autumn cruise emb169"],["emb217","emb177","emb169"]):
         if cruise_name == cruise:
             break
+    """
     
-    #color = next(color_iterator)
+    color = next(color_iterator)
             
     box_axis[0].plot(np.arange(0.1,4,0.2),np.abs(edge_Osborn_flux_for_different_intervals), c = color, label = " ".join((cruise_name,transect_name)))
     box_axis[0].plot(np.arange(0.1,4,0.2),np.abs(interior_Osborn_flux_for_different_intervals), "--", c = color)
@@ -453,12 +458,12 @@ box_axis[1].legend(handles = label_list, loc = "upper right")
 
 f_iso.set_size_inches(6.2012,6.2012/1.618)
 f_iso.subplots_adjust(top=0.904,bottom=0.174,left=0.161,right=0.974,hspace=0.467,wspace=0.2)#top=0.925,bottom=0.174,left=0.122,right=0.955,hspace=0.273,wspace=0.2)
-f_iso.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/above_halocline_depth_and_density.png", dpi = 600)
+#f_iso.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/above_halocline_depth_and_density.png", dpi = 600)
 
 f_box.suptitle("Impact of vertical averaging interval size (above the halocline)")
 f_box.set_size_inches(6.2012,6.2012/1.618)
 f_box.subplots_adjust(top=0.815,bottom=0.174,left=0.122,right=0.955,hspace=0.153,wspace=0.2)
-f_box.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/above_interval_box_comparison.png", dpi = 600)
+#f_box.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/above_interval_box_comparison.png", dpi = 600)
 
 plt.show()
     
