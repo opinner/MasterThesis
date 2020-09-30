@@ -274,6 +274,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 print("_".join((cruise_name,transect_name,str(profile))),"skipped")
                 continue
             
+            #outsider with really high fluxes
             if cruise_name == "emb217" and transect_name == "TR1-8" and profile == 44:
                 continue
                 
@@ -297,8 +298,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             iso_dissipation = []
             
             #calculate the halocline depth and density 
-            halocline_depth,halocline_density = thesis.get_halocline_and_halocline_density(eps_pressure,eps_oxygen_sat_grid[profile],eps_salinity_grid[profile],eps_consv_temperature_grid[profile],eps_pot_density_grid[profile])
+            halocline_depth,halocline_density,halocline_index = thesis.get_halocline_and_halocline_density(eps_pressure,eps_oxygen_sat_grid[profile],eps_salinity_grid[profile],eps_consv_temperature_grid[profile],eps_pot_density_grid[profile])
             
+            """
             if profile == 35:
                     print(profile,lon[profile]) #np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile,:]) - (halocline_density - (density_box_width/2)))),                   
                     plt.axhline(-eps_pressure[np.nanargmin(thesis.central_differences(eps_oxygen_sat_grid[profile,:-30]))], c = "k")
@@ -327,6 +329,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                                         
                     plt.legend()
                     plt.show()
+            """
             
             if not np.isnan(halocline_density):
                 #choose the vertical averaging interval dependent on the box size
@@ -337,19 +340,25 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 
                 
                 #check if the vertical interval is bigger than the maximum halocline thickness
+                #if yes incrementally adjust the interval to fewer data points
                 while True:
-                    if abs(eps_pressure[from_index] - halocline_depth) < maximum_halocline_thickness/2:
+                    if halocline_depth - eps_pressure[from_index] <= maximum_halocline_thickness/2:
+                        break
+                    elif from_index >= halocline_index:
                         break
                     else:
                         from_index += 1
                         
+                        
                 while True:
-                    if abs(eps_pressure[to_index] - halocline_depth) < maximum_halocline_thickness/2:
+                    if eps_pressure[to_index] - halocline_depth <= maximum_halocline_thickness/2:
+                        break
+                    elif to_index <= halocline_index:
                         break
                     else:
                         to_index -= 1
                 
-                print(from_index,to_index, np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile,:]) - halocline_density)))
+                #print(from_index,to_index, np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile,:]) - halocline_density)))
 
                 assert from_index < to_index   
                 
