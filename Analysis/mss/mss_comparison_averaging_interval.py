@@ -232,7 +232,7 @@ for datafile_index,datafile_path in enumerate(datafile_paths):
             
             total_number_of_valid_profiles+=1
                 
-            halocline_depth,halocline_density = thesis.get_halocline_and_halocline_density(eps_pressure,eps_oxygen_sat_grid[profile],eps_salinity_grid[profile],eps_consv_temperature_grid[profile],eps_pot_density_grid[profile])
+            halocline_depth,halocline_density,halocline_index = thesis.get_halocline_and_halocline_density(eps_pressure,eps_oxygen_sat_grid[profile],eps_salinity_grid[profile],eps_consv_temperature_grid[profile],eps_pot_density_grid[profile])
         
             
             if np.isnan(halocline_depth):

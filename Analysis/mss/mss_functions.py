@@ -738,9 +738,9 @@ def get_halocline_and_halocline_density(pressure,oxygen,salinity,temperature,pot
     #boolenan array with True values is 
     oxygen_subset = oxygen[upper_boundary:lower_boundary]
 
-    #if the interval consists to 80% of NaN values, return NaN
+    #if the interval consists to 90% of NaN values, return NaN
     if np.count_nonzero(np.isnan(central_differences(oxygen_subset))) >= 0.9 * len(oxygen_subset): 
-        result = [np.nan,np.nan]
+        result = [np.nan,np.nan, np.nan]
         return result
 
     halocline_depth = []   
@@ -749,7 +749,7 @@ def get_halocline_and_halocline_density(pressure,oxygen,salinity,temperature,pot
     #if the watercolumn is wellmixed, the concept of a halocline as a gradient extremum is meaningless
     if np.nanstd(oxygen_subset) < 0.05 * np.nanmax(oxygen_subset):                   
 
-        result = [np.nan,np.nan]
+        result = [np.nan,np.nan,np.nan]
                             
     else:          
     
@@ -766,8 +766,9 @@ def get_halocline_and_halocline_density(pressure,oxygen,salinity,temperature,pot
         #halocline_density.append(pot_density[salt_index])
         #halocline_density.append(pot_density[temp_index]) 
         
-        result = [np.nanmedian(halocline_depth), np.nanmedian(halocline_density)]
-        
+        halocline_index = np.nanargmin(np.abs(pressure - np.nanmedian(halocline_depth)))
+        result = [np.nanmedian(halocline_depth), np.nanmedian(halocline_density), halocline_index]
+    
     return result
 
 

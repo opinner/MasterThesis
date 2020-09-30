@@ -80,7 +80,7 @@ height = 1.5*3.7341 #* 4/3 #1.618
 f1,axis1 = plt.subplots()
 
  
-Reb = np.linspace(0,1000,1000)
+Reb = np.linspace(0,650,1000)
 
 #bigger linewidths
 linewidth = 4
@@ -91,6 +91,7 @@ axis1.plot(Reb,Skif(Reb), "--", linewidth=linewidth ,label = "Shih et al, 2005")
 
 
 axis1.set_ylim(-0.01,0.21) 
+#axis1.set_xlim(-27,620)
 
 axis1.set_xlabel(r"Reynolds Buoyancy Number $Re_b$")
 axis1.set_ylabel(r"$\Gamma$")

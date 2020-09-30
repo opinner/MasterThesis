@@ -318,13 +318,19 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 
                 #check if the vertical interval is bigger than the maximum halocline thickness
                 while True:
-                    if abs(eps_pressure[from_index] - halocline_depth) < maximum_halocline_thickness/2:
+                    if halocline_depth - eps_pressure[from_index] <= maximum_halocline_thickness/2:
+                        break
+                    elif from_index >= halocline_index:
                         break
                     else:
                         from_index += 1
                         
+                        
                 while True:
-                    if abs(eps_pressure[to_index] - halocline_depth) < maximum_halocline_thickness/2:
+                    print(eps_pressure[to_index] - halocline_depth)
+                    if eps_pressure[to_index] - halocline_depth <= maximum_halocline_thickness/2:
+                        break
+                    elif to_index <= halocline_index:
                         break
                     else:
                         to_index -= 1
