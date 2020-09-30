@@ -62,6 +62,7 @@ for datafile_path in paths:
         eps_N_squared_grid = data["bin_N_squared_grid"]
         eps_density_grid = data["bin_density_grid"]
         eps_pot_density_grid = data["bin_pot_density_grid"]
+        #eps_pot_density_grid = np.sort(eps_pot_density_grid, axis = 0)
         #eps_viscosity_grid = data["eps_viscosity_grid"]
         eps_Reynolds_bouyancy_grid = data["bin_Reynolds_bouyancy_grid"]
         corrected_eps_Reynolds_bouyancy_grid = data["corrected_bin_Reynolds_bouyancy_grid"]
@@ -96,20 +97,67 @@ for datafile_path in paths:
         print(transect_name," is skipped, Error during loading data")
         raise AssertionError
     
-    eps_depth = gsw.z_from_p(eps_pressure,np.mean(lat)) #mean lat should be sufficient, because the transect is east-west 
+    results = thesis.find_bottom_and_bottom_currents(number_of_profiles,eps_pressure,eps_density_grid,eps_oxygen_grid)
+    """
+    bathymetry                     pressure values of the first NaN value (in most cases this corresponds to the bottom, but is sometimes wrong due to missing data
+    list_of_bathymetry_indices     corresponding index (eg for interp_pressure or other arrays of the same size)
+    BBL                             pressure values of the calculated Bottom Boundary Layer (exact position depends on the criteria)
+    list_of_BBL_indices             corresponding index (eg for interp_pressure or other arrays of the same size)
+    BBL_range                       pressure values of "height_above_ground" meters. Follows therefore the batyhmetrie. 
+    list_of_BBL_range_indices       corresponding index (eg for interp_pressure or other arrays of the same size)
+    """
+    bathymetry,list_of_bathymetry_indices = results[0]
+    BBL,list_of_BBL_indices = results[1] #not needed here
+    #BBL_range,list_of_BBL_range_indices = results[2]
     
-    Gamma_Skif_eps_grid = thesis.Skif(eps_Reynolds_bouyancy_grid)
-    turbulent_diffusivity_Skif_grid = Gamma_Skif_eps_grid * eps_grid / (eps_N_squared_grid)
-    #remove negative diffusivity
-    turbulent_diffusivity_Skif_grid[turbulent_diffusivity_Skif_grid==0] = 1e-7
+    #print(np.asarray(list_of_bathymetry_indices) - np.asarray(list_of_BBL_indices))
     
-    Gamma_Osborn_eps_grid = thesis.Osborn(eps_Reynolds_bouyancy_grid)
-    turbulent_diffusivity_Osborn_grid = Gamma_Osborn_eps_grid * eps_grid / (eps_N_squared_grid)
+    #eps_N_grid = np.sqrt(eps_N_squared_grid)
+    #ozmidov scale
+    #ozmidov_scale_grid = np.sqrt(eps_grid/(eps_N_grid**3))
+    
+    #conversion from pressure coordinates to depth
+    eps_depth = gsw.z_from_p(eps_pressure,np.mean(lat)) #mean lat should be sufficient, because the transect is east-west
+    bathymetry_in_m = gsw.z_from_p(bathymetry,np.mean(lat))
+    
+    eps_depth_grid = np.reshape(eps_depth,(1,-1))*np.ones(np.shape(eps_grid))
+    
+    distance_from_ground_grid = eps_depth_grid - np.reshape(bathymetry_in_m,(-1,1))
+    distance_from_ground_grid[distance_from_ground_grid < 0] = np.nan
+    #boundary_check_grid = ~(distance_from_ground_grid < ozmidov_scale_grid)
+    
+    turbulent_diffusivity_Osborn_grid = thesis.get_turbulent_diffusivity_Osborn(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid)
+    turbulent_diffusivity_Shih_grid = thesis.get_turbulent_diffusivity_Shih(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid)
+    #turbulent_diffusivity_BB_grid = thesis.get_turbulent_diffusivity_BB(eps_Reynolds_bouyancy_grid,eps_grid,eps_N_squared_grid)
+      
+                 
+    shear_velocity_grid = thesis.get_shear_velocity(eps_grid,distance_from_ground_grid)
+    
+    #compute the mean shear velocity in the BBL as theoretically it should be constant
+    shear_velocity = np.zeros(number_of_profiles)
+    for profile in range(number_of_profiles):
+        BBL_from = int(list_of_BBL_indices[profile])
+        BBL_to = int(list_of_bathymetry_indices[profile])
+    
+        #print(list_of_BBL_indices[profile],list_of_bathymetry_indices[profile])
+        BBL_shear_velocity = np.nanmean(shear_velocity_grid[BBL_from:BBL_to])
+        
+        law_of_the_wall_turbulent_diffusivity = thesis.von_Karman_constant * BBL_shear_velocity * distance_from_ground_grid[profile,BBL_from:BBL_to]
+        
+        #replace the corresponding bins with the turbulent diffusivity from the law of the wall
+        turbulent_diffusivity_Osborn_grid[profile,BBL_from:BBL_to] = law_of_the_wall_turbulent_diffusivity
+        turbulent_diffusivity_Shih_grid[profile,BBL_from:BBL_to] = law_of_the_wall_turbulent_diffusivity
+    
+    oxygen_gradient_grid = thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
+    unit_conversion_grid = 86400*(1000/eps_density_grid) #to convert from m*micromol/(kg*s) to mmol/(m^2*d)
 
-    #remove negative diffusivity 
+    oxygen_flux_Osborn_grid = - turbulent_diffusivity_Osborn_grid * oxygen_gradient_grid * unit_conversion_grid
+    oxygen_flux_Shih_grid = - turbulent_diffusivity_Shih_grid * oxygen_gradient_grid * unit_conversion_grid
+
+    #remove negative diffusivity for the plot
     turbulent_diffusivity_Osborn_grid[turbulent_diffusivity_Osborn_grid==0] = 1e-7
         
-    profile_index = np.argmin(np.abs(lon-20.56)) 
+    profile_index = np.argmin(np.abs(lon-20.57)) 
     print(cruise_name,transect_name,lon[profile_index])
      
     """   
@@ -197,7 +245,9 @@ for datafile_path in paths:
     s, = axis2[1].plot(eps_salinity_grid[profile_index,:],eps_pressure, c = "tab:green", lw = 2, label = "practical salinity")
     o, = axis2[2].plot(eps_oxygen_sat_grid[profile_index,:],eps_pressure, c = "tab:blue", lw = 2, label = "oxygen saturation")
     e, = axis2[3].plot(np.log10(eps_grid[profile_index,:]),eps_pressure, c = "k", lw = 2, label = "dissipation rate")
-    
+    #f, = axis2[4].plot(oxygen_flux_Shih_grid[profile_index,:],eps_pressure, c = "k", lw = 2, label = r"Shih O$_2$ flux")
+    #f, = axis2[4].plot(oxygen_flux_Osborn_grid[profile_index,:],eps_pressure, ls = "--", c = "k", lw = 2, label = r"Osborn O$_2$ flux")
+        
     upper_boundary = np.argmin(np.abs(eps_pressure-52))
     lower_boundary = np.argmin(np.abs(eps_pressure-90))
     
@@ -205,19 +255,57 @@ for datafile_path in paths:
     salt_index = upper_boundary+np.nanargmax(thesis.central_differences(eps_salinity_grid[profile_index,upper_boundary:lower_boundary]))
     temp_index = upper_boundary+np.nanargmax(thesis.central_differences(eps_consv_temperature_grid[profile_index,upper_boundary:lower_boundary]))
         
-        
     axis2[0].axhline(eps_pressure[temp_index], c="k")
     axis2[1].axhline(eps_pressure[salt_index],c="k")
     axis2[2].axhline(eps_pressure[oxy_index],c="k")
+    
+    halocline_index = int(np.median([oxy_index,salt_index,temp_index]))
+    halocline_depth = eps_pressure[halocline_index]
+    print(halocline_index)
+    halocline_density = eps_pot_density_grid[profile_index,halocline_index] 
+    #print(halocline_density)
+    interval_start_index = np.nanargmin(np.abs(eps_pot_density_grid[profile_index,:] - (halocline_density - 0.75)))
+    interval_stop_index = np.nanargmin(np.abs(eps_pot_density_grid[profile_index,:] - (halocline_density + 0.75)))
         
+    #    for datapoint in eps_pressure[halocline_index-20:halocline_index+20]:
+    #    print(datapoint 
+    
+    
+    #check if the vertical interval is bigger than the maximum halocline thickness
+    while True:
+        if halocline_depth - eps_pressure[interval_start_index] <= 10:
+            break
+        elif interval_start_index >= halocline_index:
+            break
+        else:
+            interval_start_index += 1
+            
+            
+    while True:
+        if eps_pressure[interval_stop_index] - halocline_depth <= 10:
+            break
+        elif interval_stop_index <= halocline_index:
+            break
+        else:
+            interval_stop_index -= 1
+                        
+    
+    #axis2[0].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
+    #axis2[1].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
+    #axis2[2].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
+    #axis2[3].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
+    #axis2[4].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
+            
     axis2[0].invert_yaxis()
+    #axis2[4].set_xlim(-12,1.5)
     
     axis2[0].set_ylabel("pressure [dbar]")
     axis2[0].set_xlabel(r"$\theta$ [$\degree$C]")
     axis2[1].set_xlabel("SA[g/kg]")
     axis2[2].set_xlabel(r"O$_2$ saturation [%]")
     axis2[3].set_xlabel(r"$\epsilon$ [m²/s³]")
-
+    #axis2[4].set_xlabel("OF [mmol/m²d]")
+    
     width = 6.2012
     height = width / 1.618
     
@@ -234,7 +322,7 @@ for datafile_path in paths:
     
     fout2.set_size_inches(width,height)
     fout2.suptitle(textstr)
-    fout2.subplots_adjust(top=0.92,bottom=0.17,left=0.122,right=0.974,hspace=0.058,wspace=0.341)
+    fout2.subplots_adjust(top=0.92,bottom=0.17,left=0.122,right=0.946,hspace=0.058,wspace=0.2)
     plt.savefig("/home/ole/Thesis/Analysis/mss/pictures/halocline_profile_"+cruise_name+"_"+transect_name, dpi = 400)
      
 plt.show()
