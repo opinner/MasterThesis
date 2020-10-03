@@ -38,9 +38,12 @@ def flux_look_up_table(flux, transect_distance_from_ground, distance_from_ground
     intermediate_flux = 0
     interior_flux = 0
 
-    
-    #convert flux per m^2 to flux per km^2
-    flux = flux * 1000000 
+    points_in_edge = 0
+    points_in_intermediate = 0
+    points_in_interior = 0
+        
+        
+
     
     #remove NaNs
     flux_wo_nans = flux[~np.isnan(flux)]
@@ -57,8 +60,12 @@ def flux_look_up_table(flux, transect_distance_from_ground, distance_from_ground
     plt.show()
     """
     
+    simple_flux,  _bin_edges, _bin_number = ss.binned_statistic(transect_distance_from_ground_wo_nans,flux_wo_nans,"mean", [0,10,40,999]) 
     mean_binned_flux, _bin_edges, _bin_number = ss.binned_statistic(transect_distance_from_ground_wo_nans,flux_wo_nans,"mean", distance_from_ground_bin_edges) 
     #binned_flux_median, _bin_edges, _bin_number = ss.binned_statistic(transect_bathymetry_wo_nans,flux_wo_nans,"median", distance_from_ground_bin_edges) 
+    
+    #convert flux per m^2 to flux per km^2
+    mean_binned_flux = mean_binned_flux * 1000000  
     
     #remove empty bins 
     mask = np.isnan(mean_binned_flux)
@@ -97,9 +104,13 @@ def flux_look_up_table(flux, transect_distance_from_ground, distance_from_ground
                 number = np.argmax(lookup_table_edges > intermediate)
                 assert number != 0
                 
+                
                 number2 = max(-3,number - len(lookup_table_edges))
                 number2 = number - len(lookup_table_edges)
                 interior_flux += np.mean(lookup_table_flux[number2:])
+                
+                points_in_interior += 1
+                
                 continue
                 
             #get the index of the first bin edge which is bigger)  
@@ -114,13 +125,15 @@ def flux_look_up_table(flux, transect_distance_from_ground, distance_from_ground
             
             if hypothetical_distance_to_ground < edge:
                 edge_flux += lookup_table_flux[bin_index]
-            
+                points_in_edge += 1
             elif hypothetical_distance_to_ground < intermediate:
                 intermediate_flux += lookup_table_flux[bin_index]
-            
+                points_in_intermediate += 1
+                
             else:
                 interior_flux += lookup_table_flux[bin_index]      
-     
+                points_in_edge += 1
+                
     #multiply with the tile size in km² to get rid of the area dependency / to get Gmol/y 
     edge_flux *= pixel_area  
     intermediate_flux *= pixel_area
@@ -130,6 +143,20 @@ def flux_look_up_table(flux, transect_distance_from_ground, distance_from_ground
     print("intermediate flux:",edge,"-",intermediate,":",1e-12*365*intermediate_flux,"Gmol/y")
     print("interior flux:",intermediate,"- __ :",1e-12*365*interior_flux,"Gmol/y")
     print("total flux:", 1e-12*365*(edge_flux + intermediate_flux + interior_flux),"Gmol/y")
+      
+    print("\n")
+    
+    print(simple_flux,"mmol/m^2/d") 
+    
+    #m^2 to km^2, mmol to Gmol and d to y
+    unit_conversion = 1e6 * 1e-12*365
+    
+    
+    simple_edge_flux =  points_in_edge * pixel_area * simple_flux[0] * unit_conversion
+    simple_intermediate_flux = points_in_intermediate * pixel_area * simple_flux[1] * unit_conversion
+    simple_interior_flux = points_in_interior * pixel_area * simple_flux[2] * unit_conversion
+    
+    print(simple_edge_flux,simple_intermediate_flux,simple_interior_flux,"Gmol/y")
         
 ###############################################################################################################################
 ###############################################################################################################################
@@ -144,8 +171,17 @@ out2,axis2 = plt.subplots(ncols = 3, sharex = True, sharey = True)
 out3,axis3 = plt.subplots(1)
 
 
+#halocline_depths = thesis.z_from_p([73.23,58.16,72.15]) #floats in units of dbar
+#mean_interval_edges = thesis.z_from_p([79.6,60.39,77.58])
+
+halocline_depths = [-72.24,-57.52,-71.38] #in units of m
+mean_interval_edges = [-76.56,-59.34,-75.02]
+
+print(halocline_depths)
+print(mean_interval_edges)
+
 #loop over the three cruises and their mean halocline depth
-for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],["emb169","emb177","emb217"],[-73.23,-58.16,-72.15],[-79.6,-60.39,-77.58]):
+for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],["emb169","emb177","emb217"],halocline_depths,mean_interval_edges):
 
 
     #load the bathymetry data        
