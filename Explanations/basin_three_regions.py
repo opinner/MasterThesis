@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 import geopy.distance as geo
-from scipy.spatial import ConvexHull
 #matplotlib preferences:
 MINI_SIZE = 9
 SMALL_SIZE = 10.95
@@ -17,6 +16,13 @@ plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=MINI_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=MEDIUM_SIZE, titleweight = "bold")  # fontsize of the figure title
 
+def z_from_p(pressure_values):
+    import gsw.conversions 
+    
+    center_gotland_basin_lat = 57.0
+    return gsw.conversions.z_from_p(pressure_values,center_gotland_basin_lat * np.ones(np.shape(pressure_values)))
+    
+    
 transect_path = "/home/ole/windows/processed_mss/emb217/TR1-4.npz"
 transect_data = np.load(transect_path)
 transect_lat = transect_data["lat"] #Latitude of the profiles
@@ -39,10 +45,16 @@ bathymetry = np.asarray(z_topo)
 #replace the fill_values with NaN
 bathymetry[bathymetry == -1.000e+34] = np.nan
 
-#index,halocline_depth in enumerate([-71.07,-58.52,-70.35]):
+#halocline_depths = z_from_p([73.23,58.16,72.15])
+#mean_interval_edges = z_from_p([79.6,60.39,77.58])
+
+halocline_depths = [-72.24,-57.52,-71.38]
+mean_interval_edges = [-76.56,-59.34,-75.02]
+
+
 
 #loop over the three cruises and their mean halocline depth
-for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],["emb169","emb177","emb217"],[-73.23,-58.16,-72.15],[-79.6,-60.39,-77.58]):
+for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],["emb169","emb177","emb217"],halocline_depths,mean_interval_edges):
 
     lon_0 = 19.8
     lat_0 = 57.1
@@ -169,7 +181,7 @@ for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],[
     x,y = map_ax(21.4,56.8)
     axis.text(x,y,'Latvia',ha = "center", va = "center",rotation=0, size = 14 )
 
-    axis.set_title(cruise_name+": Halocline at "+str(abs(halocline_depth))+" dbar")
+    axis.set_title(cruise_name+": Halocline at "+str(abs(halocline_depth))+" m")
     axis.legend(loc = "lower left")
 
     #beamer figure sizes
@@ -180,7 +192,7 @@ for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],[
 
     output_picture.tight_layout()
     output_picture.savefig("./"+cruise_name+"three_regions.pdf",dpi=600)
-
+    output_picture.savefig("./"+cruise_name+"three_regions.png",dpi=600)
 
 
 

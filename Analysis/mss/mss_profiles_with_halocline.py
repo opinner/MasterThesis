@@ -25,13 +25,13 @@ import warnings
 warnings.filterwarnings('ignore')
 import mss_functions as thesis
 
-
+f_sal, sal_axis = plt.subplots(nrows = 1, ncols = 3, sharey = True, sharex = True)
 
 #datafile_path = "/home/ole/windows/processed_mss/emb177/TS1_6.npz"
 #datafile_path = "/home/ole/windows/processed_mss/emb217/TR1-4.npz"
-paths = ["/home/ole/windows/processed_mss/emb169/TS11.npz","/home/ole/windows/processed_mss/emb177/TS1_6.npz","/home/ole/windows/processed_mss/emb217/TR1-4.npz"]
+paths = ["/home/ole/windows/processed_mss/emb169/TS112.npz","/home/ole/windows/processed_mss/emb177/TS1_6.npz","/home/ole/windows/processed_mss/emb217/TR1-4.npz"]
 
-for datafile_path in paths:
+for path_index,datafile_path in enumerate(paths):
     data = np.load(datafile_path)
 
     splitted_path = datafile_path.split("/")
@@ -224,7 +224,7 @@ for datafile_path in paths:
     #temperature_axis.legend(lines, [l.get_label() for l in lines])
 
     if cruise_name == "emb169":
-        season = "spring cruise"
+        season = "autumn cruise"
     elif cruise_name == "emb177":
         season = "winter cruise"
     elif cruise_name == "emb217":
@@ -240,12 +240,13 @@ for datafile_path in paths:
     figure.tight_layout()
     """
 
-    fout2, axis2 = plt.subplots(nrows = 1, ncols = 4, sharey = True)
+    
+    fout2, axis2 = plt.subplots(nrows = 1, ncols = 5, sharey = True)
     t, = axis2[0].plot(eps_consv_temperature_grid[profile_index,:],eps_pressure, c = "tab:red", lw = 2, label = "conservative temperature")
     s, = axis2[1].plot(eps_salinity_grid[profile_index,:],eps_pressure, c = "tab:green", lw = 2, label = "practical salinity")
     o, = axis2[2].plot(eps_oxygen_sat_grid[profile_index,:],eps_pressure, c = "tab:blue", lw = 2, label = "oxygen saturation")
     e, = axis2[3].plot(np.log10(eps_grid[profile_index,:]),eps_pressure, c = "k", lw = 2, label = "dissipation rate")
-    #f, = axis2[4].plot(oxygen_flux_Shih_grid[profile_index,:],eps_pressure, c = "k", lw = 2, label = r"Shih O$_2$ flux")
+    f, = axis2[4].plot(oxygen_flux_Shih_grid[profile_index,:],eps_pressure, c = "k", lw = 2, label = r"Shih O$_2$ flux")
     #f, = axis2[4].plot(oxygen_flux_Osborn_grid[profile_index,:],eps_pressure, ls = "--", c = "k", lw = 2, label = r"Osborn O$_2$ flux")
         
     upper_boundary = np.argmin(np.abs(eps_pressure-52))
@@ -264,8 +265,8 @@ for datafile_path in paths:
     print(halocline_index)
     halocline_density = eps_pot_density_grid[profile_index,halocline_index] 
     #print(halocline_density)
-    interval_start_index = np.nanargmin(np.abs(eps_pot_density_grid[profile_index,:] - (halocline_density - 0.75)))
-    interval_stop_index = np.nanargmin(np.abs(eps_pot_density_grid[profile_index,:] - (halocline_density + 0.75)))
+    interval_start_index = np.nanargmin(np.abs(eps_pot_density_grid[profile_index,:] - (halocline_density - 0.5)))
+    interval_stop_index = np.nanargmin(np.abs(eps_pot_density_grid[profile_index,:] - (halocline_density + 0.5)))
         
     #    for datapoint in eps_pressure[halocline_index-20:halocline_index+20]:
     #    print(datapoint 
@@ -290,27 +291,31 @@ for datafile_path in paths:
             interval_stop_index -= 1
                         
     
-    #axis2[0].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
-    #axis2[1].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
-    #axis2[2].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
-    #axis2[3].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
-    #axis2[4].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
+    axis2[0].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
+    axis2[1].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
+    axis2[2].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
+    axis2[3].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
+    axis2[4].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
             
     axis2[0].invert_yaxis()
-    #axis2[4].set_xlim(-12,1.5)
+    axis2[4].set_xlim(-12,1.5)
     
     axis2[0].set_ylabel("pressure [dbar]")
     axis2[0].set_xlabel(r"$\theta$ [$\degree$C]")
-    axis2[1].set_xlabel("SA[g/kg]")
+    axis2[1].set_xlabel("SA [g/kg]")
     axis2[2].set_xlabel(r"O$_2$ saturation [%]")
     axis2[3].set_xlabel(r"$\epsilon$ [m²/s³]")
-    #axis2[4].set_xlabel("OF [mmol/m²d]")
+    axis2[4].set_xlabel("OF [mmol/m²d]")
     
     width = 6.2012
     height = width / 1.618
     
+    #beamer figure sizes
+    width = 1.5*4.252 #6.2012
+    height = width / (4/3) #1.618
+
     if cruise_name == "emb169":
-        season = "spring cruise"
+        season = "autumn cruise"
     elif cruise_name == "emb177":
         season = "winter cruise"
     elif cruise_name == "emb217":
@@ -323,8 +328,25 @@ for datafile_path in paths:
     fout2.set_size_inches(width,height)
     fout2.suptitle(textstr)
     fout2.subplots_adjust(top=0.92,bottom=0.17,left=0.122,right=0.946,hspace=0.058,wspace=0.2)
-    plt.savefig("/home/ole/Thesis/Analysis/mss/pictures/halocline_profile_"+cruise_name+"_"+transect_name, dpi = 400)
-     
+    fout2.savefig("/home/ole/Thesis/Analysis/mss/pictures/halocline_interval_profile_"+cruise_name+"_"+transect_name, dpi = 400)
+    
+    sal_axis[path_index].plot(eps_salinity_grid[profile_index,:],eps_pressure, c = "tab:green", lw = 2, label = "practical salinity")
+    sal_axis[path_index].set_title(season +"\n"+cruise_name)
+    sal_axis[path_index].set_xlabel("SA [g/kg]")
+    sal_axis[path_index].axhline(eps_pressure[halocline_index],c = "k")
+    oxygen_axis = sal_axis[path_index].twiny()
+    oxygen_axis.set_xlim((-4.249749239687602, 116.14590480576801))
+    oxygen_axis.set_xlabel(r"O$_2$ saturation [%]")
+    oxygen_axis.plot(eps_oxygen_sat_grid[profile_index,:],eps_pressure, c = "tab:blue", lw = 2, label = "oxygen saturation")
+    
+sal_axis[0].set_ylabel("pressure [dbar]")   
+sal_axis[0].invert_yaxis()
+f_sal.set_size_inches(width,height)
+f_sal.subplots_adjust(top=0.744,bottom=0.161,left=0.122,right=0.974,hspace=0.058,wspace=0.132)
+f_sal.subplots_adjust(top=0.795,bottom=0.129,left=0.119,right=0.974,hspace=0.058,wspace=0.127)
+
+f_sal.savefig("/home/ole/Thesis/Analysis/mss/pictures/salinity_profiles_with_halocline.png", dpi = 400)
+
 plt.show()
 
 

@@ -3,10 +3,30 @@
 #TODO better documentation
 #######################################################################
    
-
+def z_from_p(pressure_values):
+    import gsw.conversions 
+    
+    center_gotland_basin_lat = 57.0
+    return gsw.conversions.z_from_p(pressure_values,center_gotland_basin_lat * np.ones(np.shape(pressure_values)))
 
 von_Karman_constant = 0.40
 
+
+
+def remove_nans_from_2_arrays(a,b):
+
+    a_mask = np.isnan(a)
+    
+    a_star1 = a[~a_mask]
+    b_star1 = b[~a_mask]
+    
+    b_star1_mask = np.isnan(b_star1)
+    
+    a_star2 = a_star1[~b_star1_mask]
+    b_star2 = b_star1[~b_star1_mask]
+
+    return [a_star2,b_star2]
+    
 ######################################################################################################################
 ######################################################################################################################
 ######################################################################################################################
@@ -1029,7 +1049,11 @@ def Osborn(Reb):
     """
     
     def basic_Osborn(Reb):
-        return 0.2
+        if Reb < 7:
+            return 0
+            
+        else:
+            return 0.2
     
     vOsborn = np.vectorize(basic_Osborn, otypes=[float])    
     return vOsborn(Reb)

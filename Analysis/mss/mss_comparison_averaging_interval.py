@@ -62,6 +62,8 @@ datafile_paths = ["/home/ole/windows/processed_mss/emb177/TS1_10.npz","/home/ole
 datafile_paths = ["/home/ole/windows/processed_mss/emb169/TS11.npz","/home/ole/windows/processed_mss/emb169/TS12.npz","/home/ole/windows/processed_mss/emb169/TS18.npz"]
 
 
+#"/home/ole/windows/processed_mss/emb177/TS1_10.npz","/home/ole/windows/processed_mss/emb217/TR1-10.npz"
+
 list_of_bad_profiles,reasons = np.loadtxt("./data/list_of_bad_profiles.txt", dtype=str, unpack=True)
 
 interior_longitude_interval = [20.53,20.57]

@@ -35,7 +35,7 @@ LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169","/home/ole/windo
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177"]
 
 rolling_window_size = 9 # for longitudinal averaging
-density_box_width = 1.5 #in kg/m³ (for vertical averaging)
+density_box_width = 1 #in kg/m³ (for vertical averaging)
 
 height_above_ground = 20 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
 maximum_reasonable_flux = float('Inf') #200 #Fluxes with absolute values above this cut off value will be discarded
@@ -306,7 +306,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             iso_dissipation = []
             
             #calculate the halocline depth and density 
-            halocline_depth,halocline_density = thesis.get_halocline_and_halocline_density(eps_pressure,eps_oxygen_sat_grid[profile],eps_salinity_grid[profile],eps_consv_temperature_grid[profile],eps_pot_density_grid[profile])
+            halocline_depth,halocline_density,halocline_index = thesis.get_halocline_and_halocline_density(eps_pressure,eps_oxygen_sat_grid[profile],eps_salinity_grid[profile],eps_consv_temperature_grid[profile],eps_pot_density_grid[profile])
             
             if not np.isnan(halocline_density):
                 #choose the vertical averaging interval dependent on the box size
@@ -327,7 +327,6 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                         
                         
                 while True:
-                    print(eps_pressure[to_index] - halocline_depth)
                     if eps_pressure[to_index] - halocline_depth <= maximum_halocline_thickness/2:
                         break
                     elif to_index <= halocline_index:
@@ -783,9 +782,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     """
               
     reb_axarr[figure_index].set_title(label_name)
-    reb_axarr[figure_index].hist(bin_edges[:-1], bin_edges, weights= reb_hist_values, log = True, histtype='bar', ec='black', color = color)
-    cum_axarr[figure_index,0].hist(bin_edges[:-1], bin_edges, weights= -Osborn_hist_values/sum(-Osborn_hist_values), histtype='bar', color = color, alpha = 0.6, fill = True, hatch='xx', cumulative=True)
-    cum_axarr[figure_index,1].hist(bin_edges[:-1], bin_edges, weights= -Shih_hist_values/sum(-Shih_hist_values), histtype='bar', color = color, fill = True, edgecolor='k', cumulative=True)
+    reb_axarr[figure_index].hist(bin_edges[:-1], bin_edges, weights= reb_hist_values, histtype='bar', ec='black', color = color)
+    cum_axarr[figure_index,0].hist(bin_edges[:-1], bin_edges, weights= -Osborn_hist_values/sum(-Osborn_hist_values), histtype='bar', color = color, alpha = 0.6, fill = True, hatch='xx', cumulative=True, label = cruise_name)
+    cum_axarr[figure_index,1].hist(bin_edges[:-1], bin_edges, weights= -Shih_hist_values/sum(-Shih_hist_values), histtype='bar', color = color, fill = True, edgecolor='k', cumulative=True, label = cruise_name)
     sum_axarr[figure_index].hist(bin_edges[:-1], bin_edges, weights= -Osborn_hist_values, histtype='bar', color = color, alpha = 0.6, fill = True, hatch='xx')
     sum_axarr[figure_index].hist(bin_edges[:-1], bin_edges, weights= -Shih_hist_values, histtype='bar', color = color, fill = True, edgecolor='k')
     
@@ -811,6 +810,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         log_sum_axarr.legend(loc = "upper left")   
         log_sum_axarr.set_ylabel("Summed downward oxygen fluxes [mmol/(m$^2$d)]")
         log_sum_axarr.set_xlabel("Reynolds Buoyancy Number")
+        xlim = log_sum_axarr.get_xlim()
+        log_sum_axarr.set_xlim(1.1,xlim[1])
+        f_log_sum.suptitle(cruise_name)
         
     mean_axarr[figure_index,0].set_title(label_name+" Osborn")
     mean_axarr[figure_index,1].set_title(label_name+" Shih")
@@ -829,8 +831,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     eps_bins = np.logspace(np.log10(min(hist_dissipation_list)),np.log10(max(hist_dissipation_list)),30)
     eps_axarr[figure_index].hist(hist_dissipation_list, bins = eps_bins ,histtype='bar', ec='black', color = color)
 
-    
-    
+    cum_axarr[figure_index,0].legend()
+    cum_axarr[figure_index,1].legend()
 
 
     
@@ -848,10 +850,10 @@ width = 1.7*4.252 #6.2012
 height = 1.5*3.7341 #* 4/3 #1.618
 
 
-f_log_sum.set_size_inches(width, height)
-f_reb.set_size_inches(width, height)
-f_eps.set_size_inches(width, height)
-f_sum.set_size_inches(width, height)
+#f_log_sum.set_size_inches(width, height)
+#f_reb.set_size_inches(width, height)
+#f_eps.set_size_inches(width, height)
+#f_sum.set_size_inches(width, height)
 
 emb169_label = mpatches.Patch(color='#1b9e77', label='autumn cruise emb169')
 emb177_label = mpatches.Patch(color='#7570b3', label='winter cruise emb177')
@@ -859,30 +861,42 @@ emb217_label = mpatches.Patch(color='#d95f02', label='summer cruise emb217')
 Osborn_label = mlines.Line2D([], [], ls = ":", lw = 2.5, c = "k", label = "Osborn oxygen flux")
 Shih_label = mlines.Line2D([], [], ls = "-", lw = 2.5, c = "k", label = "Shih oxygen flux")
 
+cum_axarr[0,0].set_title(r"Osborn O$_2$ flux")
+cum_axarr[0,1].set_title(r"Shih O$_2$ flux")
+cum_axarr[0,0].set_ylabel(r"proportion of total flux")
+cum_axarr[2,0].set_ylabel(r"proportion of total flux")
+cum_axarr[2,0].set_xlabel("Reynolds Buoyancy Number")
+cum_axarr[2,1].set_xlabel("Reynolds Buoyancy Number")
+xlim = cum_axarr[0,0].get_xlim()
+cum_axarr[0,0].set_xlim(5,xlim[1])
+    
 f_reb.set_size_inches(width,height)
-f_reb.subplots_adjust(top=0.92,bottom=0.09,left=0.12,right=0.975,hspace=0.058,wspace=0.185)
+f_reb.subplots_adjust(top=0.92,bottom=0.07,left=0.067,right=0.98,hspace=0.263,wspace=0.185)
 f_eps.set_size_inches(width,height)
-f_eps.subplots_adjust(top=0.92,bottom=0.09,left=0.12,right=0.975,hspace=0.058,wspace=0.185)
+f_eps.subplots_adjust(top=0.90,bottom=0.07,left=0.067,right=0.98,hspace=0.263,wspace=0.185)
 f_sum.set_size_inches(width,height)
 f_sum.subplots_adjust(top=0.92,bottom=0.09,left=0.12,right=0.975,hspace=0.058,wspace=0.185)
 f_log_sum.set_size_inches(width,height)
-f_log_sum.tight_layout() #subplots_adjust(top=0.95,bottom=0.09,left=0.12,right=0.975,hspace=0.058,wspace=0.185)   
+f_log_sum.subplots_adjust(top=0.946,bottom=0.117,left=0.154,right=0.977,hspace=0.2,wspace=0.2)
 f_mean.set_size_inches(width,height)
 f_mean.subplots_adjust(top=0.92,bottom=0.09,left=0.12,right=0.975,hspace=0.22,wspace=0.185)
 f_median.set_size_inches(width,height)
 f_median.subplots_adjust(top=0.92,bottom=0.09,left=0.12,right=0.975,hspace=0.22,wspace=0.185)
-  
+f_cum.set_size_inches(width,height)
+f_cum.subplots_adjust(top=0.905,bottom=0.117,left=0.098,right=0.977,hspace=0.303,wspace=0.054)
+ 
 f_reb.suptitle(r"Occurences of $Re_{\mathrm{b}}$")
 f_eps.suptitle(r"Occurences of dissipation rate $\epsilon$")
 f_sum.suptitle(r"Summed downward oxygen fluxes")
 f_median.suptitle(r"Median downward oxygen fluxes")
 f_mean.suptitle(r"Mean downward oxygen fluxes")
-#f_log_sum.suptitle(r"Summed downward oxygen fluxes of emb177")
+f_cum.suptitle(r"Cumulative sum of binned oxygen fluxes")
 
-#f_reb.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_Reb_hist.png", dpi = 600)
-#f_eps.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_eps_hist.png", dpi = 600)
+f_reb.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_Reb_hist.png", dpi = 600)
+f_eps.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_eps_hist.png", dpi = 600)
 #f_sum.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_log_flux_Reb.png", dpi = 600)
-f_log_sum.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_flux_Reb.png", dpi = 600)
+f_log_sum.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_sum_flux_Reb.png", dpi = 600)
+f_cum.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_cum_flux_Reb.png", dpi = 600)
    
 plt.show()
     

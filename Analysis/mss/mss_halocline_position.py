@@ -44,10 +44,10 @@ LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169","/home/ole/windo
 list_of_bad_profiles,reasons = np.loadtxt("./data/list_of_bad_profiles.txt", dtype=str, unpack=True)
  
 f,axis = plt.subplots(1) 
-axis.invert_yaxis()
+#axis.invert_yaxis()
 
 y,year_axis = plt.subplots(1) 
-year_axis.invert_yaxis()
+#year_axis.invert_yaxis()
 
 f_rho,axis_rho = plt.subplots(1) 
 axis_rho.invert_yaxis()
@@ -57,7 +57,7 @@ year_axis_rho.invert_yaxis()
 
 #montly average halocline depth from Carstensen2014
 months = np.arange(1,13)
-carstensen_results = [73.39516129032258,72.69354838709677,72.97177419354838,73.37096774193549,72.76612903225806,72.60887096774194,72.29435483870968,72.37903225806451,71.52016129032258,70.79435483870967,70.86693548387096,71.24193548387096]
+carstensen_results = [-73.39516129032258,-72.69354838709677,-72.97177419354838,-73.37096774193549,-72.76612903225806,-72.60887096774194,-72.29435483870968,-72.37903225806451,-71.52016129032258,-70.79435483870967,-70.86693548387096,-71.24193548387096]
 
 year_axis.plot(months,carstensen_results,"k--", label = "Carstensen2014")
 year_axis.plot(months,carstensen_results,"k.")
@@ -232,7 +232,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 transect_halocline_density.append(np.nanmedian(halocline_positions_density))
             """
            
-            bin_halocline_depth,bin_halocline_density = thesis.get_halocline_and_halocline_density(bin_pressure,bin_oxygen_sat_grid[profile],bin_salinity_grid[profile],bin_consv_temperature_grid[profile],bin_pot_density_grid[profile])
+            bin_halocline_depth,bin_halocline_density,bin_halocline_index = thesis.get_halocline_and_halocline_density(bin_pressure,bin_oxygen_sat_grid[profile],bin_salinity_grid[profile],bin_consv_temperature_grid[profile],bin_pot_density_grid[profile])
             
             bin_transect_halocline.append(bin_halocline_depth)    
             bin_transect_halocline_density.append(bin_halocline_density)
@@ -282,9 +282,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #mean_halocline = np.nanmean(transect_halocline)
         #std_halocline = np.nanstd(transect_halocline)  
         #mean_halocline_density = np.nanmean(transect_halocline_density)
-        #std_halocline_density = np.nanstd(transect_halocline_density)     
-        bin_mean_halocline = np.nanmean(bin_transect_halocline)
-        bin_std_halocline = np.nanstd(bin_transect_halocline) 
+        #std_halocline_density = np.nanstd(transect_halocline_density)    
+        
+        #change pressure coordinates to depth coordinates and take the mean and std 
+        bin_mean_halocline = np.nanmean(thesis.z_from_p(bin_transect_halocline))
+        bin_std_halocline = np.nanstd(thesis.z_from_p(bin_transect_halocline))
         bin_mean_halocline_density = np.nanmean(bin_transect_halocline_density)
         bin_std_halocline_density = np.nanstd(bin_transect_halocline_density) 
         print(bin_mean_halocline)
@@ -329,7 +331,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
 print("###########################")
 for result in bin_end_results:
-    print(result)
+    print(result,"in m")
 print("###########################")
 
 
@@ -342,7 +344,7 @@ height = width / 1.618
 axis.set_title("Halocline depth")
 axis.set_xlabel("days since cruise start")
 axis.xaxis.set_major_locator(mticker.MultipleLocator(x_tick_spacing))
-axis.set_ylabel("pressure [dbar]")
+axis.set_ylabel("depth [m]")
 
 axis.legend() 
 f.set_size_inches(width, height)
@@ -351,11 +353,11 @@ f.subplots_adjust(top=0.925,bottom=0.174,left=0.122,right=0.955,hspace=0.153,wsp
 year_axis.set_title("Halocline depth")
 year_axis.set_xlim(0.5,12.5)
 year_axis.legend()    
-year_axis.set_xlabel("months")
+year_axis.set_xlabel("Months")
 ticklabels = ["Jan","Feb","Mar","Apr","May","June","July","Aug","Sept","Oct","Nov","Dec"] #[dt.date(1900, item, 1).strftime('%b') for item in np.arange(1,13)]
 year_axis.set_xticks(np.arange(1,13))
 year_axis.set_xticklabels(ticklabels) #add monthlabels to the xaxis
-year_axis.set_ylabel("pressure [dbar]")
+year_axis.set_ylabel("depth [m]")
 
 
 y.tight_layout()
@@ -374,7 +376,7 @@ f_rho.tight_layout()
 year_axis_rho.set_title("Halocline density")
 year_axis_rho.set_xlim(0.5,12.5)
 year_axis_rho.legend()    
-year_axis_rho.set_xlabel("months")
+year_axis_rho.set_xlabel("Months")
 year_axis_rho.set_ylabel("pot density")
 
 y_rho.tight_layout()
