@@ -35,7 +35,7 @@ LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169","/home/ole/windo
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177"]
 
 rolling_window_size = 9 # for longitudinal averaging
-density_box_width = 1.5 #in kg/m³ (for vertical averaging)
+density_box_width = 1 #in kg/m³ (for vertical averaging)
 
 height_above_ground = 20 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
 maximum_reasonable_flux = float('Inf') #200 #Fluxes with absolute values above this cut off value will be discarded
@@ -300,37 +300,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             #calculate the halocline depth and density 
             halocline_depth,halocline_density,halocline_index = thesis.get_halocline_and_halocline_density(eps_pressure,eps_oxygen_sat_grid[profile],eps_salinity_grid[profile],eps_consv_temperature_grid[profile],eps_pot_density_grid[profile])
             
-            """
-            if profile == 35:
-                    print(profile,lon[profile]) #np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile,:]) - (halocline_density - (density_box_width/2)))),                   
-                    plt.axhline(-eps_pressure[np.nanargmin(thesis.central_differences(eps_oxygen_sat_grid[profile,:-30]))], c = "k")
-                    plt.axhline(-eps_pressure[np.nanargmax(thesis.central_differences(eps_consv_temperature_grid[profile,:-30]))],c = "r")
-                    plt.axhline(-eps_pressure[np.nanargmax(thesis.central_differences(eps_salinity_grid[profile,:-30]))],c = "b")
-                    
-                    print("TEST",np.nanargmax(thesis.central_differences(eps_consv_temperature_grid[profile,:])), len(thesis.central_differences(eps_consv_temperature_grid[profile,:])))
-                    
-                    print(-eps_pressure[np.nanargmin(thesis.central_differences(eps_oxygen_sat_grid[profile,:]))], np.nanargmin(thesis.central_differences(eps_oxygen_sat_grid[profile,:])))
-                    #plt.axhline(-eps_pressure[np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile,:]) - halocline_density))], c= "k")
-                    #plt.axhline(-eps_pressure[np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile,:]) - (halocline_density - (density_box_width/2))))], c = "red")
-                    #plt.axhline(-eps_pressure[np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile,:]) - (halocline_density + (density_box_width/2))))], c= "blue")
-                    
-                    plt.plot(eps_oxygen_sat_grid[profile,:],-eps_pressure,c = "k",label = lon[profile])
-                    #plt.plot(eps_oxygen_sat_grid[profile+1,:],-eps_pressure,":", label = lon[profile+1])
-                    #plt.plot(eps_oxygen_sat_grid[profile+15,:],-eps_pressure,"--", label = lon[profile+15])
-                    
-                    #plt.plot(eps_pot_density_grid[profile,:],-eps_pressure, label = lon[profile])
-                    #plt.plot(eps_pot_density_grid[profile+1,:],-eps_pressure, label = lon[profile+1])
-                    #plt.plot(eps_pot_density_grid[profile+15,:],-eps_pressure, label = lon[profile+15])
-
-                    plt.plot(eps_consv_temperature_grid[profile,:],-eps_pressure,c = "r", label = lon[profile])
-                    #plt.plot(eps_consv_temperature_grid[profile+1,:],-eps_pressure, label = lon[profile+1])
-                    #plt.plot(eps_consv_temperature_grid[profile+15,:],-eps_pressure, label = lon[profile+15])
-                    plt.plot(eps_salinity_grid[profile,:],-eps_pressure, c = "b", label = lon[profile])
-                                        
-                    plt.legend()
-                    plt.show()
-            """
-            
+            #find the corresponding density bin for the halocline_density
+            for bin_index,density_bin_edge in enumerate(density_bin_edges):  
+                #print(value,density_bin_edge)      
+                if halocline_density <= density_bin_edge:
+                    halocline_bin_index = bin_index
+                    break  
+                        
             if not np.isnan(halocline_density):
                 #choose the vertical averaging interval dependent on the box size
                 
@@ -411,6 +387,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
             #to_index = max(from_index,min(sea_floor_index-3,to_index))
             """
+            
+            #TODO replace with binned_statistic            
+            
+            ###############################################################################################################################
+            
+            #remove all nans in
+            #thesis.remove_nans_from_2_arrays(a,b):
+            #ss.binned_statistic(hist_Reb_list,hist_Osborn_flux_list, statistic = "count", bins = bins)
             
             #sort the profile into the density bins
             for value_index,value in enumerate(eps_pot_density_grid[profile]):
@@ -680,6 +664,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             stop_interval_index = np.nanargmin(np.abs(density_bin_edges - interval_stop))
             
             try:
+                """
                 while True:
                     #if the mean position of that density bin is too far away from the halocline, start with the next density bin and check again
                     if abs(iso_mean_pressure[profile,start_interval_index] - halocline_position_list[profile]) <= maximum_halocline_thickness/2:
@@ -693,7 +678,29 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                         break
                     else:
                         stop_interval_index -= 1
-            
+                """
+                temp = (start_interval_index,stop_interval_index)
+                
+                #check if the vertical interval is bigger than the maximum halocline thickness
+                #if yes incrementally adjust the interval to fewer data points
+                while True:
+                    if iso_mean_pressure[profile,halocline_bin_index] - iso_mean_pressure[profile,start_interval_index] <= maximum_halocline_thickness/2:
+                        break
+                    elif start_interval_index >= halocline_bin_index:
+                        break
+                    else:
+                        start_interval_index += 1
+                        
+                        
+                while True:
+                    if iso_mean_pressure[profile,stop_interval_index] - iso_mean_pressure[profile,halocline_bin_index] <= maximum_halocline_thickness/2:
+                        break
+                    elif stop_interval_index <= halocline_bin_index:
+                        break
+                    else:
+                        stop_interval_index -= 1
+                
+                
                 #the interval should still start higher than it stops    
                 try:
                     assert start_interval_index < stop_interval_index
@@ -701,10 +708,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                   
                      
                 except AssertionError:
-                    print("#"*50)
-                    print(start_interval_index,stop_interval_index,iso_mean_pressure[profile,start_interval_index],iso_mean_pressure[profile,stop_interval_index])
-                    print("#"*50)
-                    raise 
+                    #print("#"*50)
+                    #print(start_interval_index,stop_interval_index,iso_mean_pressure[profile,start_interval_index],iso_mean_pressure[profile,stop_interval_index])
+                    #print(temp, iso_mean_pressure[profile,temp[0]] - iso_mean_pressure[profile,halocline_bin_index], iso_mean_pressure[profile,temp[1]] - iso_mean_pressure[profile,halocline_bin_index])
+                    #print(iso_mean_pressure[profile,:])
+                    #print("#"*50)
+                    raise AssertionError
                     
                 #average over the bins inside that interval including the (therefore the plus 1)
                 iso_vertical_mean_Shih_flux[profile] = np.nanmean(iso_rolling_mean_Shih_flux[profile,start_interval_index:stop_interval_index+1])
@@ -769,11 +778,12 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     print("\n\n\n")
     """
     print("#################### INTERVAL ##############################")
-    print(np.nanmean(iso_interval_pressure_list[:,0]),np.nanstd(iso_interval_pressure_list[:,0]))
-    print(np.nanmean(iso_interval_pressure_list[:,1]),np.nanstd(iso_interval_pressure_list[:,1]))
+    print(np.nanmean(thesis.z_from_p(iso_interval_pressure_list[:,0])),np.nanstd(thesis.z_from_p(iso_interval_pressure_list[:,0])))
+    print(np.nanmean(thesis.z_from_p(iso_interval_pressure_list[:,1])),np.nanstd(thesis.z_from_p(iso_interval_pressure_list[:,1])))
     
     
-    #np.savetxt("./data/"+cruise_name+'_iso_flux_results_woBBL.txt', np.transpose([longitude_list,distance_list,bathymetry_list,mean_Osborn_flux,iso_vertical_mean_Osborn_flux,mean_Shih_flux,iso_vertical_mean_Shih_flux]), header = "longitude\tdistance\tdepth[dbar]\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")
+    #np.savetxt("./data/"+cruise_name+'_iso_flux_results_woBBL.txt', np.transpose([longitude_list,distance_list,bathymetry_list,distance_lower_edge_iso_interval_sea_floor,mean_Osborn_flux,iso_vertical_mean_Osborn_flux,mean_Shih_flux,iso_vertical_mean_Shih_flux]), header = "longitude\tdistance\tdepth[dbar]\tdistance interval-ground\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")
+    
     np.savetxt("./data/"+cruise_name+'_iso_flux_results.txt', np.transpose([longitude_list,distance_list,bathymetry_list,distance_lower_edge_iso_interval_sea_floor,mean_Osborn_flux,iso_vertical_mean_Osborn_flux,mean_Shih_flux,iso_vertical_mean_Shih_flux]), header = "longitude\tdistance\tdepth[dbar]\tdistance interval-ground\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")
     
     ##################################################################################################################################
