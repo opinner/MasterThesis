@@ -17,6 +17,7 @@ plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=MINI_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=MEDIUM_SIZE, titleweight = "bold")  # fontsize of the figure title
 
+import scipy.stats as ss 
 import geopy.distance as geo
 import gsw.conversions as gsw
 import pathlib
@@ -46,7 +47,7 @@ density_step = 0.1
 density_bin_edges = np.arange(1004,1011,density_step)
 #density_bin_center = density_bin_edges[:-1] + density_step/2 
 #assert len(density_bin_center) == len(density_bin_edges) - 1
-number_of_density_bins = density_bin_edges.size #-1 
+number_of_density_bins = density_bin_edges.size -1 
 #density_bin_center = np.arange(1004,1010.5,0.2)
 
 
@@ -360,7 +361,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     raise
                 """
                     
-                #used for the isopcnal averaging of the whole profiles
+                #used for the isopcynal averaging of the whole profiles
                 start_density_interval = halocline_density - density_box_width/2
                 stop_density_interval = halocline_density + density_box_width/2     
                 
@@ -394,59 +395,40 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
             #remove all nans in
             #thesis.remove_nans_from_2_arrays(a,b):
-            #ss.binned_statistic(hist_Reb_list,hist_Osborn_flux_list, statistic = "count", bins = bins)
             
-            #sort the profile into the density bins
-            for value_index,value in enumerate(eps_pot_density_grid[profile]):
-                    
-                bin_number = np.nan
+            #transform data from pressure coordinates to density coordinates
+            try:
+                density_input, Osborn_flux_input = thesis.remove_nans_from_2_arrays(eps_pot_density_grid[profile],oxygen_flux_Osborn_grid[profile])
+                iso_Osborn_flux, _bin_edges, _bin_number = ss.binned_statistic(density_input,Osborn_flux_input, statistic = "mean", bins = density_bin_edges)
+
+                density_input, Shih_flux_input = thesis.remove_nans_from_2_arrays(eps_pot_density_grid[profile],oxygen_flux_Shih_grid[profile])
+                iso_Shih_flux, _bin_edges, _bin_number = ss.binned_statistic(density_input,Shih_flux_input, statistic = "mean", bins = density_bin_edges)
                 
-                #find the corresponding density bin
-                for bin_index,density_bin_edge in enumerate(density_bin_edges):  
-                    #print(value,density_bin_edge)      
-                    if value <= density_bin_edge:
-                        bin_number = bin_index
-                        break            
-            
-                    #Test for edge cases?
-                    if value > density_bin_edges[-1]:
-                        raise AssertionError
-            
-                # add every point from that profile to the corresponding density bin
-                if not np.isnan(bin_number): 
-                        iso_Shih_flux_density_bins[bin_number].append(oxygen_flux_Shih_grid[profile,value_index])
-                        iso_Osborn_flux_density_bins[bin_number].append(oxygen_flux_Osborn_grid[profile,value_index])
-                        iso_pressure_density_bins[bin_number].append(eps_pressure[value_index])
-                        iso_density_bins[bin_number].append(eps_pot_density_grid[profile,value_index])
-                        iso_dissipation_density_bins[bin_number].append(eps_grid[profile,value_index])
-                        
-            #average the values inside the density bins
-            for bin_index in range(number_of_density_bins):
-                #print(np.size(density_bins[bin_index]))
-                if len(iso_Shih_flux_density_bins[bin_index]) == 0: #test for empty list, ergo no points in that density bin
-                    #continue
-                    iso_dissipation.append(np.nan)
-                    iso_Shih_flux.append(np.nan)
-                    iso_Osborn_flux.append(np.nan)
-                    iso_pressure.append(np.nan)
-                    iso_density.append(np.nan)                
-                    
+                density_input, pressure_input = thesis.remove_nans_from_2_arrays(eps_pot_density_grid[profile],eps_pressure)
+                iso_pressure, _bin_edges, _bin_number = ss.binned_statistic(density_input,pressure_input, statistic = "mean", bins = density_bin_edges)
+                
+                density_input, eps_input = thesis.remove_nans_from_2_arrays(eps_pot_density_grid[profile],eps_grid[profile])
+                iso_dissipation, _bin_edges, _bin_number = ss.binned_statistic(density_input,eps_input, statistic = "mean", bins = density_bin_edges)
+                
+                density_input = eps_pot_density_grid[profile][~np.isnan(eps_pot_density_grid[profile])]
+                iso_density, _bin_edges, _bin_number = ss.binned_statistic(density_input,density_input, statistic = "mean", bins = density_bin_edges)
+                
+            #Error handling in the case of all NaN profiles
+            except ValueError:
+                #print(cruise_name,transect_name,profile,np.all(np.isnan(eps_pot_density_grid[profile])),np.all(np.isnan(oxygen_flux_Osborn_grid[profile])))
+                if np.all(np.isnan(oxygen_flux_Osborn_grid[profile])):
+                    continue
+                
                 else:
-                    
-                    temp_iso_Osborn_flux = np.asarray(iso_Osborn_flux_density_bins[bin_index])
-                    temp_iso_Osborn_flux[np.abs(temp_iso_Osborn_flux)>maximum_reasonable_flux] = np.nan
-                    
-                    temp_iso_Shih_flux = np.asarray(iso_Shih_flux_density_bins[bin_index])
-                    temp_iso_Shih_flux[np.abs(temp_iso_Shih_flux)>maximum_reasonable_flux] = np.nan
-    
-                    iso_Osborn_flux.append(np.nanmean(temp_iso_Osborn_flux))
-                    iso_Shih_flux.append(np.nanmean(temp_iso_Shih_flux))
-                    iso_pressure.append(np.nanmean(iso_pressure_density_bins[bin_index]))
-                    iso_density.append(np.mean(iso_density_bins[bin_index]))
-                    iso_dissipation.append(np.nanmean(iso_dissipation_density_bins[bin_index]))
-                    
-                    
-                        
+                    iso_Osborn_flux = np.nan*np.ones(number_of_density_bins)
+                    iso_Shih_flux = np.nan*np.ones(number_of_density_bins)
+                    iso_pressure = np.nan*np.ones(number_of_density_bins)
+                    iso_dissipation = np.nan*np.ones(number_of_density_bins)
+                    iso_density = np.nan*np.ones(number_of_density_bins)
+            
+            #print(len(density_bin_edges),np.shape(iso_Osborn_flux))
+                 
+                         
             #bathymetry: find the correct position in the sorted longitude list
             for index,value in enumerate(total_bathymetry_longitude_list):
                 if value > lon[profile]:
@@ -478,12 +460,15 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
                  
             if len(longitude_list) == 0: 
+            
+                #density coordinates
                 iso_pressure_list.append(iso_pressure)
                 iso_dissipation_list.append(iso_dissipation)
                 iso_Shih_flux_list.append(iso_Shih_flux)
                 iso_Osborn_flux_list.append(iso_Osborn_flux)
                 iso_interval_density_list.append([start_density_interval,stop_density_interval])
                 
+                #pressure coordinates
                 dissipation_list.append(eps_grid[profile,from_index:to_index])
                 Shih_flux_list.append(oxygen_flux_Shih_grid[profile,from_index:to_index])
                 Osborn_flux_list.append(oxygen_flux_Osborn_grid[profile,from_index:to_index])
@@ -556,7 +541,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     mean_Shih_flux = [None] * total_number_of_valid_profiles
     arith_mean_dissipation = [None] * total_number_of_valid_profiles
 
-    
+
     #remove fluxes over the cut off value
     for index in range(total_number_of_valid_profiles):
         temp_Shih_flux = Shih_flux_list[index]
@@ -574,6 +559,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         mean_Osborn_flux[index] = np.nanmean(temp_Osborn_flux)
         
         arith_mean_dissipation[index] = np.log10(np.nanmean(dissipation_list[index]))
+
+    
         
     #remove fluxes over the cut off value in the arrays for isopycnal averaging
 
@@ -611,6 +598,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
         else:
             try:
+                #print(np.shape(iso_pressure_list),np.shape(iso_Shih_flux_list),len(density_bin_edges))
+                
                 iso_mean_pressure[index] = np.nanmean(iso_pressure_list[left:right,:],axis = 0)
                 iso_rolling_mean_Shih_flux[index] = np.nanmean(iso_Shih_flux_list[left:right,:],axis = 0)
                 iso_rolling_mean_Osborn_flux[index] = np.nanmean(iso_Osborn_flux_list[left:right,:],axis = 0)
@@ -702,18 +691,18 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 
                 
                 #the interval should still start higher than it stops    
-                try:
-                    assert start_interval_index < stop_interval_index
-                    assert iso_mean_pressure[profile,start_interval_index] < iso_mean_pressure[profile,stop_interval_index]
+                #try:
+                assert start_interval_index < stop_interval_index
+                assert iso_mean_pressure[profile,start_interval_index] < iso_mean_pressure[profile,stop_interval_index]
                   
                      
-                except AssertionError:
-                    #print("#"*50)
-                    #print(start_interval_index,stop_interval_index,iso_mean_pressure[profile,start_interval_index],iso_mean_pressure[profile,stop_interval_index])
-                    #print(temp, iso_mean_pressure[profile,temp[0]] - iso_mean_pressure[profile,halocline_bin_index], iso_mean_pressure[profile,temp[1]] - iso_mean_pressure[profile,halocline_bin_index])
-                    #print(iso_mean_pressure[profile,:])
-                    #print("#"*50)
-                    raise AssertionError
+                #except AssertionError:
+                #print("#"*50)
+                #print(start_interval_index,stop_interval_index,iso_mean_pressure[profile,start_interval_index],iso_mean_pressure[profile,stop_interval_index])
+                #print(temp, iso_mean_pressure[profile,temp[0]] - iso_mean_pressure[profile,halocline_bin_index], iso_mean_pressure[profile,temp[1]] - iso_mean_pressure[profile,halocline_bin_index])
+                #print(iso_mean_pressure[profile,:])
+                #print("#"*50)
+                #raise AssertionError
                     
                 #average over the bins inside that interval including the (therefore the plus 1)
                 iso_vertical_mean_Shih_flux[profile] = np.nanmean(iso_rolling_mean_Shih_flux[profile,start_interval_index:stop_interval_index+1])
@@ -907,9 +896,9 @@ f_flux.subplots_adjust(top=0.95,bottom=0.09,left=0.12,right=0.975,hspace=0.058,w
 props = dict(boxstyle='square', facecolor = "white")
 #flux_axarr[1].text(0.62, 0.05, textstr, transform=flux_axarr[1].transAxes, fontsize= MINI_SIZE ,verticalalignment='bottom', bbox=props, multialignment = "right")
 
-f_flux.suptitle("Mean oxygen flux through the halocline") #along the transect: rolling isopycnal mean over "+str(rolling_window_size)+" points", weight = "bold") # (binned data)")
-f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/iso_flux_transect", dpi = 600) 
-#f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_iso_flux_transect", dpi = 600)           
+#f_flux.suptitle("Vertical oxygen flux through the halocline") #along the transect: rolling isopycnal mean over "+str(rolling_window_size)+" points", weight = "bold") # (binned data)")
+#f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/iso_flux_transect", dpi = 600) 
+f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_iso_flux_transect", dpi = 600)           
 
    
 #------------------------------------------------------------------------------------------------------------#
@@ -941,9 +930,9 @@ f_dissip.subplots_adjust(top=0.95,bottom=0.09,left=0.125,right=0.975,hspace=0.05
 #props = dict(boxstyle='square', facecolor = "white")
 #dissip_axarr[1].text(0.65, 0.05, textstr, transform=dissip_axarr[1].transAxes, fontsize= MINI_SIZE,verticalalignment='bottom', bbox=props, multialignment = "right")
         
-f_dissip.suptitle("Mean dissipation around the halocline") #(over "+str(rolling_window_size)+" points) ")# (binned data)")
-f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/iso_dissip_transect", dpi = 600)
-#f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_iso_dissip_transect", dpi = 600)
+#f_dissip.suptitle("Mean dissipation around the halocline") #(over "+str(rolling_window_size)+" points) ")# (binned data)")
+#f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/iso_dissip_transect", dpi = 600)
+f_dissip.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_iso_dissip_transect", dpi = 600)
 
 interval_axarr.legend(loc = "lower right")
 interval_axarr.set_xlim((20.465,20.705))
