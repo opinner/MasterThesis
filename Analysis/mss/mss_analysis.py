@@ -13,16 +13,19 @@ import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
 #matplotlib preferences:
-SMALL_SIZE = 12
-MEDIUM_SIZE = 14
-BIGGER_SIZE = 16
+#matplotlib preferences:
+MINI_SIZE = 9
+SMALL_SIZE = 10.95
+MEDIUM_SIZE = 12
+BIGGER_SIZE = 12
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('axes', titlesize=SMALL_SIZE, titleweight = "bold")     # fontsize of the axes title
+plt.rc('axes', labelsize=SMALL_SIZE)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+plt.rc('legend', fontsize=MINI_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=MEDIUM_SIZE, titleweight = "bold")  # fontsize of the figure title
+
 import geopy.distance as geo
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import gsw 
@@ -45,7 +48,7 @@ def colorbar(mappable):
 
 #contains the MSS Data
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb217_mss_data","/home/ole/windows/emb177_mss_data/","/home/ole/windows/emb169_mss_data/MSS055/matlab","/home/ole/windows/emb169_mss_data/MSS038/matlab/"]
-LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb177_mss_data/","/home/ole/windows/emb217_mss_data"]
+#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb177_mss_data/","/home/ole/windows/emb217_mss_data"]
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/emb177_mss_data/","/home/ole/windows/emb217_mss_data","/home/ole/windows/emb169_mss_data/MSS055/matlab","/home/ole/windows/emb169_mss_data/MSS038/matlab/"]
  
 for FOLDERNAME in LIST_OF_MSS_FOLDERS:
@@ -58,15 +61,6 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     
     print(cruisename)    
     
-    if cruisename == "emb217":
-        upper_bound_halocline_as_density = 1006.4
-        lower_bound_halocline_as_density = 1008.5
-    elif cruisename == "emb177":
-        upper_bound_halocline_as_density = 1006.9
-        lower_bound_halocline_as_density = 1008.2
-    elif cruisename == "emb169":
-        upper_bound_halocline_as_density = 1006.9
-        lower_bound_halocline_as_density = 1008.2
                 
     #go through all files of specified folder and select only files ending with .mat
     for p in path.iterdir():
@@ -92,8 +86,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         f2, axarr2 = plt.subplots(nrows = 4, ncols = 1, sharex = True, sharey = True)
         f3, axarr3 = plt.subplots(nrows = 3, ncols = 1, sharex = True, sharey = True)
         f4, axarr4 = plt.subplots(nrows = 1, ncols = 7, sharey = True)#, sharex = True, 
-
-
+ 
+        BBL_pic, BBL_ax = plt.subplots(nrows = 2, ncols = 1, sharex = True, sharey = True)
+                        
         results = thesis.load_clean_and_interpolate_data(datafile_path)
         
         try:
@@ -273,7 +268,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             img3_1 = axarr3[1].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_sat_grid.T,cmap = cmap_RdBu)
             img3_2 = axarr3[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9,cmap = cmap_hot)
             
-            
+            BBL_img1 = BBL_ax[0].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_sat_grid.T,cmap = cmap_RdBu)
+            BBL_img2 = BBL_ax[1].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9,cmap = cmap_hot)
+                        
             
             density_steps = np.arange(np.nanmin(pot_density_grid),np.nanmax(pot_density_grid),0.2)
             #compute and plot isopycnals
@@ -293,7 +290,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 axarr3[0].plot(lon,isopycnal,"k")
                 axarr3[1].plot(lon,isopycnal,"k")
                 axarr3[2].plot(lon,isopycnal,"k")
-            
+
+                BBL_ax[0].plot(lon,isopycnal,"k")
+                BBL_ax[1].plot(lon,isopycnal,"k")
+                            
             """
             #compute and plot halocline boundaries
             for density_step in [upper_bound_halocline_as_density, lower_bound_halocline_as_density]:
@@ -324,19 +324,30 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             axarr3[0].plot(lon,BBL,"g")
             axarr3[1].plot(lon,BBL,"g")
             axarr3[2].plot(lon,BBL,"g")
-            
+
+            BBL_ax[0].plot(lon,BBL,"g")
+            BBL_ax[1].plot(lon,BBL,"g")
+                        
             axarr1[3].set_xlabel("Longitude")#("distance [km]")
             axarr2[3].set_xlabel("Longitude")
             axarr3[2].set_xlabel(r"Longitude [$\degree$E]")
             axarr3[0].set_ylabel("pressure [dbar]")
             axarr3[1].set_ylabel("pressure [dbar]")
             axarr3[2].set_ylabel("pressure [dbar]")
-                
+
+            BBL_ax[1].set_xlabel(r"Longitude [$\degree$E]")
+            BBL_ax[0].set_ylabel("pressure [dbar]")
+            BBL_ax[1].set_ylabel("pressure [dbar]")
+                            
             f1.set_size_inches(18,10.5)
             f2.set_size_inches(18,10.5)
             f3.set_size_inches(18,10.5)
             f4.set_size_inches(18,10.5)
 
+            width = 6.2012
+            height = width / 1.618
+            BBL_pic.set_size_inches(width,height)
+            
             colorbar(img1_0).set_label(r"Oxygen [$\mu mol/kg$]") 
             colorbar(img1_1).set_label("salinity [SA]") 
             colorbar(img1_2).set_label("consv_temperature [C]")
@@ -351,7 +362,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             colorbar(img3_1).set_label(r"oxygen saturation [%]")
             colorbar(img3_2).set_label(r"log10($\epsilon$) $[m^2 s^{-3}]$") 
             
-
+            colorbar(BBL_img1).set_label(r"O$_2$ saturation [%]")
+            colorbar(BBL_img2).set_label(r"log10($\epsilon$) $[m^2 s^{-3}]$") 
+            
             for i in range(4):
                 if cruisename == "emb169":
                     axarr1[i].set_ylim((0,160))           
@@ -383,16 +396,21 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             axarr2[0].invert_yaxis()
             if cruisename == "emb217":
                 axarr3[0].set_ylim((0,160))
+                BBL_ax[0].set_ylim((0,160))
             else:
                 axarr3[0].set_ylim((0,135)) 
-            
+                BBL_ax[0].set_ylim((0,135))
+                
             axarr3[0].invert_yaxis()
+            BBL_ax[0].invert_yaxis()
             axarr4[0].invert_yaxis() 
 
             f1.suptitle(cruisename+" "+DATAFILENAME[:-4]+" Measurements")
             f2.suptitle(cruisename+" "+DATAFILENAME[:-4]+" Calculations")
             f3.suptitle(cruisename+" "+DATAFILENAME[:-4])
             f4.suptitle(cruisename+" "+DATAFILENAME[:-4]+" Profile at Longitude "+str(lon[profile_index]))
+
+            BBL_pic.suptitle(cruisename+" "+DATAFILENAME[:-4])
 
             f1.tight_layout() 
             f2.tight_layout()
@@ -402,12 +420,18 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             f3.subplots_adjust(top=0.94)
             f4.subplots_adjust(top=0.92) 
             
+            BBL_pic.tight_layout()
+            BBL_pic.subplots_adjust(top=0.925,bottom=0.159,left=0.117,right=0.864,hspace=0.12,wspace=0.12)
             
             f1.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_Measurements")
             f2.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_calculations")
             f3.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_transect", dpi = 300)
             f4.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_profiles")
 
+            BBL_pic.savefig("./pictures/"+cruisename+"/"+cruisename+"_"+DATAFILENAME[:-4]+"_BBL_example", dpi = 400)
+            
+            #plt.show()
+            
             #close the pictures after saving
             plt.close(fig = "all")
           
