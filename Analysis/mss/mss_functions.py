@@ -115,6 +115,12 @@ def load_clean_and_interpolate_data(datafile_path):
     alpha = CTD_substructure["ALPHA"][0]
     beta = CTD_substructure["BETA"][0]
     
+    N_squared = MIX_substructure["N2"][0]
+    N_squared_pressure = MIX_substructure["P"][0]
+    
+    eps = MIX_substructure["eps"][0]
+    eps_pressure = MIX_substructure["P"][0]
+    
     if cruisename == "emb217":
             oxygen_sat = CTD_substructure["O2"][0]
             
@@ -165,9 +171,7 @@ def load_clean_and_interpolate_data(datafile_path):
     else:
         raise AssertionError
         
-    eps = MIX_substructure["eps"][0]
-    eps_pressure = MIX_substructure["P"][0]
-       
+      
 
     number_of_profiles = np.shape(pressure)[-1]
 
@@ -204,7 +208,8 @@ def load_clean_and_interpolate_data(datafile_path):
         alpha = np.delete(alpha,np.s_[33:47],axis=0)
         beta = np.delete(beta,np.s_[33:47],axis=0)
         
-        
+        N_squared = np.delete(N_squared,np.s_[33:47],axis=0)
+        N_squared_pressure = np.delete(N_squared_pressure,np.s_[33:47],axis=0)
         eps = np.delete(eps,np.s_[33:47],axis=0)
         eps_pressure = np.delete(eps_pressure,np.s_[33:47],axis=0)
         
@@ -223,7 +228,8 @@ def load_clean_and_interpolate_data(datafile_path):
         alpha = alpha[:21]
         beta = beta[:21]
         
-        
+        N_squared = N_squared[:21]
+        N_squared_pressure = N_squared_pressure[:21]
         eps = eps[:21]
         eps_pressure = eps_pressure[:21]
         number_of_profiles = np.shape(pressure)[-1]
@@ -241,7 +247,8 @@ def load_clean_and_interpolate_data(datafile_path):
         alpha = alpha[:-1]
         beta = beta[:-1]
         
-        
+        N_squared = N_squared[:-1]
+        N_squared_pressure = N_squared_pressure[:-1]
         eps = eps[:-1]
         eps_pressure = eps_pressure[:-1]
         number_of_profiles = np.shape(pressure)[-1]
@@ -298,7 +305,8 @@ def load_clean_and_interpolate_data(datafile_path):
     alpha_grid = np.copy(salinity_grid)
     beta_grid = np.copy(salinity_grid)
     fine_eps_grid = np.copy(salinity_grid)
-
+    N_squared_grid = np.copy(salinity_grid)
+    
     if cruisename == "emb217":
         oxygen_sat_grid =  np.copy(salinity_grid)
     elif cruisename == "emb177" or cruisename == "emb169": 
@@ -309,7 +317,13 @@ def load_clean_and_interpolate_data(datafile_path):
         assert np.all(eps_pressure[i].flatten() == eps_pressure[0].flatten())
     #if yes the pressure can be coverted to a 1D array instead of a 2D array    
     eps_pressure = eps_pressure[0].flatten()
-    
+
+    #check if the pressure points for every N² profile are the same
+    for i in range(number_of_profiles):  
+        assert np.all(N_squared_pressure[i].flatten() == N_squared_pressure[0].flatten())
+    #if yes the pressure can be coverted to a 1D array instead of a 2D array    
+    N_squared_pressure = N_squared_pressure[0].flatten()
+        
     #print(eps[i].flatten().size,eps_pressure.size, np.arange(1,160.5,0.5).size, np.arange(1,160.5,0.5).size - eps_pressure.size)
     #print(np.shape(eps),np.shape(eps[0]))
     
@@ -329,8 +343,11 @@ def load_clean_and_interpolate_data(datafile_path):
     #needed for the interpolation of S and T to the same grid as the eps
     eps_salinity_grid = np.ones((np.shape(eps_grid)))
     eps_consv_temperature_grid = np.ones(np.shape(eps_grid))
+    eps_N_squared_grid = np.ones(np.shape(eps_grid))
+    
     bin_salinity_grid = np.ones((np.shape(eps_grid)))
     bin_consv_temperature_grid = np.ones(np.shape(eps_grid))
+    bin_N_squared_grid = np.ones(np.shape(eps_grid))
     
     if cruisename == "emb217":
         eps_oxygen_sat_grid = np.copy(eps_salinity_grid)
@@ -342,11 +359,14 @@ def load_clean_and_interpolate_data(datafile_path):
     #vector times matrix multiplication to get a 2D array, where every column is equal to eps_pressure
     eps_pressure_grid = np.reshape(eps_pressure,(1,-1))*np.ones(np.shape(eps_grid))
 
+
     #create a pressure axis where every point is shifted by half the distance to the next one
     shifted_eps_pressure = eps_pressure + np.mean(np.diff(eps_pressure))/2
 
-    #prepend a point at the beginning to be a point longer than the pressure axis we want from the Nsquared function
+    #prepend a point at the beginning to be a point longer than the pressure axis we want from the N_squared function
     shifted_eps_pressure = np.append(eps_pressure[0]-np.mean(np.diff(eps_pressure))/2, shifted_eps_pressure)
+    
+    """
     #from that create a grid, where we have just n-times the pressure axis with n the number of profiles 
     shifted_eps_pressure_grid = np.reshape(shifted_eps_pressure,(1,-1))*np.ones((number_of_profiles,shifted_eps_pressure.size))
     shifted_eps_salinity_grid = np.ones((np.shape(shifted_eps_pressure_grid)))
@@ -362,7 +382,7 @@ def load_clean_and_interpolate_data(datafile_path):
     shifted_pressure_grid = np.reshape(shifted_pressure,(1,-1))*np.ones((number_of_profiles,shifted_pressure.size))
     shifted_salinity_grid = np.ones((np.shape(shifted_pressure_grid)))
     shifted_consv_temperature_grid = np.ones((np.shape(shifted_pressure_grid)))
-    
+    """
     
 
     #Grid interpolation (loops over all profiles)
@@ -375,6 +395,10 @@ def load_clean_and_interpolate_data(datafile_path):
         beta_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),beta[i].flatten(), left = np.nan, right = np.nan)
         fine_eps_grid[i] = np.interp(interp_pressure,eps_pressure,eps[i].flatten(), left = np.nan, right = np.nan)
         
+        #print(np.shape(pressure[i].flatten()),np.shape(N_squared[i].flatten()), np.shape(eps_pressure), np.shape(N_squared_pressure[0]))
+        N_squared_grid[i] = np.interp(interp_pressure,N_squared_pressure,N_squared[i].flatten(), left = np.nan, right = np.nan)
+        
+        """
         #interpolation to a shifted grid for the Nsquared function
         shifted_salinity_grid[i] = np.interp(shifted_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
         shifted_consv_temperature_grid[i] = np.interp(shifted_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
@@ -382,12 +406,13 @@ def load_clean_and_interpolate_data(datafile_path):
         #interpolation to a shifted grid for the Nsquared function
         shifted_eps_salinity_grid[i] = np.interp(shifted_eps_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
         shifted_eps_consv_temperature_grid[i] = np.interp(shifted_eps_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
-
+        
         #bin edges of eps_pressure for the Nsquared function, so that the bins are centered around shifted_eps_pressure
         shift_sal_pressure = pressure[i].flatten()[~np.isnan(absolute_salinity[i].flatten())]
         shift_sal = absolute_salinity[i].flatten()[~np.isnan(absolute_salinity[i].flatten())]
         shifted_bin_salinity_grid[i] = scs.binned_statistic(x = shift_sal_pressure, values = shift_sal, statistic = "mean", bins = np.append([0.5],np.append(eps_pressure,160.5)))[0]
         shifted_bin_consv_temperature_grid[i] = scs.binned_statistic(pressure[i].flatten()[~np.isnan(consv_temperature[i].flatten())],consv_temperature[i].flatten()[~np.isnan(consv_temperature[i].flatten())], statistic = "mean", bins = np.append([0.5],np.append(eps_pressure,160.5)))[0]
+        """
                 
         #just changes the format of eps slightly
         assert(eps[i].flatten().size == eps_pressure.size)
@@ -396,41 +421,14 @@ def load_clean_and_interpolate_data(datafile_path):
         #interpolate S and T to the same grid as eps
         eps_salinity_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),absolute_salinity[i].flatten(), left = np.nan, right = np.nan)
         eps_consv_temperature_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),consv_temperature[i].flatten(), left = np.nan, right = np.nan)
+        eps_N_squared_grid[i] = np.interp(eps_pressure,N_squared_pressure,N_squared[i].flatten(), left = np.nan, right = np.nan)
         
         #bin S and T with bin_edges of shifted_eps_pressure, so that the bins are centered around eps_pressure
         bin_salinity_grid[i] = scs.binned_statistic(pressure[i].flatten()[~np.isnan(absolute_salinity[i].flatten())],absolute_salinity[i].flatten()[~np.isnan(absolute_salinity[i].flatten())], statistic = "mean", bins = shifted_eps_pressure)[0]
         bin_consv_temperature_grid[i] = scs.binned_statistic(pressure[i].flatten()[~np.isnan(consv_temperature[i].flatten())],consv_temperature[i].flatten()[~np.isnan(consv_temperature[i].flatten())], statistic = "mean", bins = shifted_eps_pressure)[0]
-        
-        #interpolation of the oxygen depends on which source it is
-        if cruisename == "emb217":
-            oxygen_sat_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)
-            eps_oxygen_sat_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan) 
-            oxygen_wo_nan_pressure = pressure[i].flatten()[~np.isnan(oxygen_sat[i].flatten())]
-            oxygen_wo_nan = oxygen_sat[i].flatten()[~np.isnan(oxygen_sat[i].flatten())]  
-            bin_oxygen_sat_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0]     
-        elif cruisename == "emb177":
-            oxygen_grid[i] = np.interp(interp_pressure,emb177_oxygen_pressure[i],emb177_oxygen[i],left=np.nan,right=np.nan)
-            eps_oxygen_grid[i] = np.interp(eps_pressure,emb177_oxygen_pressure[i],emb177_oxygen[i].flatten(), left = np.nan, right = np.nan) 
-            oxygen_wo_nan_pressure = emb177_oxygen_pressure[i][~np.isnan(emb177_oxygen[i].flatten())]
-            oxygen_wo_nan = emb177_oxygen[i].flatten()[~np.isnan(emb177_oxygen[i].flatten())] 
-            bin_oxygen_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0] 
-        elif cruisename == "emb169": 
-            oxygen_grid[i] = np.interp(interp_pressure,emb169_oxygen_pressure[i],emb169_oxygen[i],left=np.nan,right=np.nan)
-            eps_oxygen_grid[i] = np.interp(eps_pressure,emb169_oxygen_pressure[i],emb169_oxygen[i].flatten(), left = np.nan, right = np.nan) 
-            oxygen_wo_nan_pressure = emb169_oxygen_pressure[i][~np.isnan(emb169_oxygen[i].flatten())]
-            oxygen_wo_nan = emb169_oxygen[i].flatten()[~np.isnan(emb169_oxygen[i].flatten())] 
-            bin_oxygen_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0]  
-            
-   
-   
-        
-    if cruisename == "emb217":
-        assert(np.shape(oxygen_sat_grid) == np.shape(salinity_grid))
-        assert(np.shape(eps_oxygen_sat_grid) == np.shape(eps_salinity_grid))
-        
-    if cruisename == "emb177" or cruisename == "emb169":
-        assert(np.shape(oxygen_grid) == np.shape(salinity_grid))
-        assert(np.shape(eps_oxygen_grid) == np.shape(eps_salinity_grid))
+        bin_N_squared_grid[i] = scs.binned_statistic(N_squared_pressure.flatten()[~np.isnan(N_squared[i].flatten())],N_squared[i].flatten()[~np.isnan(N_squared[i].flatten())], statistic = "mean", bins = shifted_eps_pressure)[0]
+               
+
                     
     #fine density grid
     density_grid = gsw.rho(salinity_grid,consv_temperature_grid,pressure_grid)
@@ -444,8 +442,73 @@ def load_clean_and_interpolate_data(datafile_path):
     bin_density_grid = gsw.rho(bin_salinity_grid,bin_consv_temperature_grid,eps_pressure_grid)
     bin_pot_density_grid = 1000+gsw.density.sigma0(bin_salinity_grid,bin_consv_temperature_grid)
     
+    #interpolation of the oxygen depends on which source it is
+    for i in range(number_of_profiles): 
+        
+        if cruisename == "emb217":
+            oxygen_sat_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)
+            eps_oxygen_sat_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan) 
+            oxygen_wo_nan_pressure = pressure[i].flatten()[~np.isnan(oxygen_sat[i].flatten())]
+            oxygen_wo_nan = oxygen_sat[i].flatten()[~np.isnan(oxygen_sat[i].flatten())]  
+            bin_oxygen_sat_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0]     
+        elif cruisename == "emb177":
+        
+            #find pycnocline
+            pycnocline_index = np.nanargmax(central_differences(pot_density_grid[i]))
+            pycnocline_pressure = interp_pressure[pycnocline_index]
+                    
+            #find oxycline 
+            oxycline_index = np.nanargmin(central_differences(emb177_oxygen[i]))
+            oxycline_pressure = emb177_oxygen_pressure[i][oxycline_index]
+            
+            shift_value = pycnocline_pressure - oxycline_pressure
+            if abs(shift_value) <= 3:
+                pass
+            else:
+                shift_value = 0
+            
+            oxygen_grid[i] = np.interp(interp_pressure,emb177_oxygen_pressure[i]+shift_value,emb177_oxygen[i],left=np.nan,right=np.nan)
+            eps_oxygen_grid[i] = np.interp(eps_pressure,emb177_oxygen_pressure[i]+shift_value,emb177_oxygen[i].flatten(), left = np.nan, right = np.nan) 
+            oxygen_wo_nan_pressure = emb177_oxygen_pressure[i][~np.isnan(emb177_oxygen[i].flatten())]+shift_value
+            oxygen_wo_nan = emb177_oxygen[i].flatten()[~np.isnan(emb177_oxygen[i].flatten())] 
+            bin_oxygen_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0] 
+            
+            
+            
+        elif cruisename == "emb169": 
+            oxygen_grid[i] = np.interp(interp_pressure,emb169_oxygen_pressure[i],emb169_oxygen[i],left=np.nan,right=np.nan)
+            eps_oxygen_grid[i] = np.interp(eps_pressure,emb169_oxygen_pressure[i],emb169_oxygen[i].flatten(), left = np.nan, right = np.nan) 
+            oxygen_wo_nan_pressure = emb169_oxygen_pressure[i][~np.isnan(emb169_oxygen[i].flatten())]
+            oxygen_wo_nan = emb169_oxygen[i].flatten()[~np.isnan(emb169_oxygen[i].flatten())] 
+            bin_oxygen_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0]  
+            
+            
+            
+    if cruisename == "emb217":
+        assert(np.shape(oxygen_sat_grid) == np.shape(salinity_grid))
+        assert(np.shape(eps_oxygen_sat_grid) == np.shape(eps_salinity_grid))
+        
+    if cruisename == "emb177" or cruisename == "emb169":
+        assert(np.shape(oxygen_grid) == np.shape(salinity_grid))
+        assert(np.shape(eps_oxygen_grid) == np.shape(eps_salinity_grid))        
+    
+    #sort the potential density profiles (and keep the NaNs at their place)
+    """
+    for profile_index in range(number_of_profiles):
+        
+        mask = ~np.isnan[pot_density_grid[profile]]
+        pot_density_grid[profile][mask] = sorted(pot_density_grid[profile][mask])
+    
+        mask = ~np.isnan[eps_pot_density_grid[profile]]
+        eps_pot_density_grid[profile][mask] = sorted(eps_pot_density_grid[profile][mask])
+        
+        mask = ~np.isnan[pot_density_grid[profile]]
+        eps_pot_density_grid[profile][mask] = sorted(eps_pot_density_grid[profile][mask])
+    """      
     
     
+    #compute N² with the gsw toolbox
+    """
     #TODO compare with density_grid?
     #density_grid_check = (1 - alpha_grid * (consv_temperature_grid) + beta_grid * (salinity_grid))*rho_0
     #difference = density_grid-density_grid_check
@@ -469,6 +532,11 @@ def load_clean_and_interpolate_data(datafile_path):
     crosscheck_bin_pressure = np.mean(crosscheck_bin_pressure_grid, axis = 0)
     #test if we really calculated N^2 for the same points as pressure points from the dissipation measurement
     assert(np.all(crosscheck_bin_pressure == eps_pressure))
+    """
+    
+    
+    
+    
         
     #create grids that have the latitude/longitude values for every depth (size: number_of_profiles x len(interp_pressure))
     lat_grid = np.reshape(lat,(-1,1)) * np.ones((number_of_profiles,max_size))
@@ -870,7 +938,7 @@ def central_differences(array):
         diff_grid[:,-1] = np.nan
            
     else:
-        raise ValueError  
+        raise ValueError("Wrong shape for the function")
         
     return diff_grid       
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
