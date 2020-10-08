@@ -34,7 +34,6 @@ LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb217","/home/ole/windo
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
 
 height_above_ground = 5 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
-maximum_reasonable_flux = 500 #float('Inf') #200 #Fluxes with absolute values above this cut off value will be discarded
 acceptable_slope = 2 #float('Inf') #acceptable bathymetrie difference in dbar between two neighboring data points. 
 
 list_of_bad_profiles = []
@@ -106,7 +105,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             eps_grid = data["bin_eps_grid"]
             eps_oxygen_sat_grid = data["bin_oxygen_sat_grid"]
             eps_oxygen_grid = data["bin_oxygen_grid"] 
-
+            eps_pot_density_grid = data["bin_pot_density_grid"]
 
         
         except KeyError:
@@ -121,7 +120,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         #print(min(eps_pressure),max(eps_pressure),len(eps_pressure))
         
         #calculate the idices of the bottom and some meters above that
-        results = thesis.find_bottom_and_bottom_currents(number_of_profiles,eps_pressure,eps_density_grid,eps_oxygen_grid,height_above_ground = height_above_ground)
+        results = thesis.find_bottom_and_bottom_currents(number_of_profiles,eps_pressure,eps_pot_density_grid,eps_oxygen_grid,height_above_ground = height_above_ground)
         """
         bathymetrie                     pressure values of the first NaN value (in most cases this corresponds to the bottom, but is sometimes wrong due to missing data
         list_of_bathymetrie_indices     corresponding index (eg for interp_pressure or other arrays of the same size)
@@ -190,12 +189,28 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                     outlier_count += 1
                     list_of_bad_profiles.append(["_".join((cruisename,transect_name,str(profile))),"\t\t\thalocline_is_too_shallow"])
                     continue
-            
+                 
+                try:    
+                    #test if the saturation at that depth is under a certain level
+                    if eps_pressure[np.nanargmin(thesis.central_differences(eps_oxygen_sat_grid[profile,:]))] < 50:
+                        print("Halocline is too high!",eps_oxygen_sat_grid[profile,test_index])
+                        outlier_count += 1
+                        list_of_bad_profiles.append(["_".join((cruisename,transect_name,str(profile))),"\t\t\thalocline_is_too_shallow"])
+                        continue
+                        
+                except ValueError:
+                    #if np.all(np.isnan(eps_oxygen_sat_grid[profile,:])):
+                    print("All NaN profile")
+                    outlier_count += 1
+                    list_of_bad_profiles.append(["_".join((cruisename,transect_name,str(profile))),"\t\t\tNaN profile"])
+                    continue
+
+                                   
             total_number_of_correct_profiles+=1
 
 
     
     
-np.savetxt("./"+"list_of_bad_profiles.txt", list_of_bad_profiles, fmt="%s", header = "profile\t\t\t\treason")    
+np.savetxt("./data/"+"list_of_bad_profiles.txt", list_of_bad_profiles, fmt="%s", header = "profile\t\t\t\treason")    
     
     
