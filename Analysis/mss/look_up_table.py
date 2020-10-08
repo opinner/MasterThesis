@@ -97,7 +97,7 @@ def flux_look_up_table(flux, transect_distance_from_ground, distance_from_ground
             
             #print(hypothetical_distance_to_ground)
                         
-            #if hypothetical_distance_to_ground exceeds the lookup table, add the averaged last three flux values of the look tabe 
+            #if hypothetical_distance_to_ground exceeds the lookup table, add the averaged last three flux values of the look table 
             if hypothetical_distance_to_ground > max(lookup_table_edges):
                 #check if the three to last value does still belong into the interior classification
                 #how many bin belong to interior?
@@ -175,7 +175,7 @@ out3,axis3 = plt.subplots(1)
 #mean_interval_edges = thesis.z_from_p([79.6,60.39,77.58])
 
 halocline_depths = [-72.24,-57.52,-71.38] #in units of m
-mean_interval_edges = [-76.56,-59.34,-75.02]
+mean_interval_edges = [-76.56,-59.34,-75.29]
 
 print(halocline_depths)
 print(mean_interval_edges)

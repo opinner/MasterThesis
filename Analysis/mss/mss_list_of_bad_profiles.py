@@ -110,7 +110,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         except KeyError:
             print(transect_name," is skipped, Error during loading data")
-            list_of_bad_profiles.append(["_".join((cruisename,transect_name,)),"\t\tdata_is_not_complete"])
+            list_of_bad_profiles.append(["_".join((cruisename,transect_name,)),"\t\t\tdata_is_not_complete"])
             continue
         
         number_of_transects+=1 
@@ -185,24 +185,24 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 
                 #test if the saturation at that depth is under a certain level
                 if eps_oxygen_sat_grid[profile,test_index] < 50:
-                    print("Halocline is too high!",eps_oxygen_sat_grid[profile,test_index])
+                    print("Oxycline drops too fast!",eps_oxygen_sat_grid[profile,test_index])
                     outlier_count += 1
-                    list_of_bad_profiles.append(["_".join((cruisename,transect_name,str(profile))),"\t\t\thalocline_is_too_shallow"])
+                    list_of_bad_profiles.append(["_".join((cruisename,transect_name,str(profile))),"\t\t\toxygen_drops_too_fast"])
                     continue
                  
                 try:    
                     #test if the saturation at that depth is under a certain level
                     if eps_pressure[np.nanargmin(thesis.central_differences(eps_oxygen_sat_grid[profile,:]))] < 50:
-                        print("Halocline is too high!",eps_oxygen_sat_grid[profile,test_index])
+                        print("Oxycline is too high!",eps_pressure[np.nanargmin(thesis.central_differences(eps_oxygen_sat_grid[profile,:]))])
                         outlier_count += 1
-                        list_of_bad_profiles.append(["_".join((cruisename,transect_name,str(profile))),"\t\t\thalocline_is_too_shallow"])
-                        continue
+                        #list_of_bad_profiles.append(["_".join((cruisename,transect_name,str(profile))),"oxycline_is_too_shallow"])
+                        #continue
                         
                 except ValueError:
                     #if np.all(np.isnan(eps_oxygen_sat_grid[profile,:])):
                     print("All NaN profile")
                     outlier_count += 1
-                    list_of_bad_profiles.append(["_".join((cruisename,transect_name,str(profile))),"\t\t\tNaN profile"])
+                    list_of_bad_profiles.append(["_".join((cruisename,transect_name,str(profile))),"\t\t\tNaN_profile"])
                     continue
 
                                    

@@ -59,7 +59,10 @@ def Skif(Reb):
      
         
 def basic_Osborn(Reb):
-    return 0.2
+    if Reb < 7:
+        return 0
+    else:
+        return 0.2
         
 #vectorized version (acts on every element of an array)
 def Osborn(Reb):
@@ -71,11 +74,11 @@ def Osborn(Reb):
 
 
 width = 6.2012
-height = width * 1.618
+height = width / 1.618
 
 #beamer figure sizes
-width = 1.7*4.252 #6.2012
-height = 1.5*3.7341 #* 4/3 #1.618
+#width = 1.7*4.252 #6.2012
+#height = 1.5*3.7341 #* 4/3 #1.618
 
 f1,axis1 = plt.subplots()
 
@@ -94,10 +97,10 @@ axis1.set_ylim(-0.01,0.21)
 #axis1.set_xlim(-27,620)
 
 axis1.set_xlabel(r"Reynolds Buoyancy Number $Re_b$")
-axis1.set_ylabel(r"$\Gamma$")
+axis1.set_ylabel(r"flux coefficient $\Gamma$")
 
 axis1.legend(loc = "lower right")
-axis1.set_title("Turbulence parametrizations")
+#axis1.set_title("Turbulence parametrizations")
 
 f1.set_size_inches(width,height)
 f1.subplots_adjust(top=0.923,bottom=0.136,left=0.142,hspace=0.058,wspace=0.185)

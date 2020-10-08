@@ -843,11 +843,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 ###############################################################################################################
 ###############################################################################################################
 width = 6.2012
-height = width * 1.618
+height = width / 1.618
 
 #beamer figure sizes
-width = 1.7*4.252 #6.2012
-height = 1.5*3.7341 #* 4/3 #1.618
+#width = 1.7*4.252 #6.2012
+#height = 1.5*3.7341 #* 4/3 #1.618
 
 
 #f_log_sum.set_size_inches(width, height)
@@ -892,11 +892,19 @@ f_median.suptitle(r"Median downward oxygen fluxes")
 f_mean.suptitle(r"Mean downward oxygen fluxes")
 f_cum.suptitle(r"Cumulative sum of binned oxygen fluxes")
 
+f_reb.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/Reb_hist.png", dpi = 600)
+f_eps.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/eps_hist.png", dpi = 600)
+#f_sum.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_log_flux_Reb.png", dpi = 600)
+f_log_sum.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/sum_flux_Reb.png", dpi = 600)
+f_cum.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/cum_flux_Reb.png", dpi = 600)
+
+"""
 f_reb.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_Reb_hist.png", dpi = 600)
 f_eps.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_eps_hist.png", dpi = 600)
 #f_sum.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_log_flux_Reb.png", dpi = 600)
 f_log_sum.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_sum_flux_Reb.png", dpi = 600)
 f_cum.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_cum_flux_Reb.png", dpi = 600)
+"""
    
 plt.show()
     

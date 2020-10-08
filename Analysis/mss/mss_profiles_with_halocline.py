@@ -29,7 +29,7 @@ f_sal, sal_axis = plt.subplots(nrows = 1, ncols = 3, sharey = True, sharex = Tru
 
 #datafile_path = "/home/ole/windows/processed_mss/emb177/TS1_6.npz"
 #datafile_path = "/home/ole/windows/processed_mss/emb217/TR1-4.npz"
-paths = ["/home/ole/windows/processed_mss/emb169/TS112.npz","/home/ole/windows/processed_mss/emb177/TS1_6.npz","/home/ole/windows/processed_mss/emb217/TR1-4.npz"]
+paths = ["/home/ole/windows/processed_mss/emb169/TS112.npz","/home/ole/windows/processed_mss/emb177/TS1_7.npz","/home/ole/windows/processed_mss/emb217/TR1-4.npz"]
 
 for path_index,datafile_path in enumerate(paths):
     data = np.load(datafile_path)
@@ -290,29 +290,30 @@ for path_index,datafile_path in enumerate(paths):
         else:
             interval_stop_index -= 1
                         
-    
+
     axis2[0].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
     axis2[1].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
     axis2[2].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
     axis2[3].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
     axis2[4].axhspan(eps_pressure[interval_start_index],eps_pressure[interval_stop_index], color = "r",  alpha = 0.5)
+
             
     axis2[0].invert_yaxis()
-    axis2[4].set_xlim(-12,1.5)
+    #axis2[4].set_xlim(-12,1.5)
     
     axis2[0].set_ylabel("pressure [dbar]")
     axis2[0].set_xlabel(r"$\theta$ [$\degree$C]")
     axis2[1].set_xlabel("SA [g/kg]")
-    axis2[2].set_xlabel(r"O$_2$ saturation [%]")
+    axis2[2].set_xlabel(r"O$_2$ sat. [%]")
     axis2[3].set_xlabel(r"$\epsilon$ [m²/s³]")
-    axis2[4].set_xlabel("OF [mmol/m²d]")
+    axis2[4].set_xlabel("Shih OF\n[mmol/m²d]")
     
     width = 6.2012
     height = width / 1.618
     
     #beamer figure sizes
-    width = 1.5*4.252 #6.2012
-    height = width / (4/3) #1.618
+    #width = 1.5*4.252 #6.2012
+    #height = width / (4/3) #1.618
 
     if cruise_name == "emb169":
         season = "autumn cruise"
@@ -328,7 +329,7 @@ for path_index,datafile_path in enumerate(paths):
     fout2.set_size_inches(width,height)
     fout2.suptitle(textstr)
     fout2.subplots_adjust(top=0.92,bottom=0.17,left=0.122,right=0.946,hspace=0.058,wspace=0.2)
-    fout2.savefig("/home/ole/Thesis/Analysis/mss/pictures/halocline_interval_profile_"+cruise_name+"_"+transect_name, dpi = 400)
+    fout2.savefig("/home/ole/Thesis/Analysis/mss/pictures/profile_examples_interval"+cruise_name+"_"+transect_name, dpi = 400)
     
     sal_axis[path_index].plot(eps_salinity_grid[profile_index,:],eps_pressure, c = "tab:green", lw = 2, label = "practical salinity")
     sal_axis[path_index].set_title(season +"\n"+cruise_name)
@@ -343,7 +344,7 @@ sal_axis[0].set_ylabel("pressure [dbar]")
 sal_axis[0].invert_yaxis()
 f_sal.set_size_inches(width,height)
 f_sal.subplots_adjust(top=0.744,bottom=0.161,left=0.122,right=0.974,hspace=0.058,wspace=0.132)
-f_sal.subplots_adjust(top=0.795,bottom=0.129,left=0.119,right=0.974,hspace=0.058,wspace=0.127)
+#f_sal.subplots_adjust(top=0.795,bottom=0.129,left=0.119,right=0.974,hspace=0.058,wspace=0.127)
 
 f_sal.savefig("/home/ole/Thesis/Analysis/mss/pictures/salinity_profiles_with_halocline.png", dpi = 400)
 

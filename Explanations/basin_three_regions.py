@@ -175,7 +175,7 @@ for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],[
     cbar.set_label("depth [m]",size = 14)
 
     # Add Title
-    #axis.set_title('Eastern Gotland Basin with hypoxic area below '+str(halocline_depth)+" m", size = 16, weight = "bold")
+    axis.set_title('Eastern Gotland Basin with hypoxic area below '+str(-halocline_depth)+" m", size = 16, weight = "bold")
     x,y = map_ax(18.45,57.4)
     axis.text(x,y,'Gotland',ha = "center", va = "center",rotation=40, size = 14 )
     x,y = map_ax(21.4,56.8)
