@@ -51,8 +51,8 @@ number_of_density_bins = density_bin_edges.size -1
 #density_bin_center = np.arange(1004,1010.5,0.2)
 
 
-f_flux,flux_axarr = plt.subplots(nrows = 2, ncols = 1, sharex = True, gridspec_kw={'height_ratios': [1.618, 1]}) 
-f_dissip,dissip_axarr = plt.subplots(nrows = 2, ncols = 1, sharex = True, gridspec_kw={'height_ratios': [1.618, 1]}) 
+f_flux,flux_axarr = plt.subplots(nrows = 2, ncols = 1, sharex = True, gridspec_kw={'height_ratios': [1.8, 1]}) 
+f_dissip,dissip_axarr = plt.subplots(nrows = 2, ncols = 1, sharex = True, gridspec_kw={'height_ratios': [1.8, 1]}) 
 f_interval,interval_axarr = plt.subplots(1) 
 #textstr = ""
 
@@ -151,7 +151,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             eps_N_squared_grid = data["bin_N_squared_grid"]
             eps_density_grid = data["bin_density_grid"]
             eps_pot_density_grid = data["bin_pot_density_grid"]
-            #eps_pot_density_grid = np.sort(eps_pot_density_grid, axis = 0)
+
+            #sort density profiles
+            #eps_density_grid = thesis.sort_2D_array_with_nans(eps_density_grid)
+            #eps_pot_density_grid = thesis.sort_2D_array_with_nans(eps_pot_density_grid)
+
             #eps_viscosity_grid = data["eps_viscosity_grid"]
             eps_Reynolds_bouyancy_grid = data["bin_Reynolds_bouyancy_grid"]
             corrected_eps_Reynolds_bouyancy_grid = data["corrected_bin_Reynolds_bouyancy_grid"]
@@ -243,8 +247,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             turbulent_diffusivity_Osborn_grid[profile,BBL_from:BBL_to] = law_of_the_wall_turbulent_diffusivity
             turbulent_diffusivity_Shih_grid[profile,BBL_from:BBL_to] = law_of_the_wall_turbulent_diffusivity
         
-        oxygen_gradient_grid = thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-        unit_conversion_grid = 86400*(1000/eps_density_grid) #to convert from m*micromol/(kg*s) to mmol/(m^2*d)
+        oxygen_gradient_grid = thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth) #in units of micromol/(m*l)
+        unit_conversion_grid = 86400 #to convert from m*micromol/(l*s) to mmol/(m^2*d)  ; l to m^3 and micro to milli cancel each other out (factor of 1000)
     
         oxygen_flux_Osborn_grid = - turbulent_diffusivity_Osborn_grid * oxygen_gradient_grid * unit_conversion_grid
         oxygen_flux_Shih_grid = - turbulent_diffusivity_Shih_grid * oxygen_gradient_grid * unit_conversion_grid
@@ -259,6 +263,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         
         
         for profile in range(number_of_profiles):
+        
         
             #skip profile is necessary
             if "_".join((cruise_name,transect_name,str(profile))) in list_of_bad_profiles:
@@ -676,7 +681,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 #try:
                 #print(start_interval_index,stop_interval_index,"\n")
                 assert start_interval_index < stop_interval_index
-                assert iso_mean_pressure[profile,start_interval_index] < iso_mean_pressure[profile,stop_interval_index]
+                #assert iso_mean_pressure[profile,start_interval_index] < iso_mean_pressure[profile,stop_interval_index]
                   
                      
                 #except AssertionError:
@@ -768,7 +773,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     #np.savetxt("./data/"+cruise_name+'_iso_flux_results_woBBL.txt', np.transpose([longitude_list,distance_list,bathymetry_list,distance_lower_edge_iso_interval_sea_floor,mean_Osborn_flux,iso_vertical_mean_Osborn_flux,mean_Shih_flux,iso_vertical_mean_Shih_flux]), header = "longitude\tdistance\tdepth[dbar]\tdistance interval-ground\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")
     
     np.savetxt("./data/"+cruise_name+'_iso_flux_results.txt', np.transpose([longitude_list,distance_list,bathymetry_list,distance_lower_edge_iso_interval_sea_floor,mean_Osborn_flux,iso_vertical_mean_Osborn_flux,mean_Shih_flux,iso_vertical_mean_Shih_flux]), header = "longitude\tdistance\tdepth[dbar]\tdistance interval-ground\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")
-    
+
+    #np.savetxt("./data/"+cruise_name+'_iso_flux_results_sorted.txt', np.transpose([longitude_list,distance_list,bathymetry_list,distance_lower_edge_iso_interval_sea_floor,mean_Osborn_flux,iso_vertical_mean_Osborn_flux,mean_Shih_flux,iso_vertical_mean_Shih_flux]), header = "longitude\tdistance\tdepth[dbar]\tdistance interval-ground\traw Osborn\trolling mean Osborn\traw Shih\trolling mean Shih", fmt = "%3.8f")    
     ##################################################################################################################################
     ##################################################################################################################################
     ##################################################################################################################################
@@ -825,7 +831,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
 ###############################################################################################################
 ###############################################################################################################
 width = 6.2012
-height = width #* 4/3 #1.618
+height = width * 0.8 #* 4/3 #1.618
 
 #beamer figure sizes
 #width = 1.7*4.252 #6.2012
@@ -884,7 +890,7 @@ flux_axarr[0].set_ylabel(r"$\langle$OF$\rangle$ [mmol/(m$^2$d)]")
 #flux_axarr[0].set_ylabel(r"$\langle$Oxygen flux$\rangle$ [mmol/(m$^2$d)]")
 
 f_flux.set_size_inches(width,height) #set_size_inches(16,10.5)
-f_flux.subplots_adjust(top=0.95,bottom=0.09,left=0.12,right=0.975,hspace=0.058,wspace=0.185)
+f_flux.subplots_adjust(top=0.945,bottom=0.105,left=0.115,right=0.975,hspace=0.058,wspace=0.185) #top=0.95,bottom=0.09,left=0.12,right=0.975,hspace=0.058,wspace=0.185)
 #f_flux.subplots_adjust(top=0.98,bottom=0.09,left=0.12,right=0.975,hspace=0.058,wspace=0.185)
 
 props = dict(boxstyle='square', facecolor = "white")
@@ -918,7 +924,7 @@ dissip_axarr[1].yaxis.set_major_locator(mticker.MultipleLocator(pressure_tick_sp
 
 f_dissip.set_size_inches(width,height)
 #f_dissip.tight_layout() 
-f_dissip.subplots_adjust(top=0.95,bottom=0.09,left=0.125,right=0.975,hspace=0.058,wspace=0.185) #top=0.925,bottom=0.1,left=0.137,right=0.965,hspace=0.153,wspace=0.2)
+f_dissip.subplots_adjust(top=0.945,bottom=0.105, left = 0.13,right=0.975,hspace=0.058,wspace=0.185) #top=0.95,bottom=0.09,left=0.125,right=0.975,hspace=0.058,wspace=0.185)
 #f_dissip.subplots_adjust(top=0.98,bottom=0.09,left=0.125,right=0.975,hspace=0.058,wspace=0.185)
     
 #props = dict(boxstyle='square', facecolor = "white")

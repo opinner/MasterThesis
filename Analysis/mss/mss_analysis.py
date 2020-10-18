@@ -175,7 +175,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             #print(lon)
             #print(np.all(np.diff(lon)>0))
             img4_0 = axarr4[0].plot(oxygen_sat_grid[profile_index,:],interp_pressure, label = "raw data")
-            img4_0a = axarr4[0].plot(bin_oxygen_sat_grid[profile_index,:],eps_pressure, label = "bined data")
+            img4_0a = axarr4[0].plot(bin_oxygen_sat_grid[profile_index,:],eps_pressure, label = "binned data")
             #img4_0b = axarr4[0].plot(0,BBL[profile_index],"Dr")
             #img4_0c = axarr4[0].plot(0,bathymetrie[profile_index],"Dg")
             #img4_0d = axarr4[0].plot(0,BBL_range[profile_index],"ok")
@@ -268,11 +268,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             img3_1 = axarr3[1].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_sat_grid.T,cmap = cmap_RdBu)
             img3_2 = axarr3[2].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9,cmap = cmap_hot)
             
-            BBL_img1 = BBL_ax[0].pcolormesh(plotmesh_longitude,interp_pressure,oxygen_sat_grid.T,cmap = cmap_RdBu)
-            BBL_img2 = BBL_ax[1].pcolormesh(plotmesh_longitude,eps_pressure,np.log10(eps_grid.T), vmax = -7, vmin = -9,cmap = cmap_hot)
+            BBL_img1 = BBL_ax[0].pcolormesh(plotmesh_longitude,bin_pressure,bin_oxygen_sat_grid.T,cmap = cmap_RdBu)
+            BBL_img2 = BBL_ax[1].pcolormesh(plotmesh_longitude,bin_pressure,np.log10(bin_eps_grid.T), vmax = -7, vmin = -9,cmap = cmap_hot)
                         
             
-            density_steps = np.arange(np.nanmin(pot_density_grid),np.nanmax(pot_density_grid),0.2)
+            density_steps = np.arange(np.nanmin(pot_density_grid),np.nanmax(pot_density_grid),0.3)
             #compute and plot isopycnals
             for density_step in density_steps:
                 isopycnal = np.zeros(number_of_profiles)
@@ -348,7 +348,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             height = width / 1.618
             BBL_pic.set_size_inches(width,height)
             
-            colorbar(img1_0).set_label(r"Oxygen [$\mu mol/kg$]") 
+            colorbar(img1_0).set_label(r"Oxygen [$\mu mol/l$]") 
             colorbar(img1_1).set_label("salinity [SA]") 
             colorbar(img1_2).set_label("consv_temperature [C]")
             colorbar(img1_3).set_label(r"log10(dissipation) $[m^2 s^{-3}]$")
