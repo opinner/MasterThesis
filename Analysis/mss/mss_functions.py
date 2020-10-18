@@ -2,6 +2,20 @@
 #functions
 #TODO better documentation
 #######################################################################
+
+
+def sort_2D_array_with_nans(array):
+    import numpy as np
+    number_of_profiles = np.shape(array)[0]
+    for index in range(number_of_profiles):
+        array[index,:] = sort_1Darray_with_nans(array[index,:])
+    return array
+
+def sort_1Darray_with_nans(array):
+    import numpy as np
+    mask = ~np.isnan(array)
+    array[mask] = sorted(array[mask])
+    return array
    
 def z_from_p(pressure_values):
     import gsw.conversions 
@@ -14,6 +28,11 @@ von_Karman_constant = 0.40
 
 
 def remove_nans_from_2_arrays(a,b):
+
+    #typecast
+    a = np.asarray(a)
+    b = np.asarray(b)
+
 
     a_mask = np.isnan(a)
     
@@ -550,12 +569,14 @@ def load_clean_and_interpolate_data(datafile_path):
     eps_lon_grid = np.reshape(lat,(-1,1)) * np.ones((number_of_profiles,eps_pressure.size))
     
     if cruisename == "emb217":
-        #convert oxygen saturation to oxygen concentration (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
-        oxygen_grid = oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
-        eps_oxygen_grid = oxygen_saturation_to_concentration(eps_oxygen_sat_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid) 
-        bin_oxygen_grid = oxygen_saturation_to_concentration(bin_oxygen_sat_grid,bin_salinity_grid, bin_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid) 
+        #convert oxygen saturation [%] to oxygen concentration [micromol/l] (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
+        oxygen_grid = oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, density_grid, lat_grid, lon_grid)
+        eps_oxygen_grid = oxygen_saturation_to_concentration(eps_oxygen_sat_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_density_grid, eps_lat_grid, eps_lon_grid) 
+        bin_oxygen_grid = oxygen_saturation_to_concentration(bin_oxygen_sat_grid,bin_salinity_grid, bin_consv_temperature_grid, eps_pressure_grid, bin_density_grid, eps_lat_grid, eps_lon_grid) 
                       
     elif cruisename == "emb177":
+    
+
         #scale the oxygen to be at 100% at the surface
         maximum_concentration_grid = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
         bin_maximum_concentration_grid = gsw.O2sol(bin_salinity_grid, bin_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)
@@ -578,20 +599,21 @@ def load_clean_and_interpolate_data(datafile_path):
                     bin_correction_factor[profile] = bin_maximum_concentration_grid[profile,i]/bin_oxygen_grid[profile,i]
                     break
                             
-        oxygen_grid = oxygen_grid * correction_factor
+        #oxygen_grid = oxygen_grid * correction_factor
         eps_oxygen_grid = eps_oxygen_grid * correction_factor
         bin_oxygen_grid = bin_oxygen_grid * bin_correction_factor
+
                 
         #convert oxygen concentration to oxygen saturation (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
-        oxygen_sat_grid = oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
-        eps_oxygen_sat_grid = oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)  
-        bin_oxygen_sat_grid = oxygen_concentration_to_saturation(bin_oxygen_grid,bin_salinity_grid, bin_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)
+        oxygen_sat_grid = oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, density_grid, lat_grid, lon_grid)
+        eps_oxygen_sat_grid = oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_density_grid, eps_lat_grid, eps_lon_grid)  
+        bin_oxygen_sat_grid = oxygen_concentration_to_saturation(bin_oxygen_grid,bin_salinity_grid, bin_consv_temperature_grid, eps_pressure_grid, bin_density_grid, eps_lat_grid, eps_lon_grid)
             
     elif cruisename == "emb169":
         #convert oxygen concentration to oxygen saturation (functions are selfwritten but use the gsw toolbox, for more informations see the function (also in this file))
-        oxygen_sat_grid = oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
-        eps_oxygen_sat_grid = oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)  
-        bin_oxygen_sat_grid = oxygen_concentration_to_saturation(bin_oxygen_grid,bin_salinity_grid, bin_consv_temperature_grid, eps_pressure_grid, eps_lat_grid, eps_lon_grid)    
+        oxygen_sat_grid = oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, density_grid, lat_grid, lon_grid)
+        eps_oxygen_sat_grid = oxygen_concentration_to_saturation(eps_oxygen_grid,eps_salinity_grid, eps_consv_temperature_grid, eps_pressure_grid, eps_density_grid, eps_lat_grid, eps_lon_grid)  
+        bin_oxygen_sat_grid = oxygen_concentration_to_saturation(bin_oxygen_grid,bin_salinity_grid, bin_consv_temperature_grid, eps_pressure_grid, bin_density_grid, eps_lat_grid, eps_lon_grid)    
     else:
         raise AssertionError
         
@@ -614,46 +636,38 @@ def load_clean_and_interpolate_data(datafile_path):
 #/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-def oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat, lon):
+def oxygen_saturation_to_concentration(oxygen_sat_grid,salinity_grid, consv_temperature_grid, pressure_grid, density_grid, lat, lon):
     """
-    tranforms oxygen saturation in % to oxygen concentration in micro-moles per kg
+    tranforms oxygen saturation in % to oxygen concentration in micro-moles per l
+    """
+
+    import gsw 
+          
+    #in units of micromol / kg  
+    maximum_concentration_grid = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat, lon)
+
+    #in units of micromol / l 
+    maximum_concentration_grid = maximum_concentration_grid * 1000 / density_grid  
+    
+    oxygen_concentration_grid = (oxygen_sat_grid / 100 ) * maximum_concentration_grid
+
+    return oxygen_concentration_grid
+
+
+def oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, density_grid, lat_grid, lon_grid):
+    """
+    tranforms oxygen concentration in micro-moles per l to oxygen saturation
     """
 
     import gsw 
     
-    """
-    try:
-        assert not np.any(oxygen_sat_grid<0)
-    except AssertionError:
-        pass #TODO
-        #print(oxygen_sat_grid[oxygen_sat_grid<0])
-        #raise AssertionError 
-    """
-        
-    maximum_concentration = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat, lon)
-
-
-    #print(maximum_concentration[maximum_concentration<0])
-    #assert(not np.any(maximum_concentration<0))
-    
-    
-    oxygen_concentration = (oxygen_sat_grid / 100 ) * maximum_concentration
-    
-    
-    #assert(not np.any(oxygen_sat_grid<0))
-    #assert(np.all(oxygen_concentration>0))
-
-    return oxygen_concentration
-
-
-def oxygen_concentration_to_saturation(oxygen_grid,salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid):
-    """
-    tranforms oxygen concentration in micro-moles per kg to oxygen saturation
-    """
-
-    import gsw 
+    #in units of micromol / kg
     maximum_concentration_grid = gsw.O2sol(salinity_grid, consv_temperature_grid, pressure_grid, lat_grid, lon_grid)
 
+    #in units of micromol / l 
+    maximum_concentration_grid = maximum_concentration_grid * 1000 / density_grid
+    
+    
     oxygen_sat_grid = 100 * oxygen_grid/maximum_concentration_grid
 
     return oxygen_sat_grid
