@@ -148,8 +148,8 @@ for path_index,datafile_path in enumerate(paths):
         turbulent_diffusivity_Osborn_grid[profile,BBL_from:BBL_to] = law_of_the_wall_turbulent_diffusivity
         turbulent_diffusivity_Shih_grid[profile,BBL_from:BBL_to] = law_of_the_wall_turbulent_diffusivity
     
-    oxygen_gradient_grid = thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth)
-    unit_conversion_grid = 86400*(1000/eps_density_grid) #to convert from m*micromol/(kg*s) to mmol/(m^2*d)
+    oxygen_gradient_grid = thesis.central_differences(eps_oxygen_grid)/thesis.central_differences(eps_depth) #in units of micromol/(m*l)
+    unit_conversion_grid = 86400 #to convert from m*micromol/(l*s) to mmol/(m^2*d)  ; l to m^3 and micro to milli cancel each other out (factor of 1000)
 
     oxygen_flux_Osborn_grid = - turbulent_diffusivity_Osborn_grid * oxygen_gradient_grid * unit_conversion_grid
     oxygen_flux_Shih_grid = - turbulent_diffusivity_Shih_grid * oxygen_gradient_grid * unit_conversion_grid
@@ -265,8 +265,8 @@ for path_index,datafile_path in enumerate(paths):
     print(halocline_index)
     halocline_density = eps_pot_density_grid[profile_index,halocline_index] 
     #print(halocline_density)
-    interval_start_index = np.nanargmin(np.abs(eps_pot_density_grid[profile_index,:] - (halocline_density - 0.5)))
-    interval_stop_index = np.nanargmin(np.abs(eps_pot_density_grid[profile_index,:] - (halocline_density + 0.5)))
+    interval_start_index = np.nanargmin(np.abs(eps_pot_density_grid[profile_index,:] - (halocline_density - 0.25)))
+    interval_stop_index = np.nanargmin(np.abs(eps_pot_density_grid[profile_index,:] - (halocline_density + 0.25)))
         
     #    for datapoint in eps_pressure[halocline_index-20:halocline_index+20]:
     #    print(datapoint 

@@ -33,17 +33,16 @@ warnings.filterwarnings('ignore')
     
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177"] #"/home/ole/windows/processed_mss/emb217"]#,"/home/ole/windows/processed_mss/emb169",
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
-#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177"]
 
 rolling_window_size = 9 # for longitudinal averaging
-density_box_width = 1 #in kg/m³ (for vertical averaging)
+density_box_width = 0.5 #in kg/m³ (for vertical averaging)
 
 height_above_ground = 20 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
 maximum_reasonable_flux = float('Inf') #200 #Fluxes with absolute values above this cut off value will be discarded
 maximum_halocline_thickness = 20 #float('Inf') #30
 
 #density_bin_edges = np.linspace(1004,1010.5,20)
-density_step = 0.1
+density_step = 0.05
 density_bin_edges = np.arange(1004,1011,density_step)
 density_bin_center = density_bin_edges[:-1] + density_step/2 
 #assert len(density_bin_center) == len(density_bin_edges) - 1
@@ -253,7 +252,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         oxygen_flux_Osborn_grid = - turbulent_diffusivity_Osborn_grid * oxygen_gradient_grid * unit_conversion_grid
         oxygen_flux_Shih_grid = - turbulent_diffusivity_Shih_grid * oxygen_gradient_grid * unit_conversion_grid
         #oxygen_flux_BB_grid =  - turbulent_diffusivity_BB_grid * oxygen_gradient_grid * unit_conversion_grid
-
+       
         
         # check if the absolute Osborn fluxes are higher than the absolute Shih fluxes (as they should be, because Gamma_Osborn >= Gamma_Shih)
         assert np.all(np.isnan(oxygen_flux_Osborn_grid) == np.isnan(oxygen_flux_Shih_grid))
@@ -271,9 +270,15 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 continue
             
             #outsider with really high fluxes
-            if cruise_name == "emb217" and transect_name == "TR1-8" and profile == 44:
+            #if cruise_name == "emb217" and transect_name == "TR1-8" and profile == 44:
+            #    continue
+            
+            #outsider with really high fluxes
+            if cruise_name == "emb169" and transect_name == "TS113" and profile == 7:
                 continue
-                
+             
+            
+               
             #################################################
             #all iso arrays are in density space and contain one float for every density bin of the profile 
             #the other arrays are in pressure space and contains only the  data points inside the desired density interval     
@@ -334,7 +339,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 
                 #print(from_index,to_index, np.nanargmin(abs(np.asarray(eps_pot_density_grid[profile,:]) - halocline_density)))
 
-                assert from_index < to_index   
+                #print(from_index,to_index)
+                assert from_index <= to_index   
                 
                 """
                 try:
@@ -359,9 +365,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 """
                     
                 #used for the isopcynal averaging of the whole profiles
-                start_density_interval = int(np.argmin(np.abs(density_bin_center - (halocline_density - density_box_width/2))))
-                stop_density_interval = int(np.argmin(np.abs(density_bin_center - (halocline_density + density_box_width/2))))
-                
+                #start_density_interval = halocline_bin_index - int((density_box_width/density_step)//2)   #int(np.argmin(np.abs(density_bin_center -(halocline_density - density_box_width/2))))
+                #stop_density_interval = halocline_bin_index  + int((density_box_width/density_step)//2)+1 #int(np.argmin(np.abs(density_bin_center -(halocline_density + density_box_width/2))))
+                start_density_interval = int(np.argmin(np.abs(density_bin_center -(halocline_density - density_box_width/2))))
+                stop_density_interval = int(np.argmin(np.abs(density_bin_center -(halocline_density + density_box_width/2))))
+                               
                    
             else:
                 from_index, to_index = (0,0)
@@ -385,13 +393,6 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
             #to_index = max(from_index,min(sea_floor_index-3,to_index))
             """
-            
-            #TODO replace with binned_statistic            
-            
-            ###############################################################################################################################
-            
-            #remove all nans in
-            #thesis.remove_nans_from_2_arrays(a,b):
             
             #transform data from pressure coordinates to density coordinates
             try:
@@ -493,12 +494,13 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 Shih_flux_list.insert(list_position,oxygen_flux_Shih_grid[profile,from_index:to_index])
                 Osborn_flux_list.insert(list_position,oxygen_flux_Osborn_grid[profile,from_index:to_index])
                 
-                """
-                if np.nanmean(oxygen_flux_Osborn_grid[profile,from_index:to_index]) < - 350:
-                    print("#"*50)
-                    print(cruise_name,transect_name,profile)
-                    print("#"*50)
-                """
+
+                #if np.nanmean(oxygen_flux_Osborn_grid[profile,from_index:to_index]) < - 150:
+                #if abs(lon[profile] - 20.6147) < 0.01: 
+                #    print("#"*50)
+                #    print(cruise_name,transect_name,profile, lon[profile], np.nanmean(oxygen_flux_Osborn_grid[profile,from_index:to_index]))
+                #    print("#"*50)
+
                     
                 if from_index != to_index:
                     interval_pressure_list.insert(list_position,[eps_pressure[from_index],eps_pressure[to_index]])
@@ -603,8 +605,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 iso_rolling_mean_Shih_flux[index] = np.nanmean(iso_Shih_flux_list[left:right,:],axis = 0)
                 iso_rolling_mean_Osborn_flux[index] = np.nanmean(iso_Osborn_flux_list[left:right,:],axis = 0)
                 iso_rolling_mean_dissipation[index] = np.nanmean(iso_dissipation_list[left:right,:],axis = 0)
-
-
+               
+                
             except (IndexError,ValueError):
                 raise AssertionError('Accessing the array did not work')
                 #iso_mean_pressure[index] = np.nan*np.ones(number_of_density_bins)
@@ -639,18 +641,21 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     iso_vertical_mean_dissipation = np.asarray([None] * total_number_of_valid_profiles)
      
     #extract the desired vertical interval  
-    for profile in range(total_number_of_valid_profiles):      
+    for vertical_averaging_profile_index in range(total_number_of_valid_profiles):      
        
         #look up the indices of the vertical density interval for this profile
-        interval_start, interval_stop = iso_interval_density_list[profile]
-        halocline_bin_index = halocline_bin_index_list[profile]
+        interval_start, interval_stop = iso_interval_density_list[vertical_averaging_profile_index]
+        halocline_bin_index = halocline_bin_index_list[vertical_averaging_profile_index]
         
         #check if the interval are indeed numbers
-        if not np.isnan(interval_start) and not np.isnan(interval_stop) and not np.isnan(halocline_position_list[profile]):
+        if not np.isnan(interval_start) and not np.isnan(interval_stop) and not np.isnan(halocline_position_list[vertical_averaging_profile_index]):
         
             
             start_interval_index,stop_interval_index = int(interval_start),int(interval_stop)
-            
+            #print(total_number_of_valid_profiles, np.shape(iso_rolling_mean_Shih_flux))
+            #print(cruise_name, vertical_averaging_profile_index, longitude_list[vertical_averaging_profile_index])
+            #print(iso_rolling_mean_Shih_flux[vertical_averaging_profile_index,start_interval_index:stop_interval_index])
+                
             try:
                 temp = (start_interval_index,stop_interval_index)
                 
@@ -660,7 +665,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 #check if the vertical interval is bigger than the maximum halocline thickness
                 #if yes incrementally adjust the interval to fewer data points
                 while True:
-                    if iso_mean_pressure[profile,halocline_bin_index] - iso_mean_pressure[profile,start_interval_index] <= maximum_halocline_thickness/2:
+                    if iso_mean_pressure[vertical_averaging_profile_index,halocline_bin_index] - iso_mean_pressure[vertical_averaging_profile_index,start_interval_index] <= maximum_halocline_thickness/2:
                         break
                     elif start_interval_index >= halocline_bin_index:
                         break
@@ -669,7 +674,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                         
                         
                 while True:
-                    if iso_mean_pressure[profile,stop_interval_index] - iso_mean_pressure[profile,halocline_bin_index] <= maximum_halocline_thickness/2:
+                    if iso_mean_pressure[vertical_averaging_profile_index,stop_interval_index] - iso_mean_pressure[vertical_averaging_profile_index,halocline_bin_index] <= maximum_halocline_thickness/2:
                         break
                     elif stop_interval_index <= halocline_bin_index:
                         break
@@ -681,48 +686,63 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 #try:
                 #print(start_interval_index,stop_interval_index,"\n")
                 assert start_interval_index < stop_interval_index
-                #assert iso_mean_pressure[profile,start_interval_index] < iso_mean_pressure[profile,stop_interval_index]
+                #assert iso_mean_pressure[vertical_averaging_profile_index,start_interval_index] < iso_mean_pressure[vertical_averaging_profile_index,stop_interval_index]
                   
                      
                 #except AssertionError:
                 #print("#"*50)
-                #print(start_interval_index,stop_interval_index,iso_mean_pressure[profile,start_interval_index],iso_mean_pressure[profile,stop_interval_index])
-                #print(temp, iso_mean_pressure[profile,temp[0]] - iso_mean_pressure[profile,halocline_bin_index], iso_mean_pressure[profile,temp[1]] - iso_mean_pressure[profile,halocline_bin_index])
-                #print(iso_mean_pressure[profile,:])
+                #print(start_interval_index,stop_interval_index,iso_mean_pressure[vertical_averaging_profile_index,start_interval_index],iso_mean_pressure[vertical_averaging_profile_index,stop_interval_index])
+                #print(temp, iso_mean_pressure[vertical_averaging_profile_index,temp[0]] - iso_mean_pressure[vertical_averaging_profile_index,halocline_bin_index], iso_mean_pressure[vertical_averaging_profile_index,temp[1]] - iso_mean_pressure[vertical_averaging_profile_index,halocline_bin_index])
+                #print(iso_mean_pressure[vertical_averaging_profile_index,:])
                 #print("#"*50)
                 #raise AssertionError
                     
-                #average over the bins inside that interval including the (therefore the plus 1)
-                iso_vertical_mean_Shih_flux[profile] = np.nanmean(iso_rolling_mean_Shih_flux[profile,start_interval_index:stop_interval_index+1])
-                iso_vertical_mean_Osborn_flux[profile] = np.nanmean(iso_rolling_mean_Osborn_flux[profile,start_interval_index:stop_interval_index+1])
-                iso_vertical_mean_dissipation[profile] = np.log10(np.nanmean(iso_rolling_mean_dissipation[profile,start_interval_index:stop_interval_index+1]))
+                #average over the bins inside that interval
+                iso_vertical_mean_Shih_flux[vertical_averaging_profile_index] = np.nanmean(iso_rolling_mean_Shih_flux[vertical_averaging_profile_index,start_interval_index:stop_interval_index])
+                iso_vertical_mean_Osborn_flux[vertical_averaging_profile_index] = np.nanmean(iso_rolling_mean_Osborn_flux[vertical_averaging_profile_index,start_interval_index:stop_interval_index])
+                iso_vertical_mean_dissipation[vertical_averaging_profile_index] = np.log10(np.nanmean(iso_rolling_mean_dissipation[vertical_averaging_profile_index,start_interval_index:stop_interval_index]))
 
-                appendix = [iso_mean_pressure[profile,start_interval_index],iso_mean_pressure[profile,stop_interval_index+1]]
+
+                #print(cruise_name, vertical_averaging_profile_index, longitude_list[vertical_averaging_profile_index])
+                #print(iso_rolling_mean_Shih_flux[vertical_averaging_profile_index,start_interval_index:stop_interval_index])
+                
+                if cruise_name == "emb217" and iso_vertical_mean_Shih_flux[vertical_averaging_profile_index] < -60:
+                    print("#"*50)
+                    print(cruise_name, vertical_averaging_profile_index, longitude_list[vertical_averaging_profile_index], iso_rolling_mean_Shih_flux[vertical_averaging_profile_index,start_interval_index:stop_interval_index])
+                    print("#"*50)
+
+                
+                appendix = [iso_mean_pressure[vertical_averaging_profile_index,start_interval_index],iso_mean_pressure[vertical_averaging_profile_index,stop_interval_index]]
                 assert np.all(~np.isnan(appendix))
                 iso_interval_pressure_list.append(appendix)
 
-
-            except IndexError:
-                iso_vertical_mean_Shih_flux[profile] = np.nan
-                iso_vertical_mean_Osborn_flux[profile] = np.nan
-                iso_vertical_mean_dissipation[profile] = np.nan
-                iso_interval_pressure_list.append([np.nan,np.nan])                 
-
+                if cruise_name == "emb177" and appendix[1] < 50:
+                    print("#"*50)
+                    print(cruise_name, vertical_averaging_profile_index, longitude_list[vertical_averaging_profile_index])
+                    print("#"*50)
+                    
+                """
+                except IndexError:
+                    raise
+                    iso_vertical_mean_Shih_flux[vertical_averaging_profile_index] = np.nan
+                    iso_vertical_mean_Osborn_flux[vertical_averaging_profile_index] = np.nan
+                    iso_vertical_mean_dissipation[vertical_averaging_profile_index] = np.nan
+                    iso_interval_pressure_list.append([np.nan,np.nan])                 
+                """
 
  
             except AssertionError:
-            
-                iso_vertical_mean_Shih_flux[profile] = np.nan
-                iso_vertical_mean_Osborn_flux[profile] = np.nan
-                iso_vertical_mean_dissipation[profile] = np.nan
+                iso_vertical_mean_Shih_flux[vertical_averaging_profile_index] = np.nan
+                iso_vertical_mean_Osborn_flux[vertical_averaging_profile_index] = np.nan
+                iso_vertical_mean_dissipation[vertical_averaging_profile_index] = np.nan
                 iso_interval_pressure_list.append([np.nan,np.nan])  
         
                 #iso_interval_pressure_list.append([125,135])
 
         else:
-            iso_vertical_mean_Shih_flux[profile] = np.nan
-            iso_vertical_mean_Osborn_flux[profile] = np.nan
-            iso_vertical_mean_dissipation[profile] = np.nan
+            iso_vertical_mean_Shih_flux[vertical_averaging_profile_index] = np.nan
+            iso_vertical_mean_Osborn_flux[vertical_averaging_profile_index] = np.nan
+            iso_vertical_mean_dissipation[vertical_averaging_profile_index] = np.nan
             iso_interval_pressure_list.append([np.nan,np.nan])  
     
             #iso_interval_pressure_list.append([125,135])
@@ -806,8 +826,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     #flux_axarr[1].fill_between(longitude_list,interval_pressure_list[:,0],interval_pressure_list[:,1],color = color, alpha = 0.5, label = label_name)
     flux_axarr[1].fill_between(longitude_list,iso_interval_pressure_list[:,0],iso_interval_pressure_list[:,1],color = color, alpha = 0.5, label = label_name)
 
-
-    
+    #print(iso_interval_pressure_list[:,0])
+    #print(np.nanargmin(iso_interval_pressure_list[:,0]),longitude_list[np.nanargmin(iso_interval_pressure_list[:,0])])
         
     ###############################################################################################################
     

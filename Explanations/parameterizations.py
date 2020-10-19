@@ -90,17 +90,17 @@ linewidth = 4
 
 axis1.plot(Reb,Osborn(Reb), linewidth=linewidth, label = "Osborn, 1980")
 #axis1.plot(Reb,BB(Reb), linewidth=linewidth, label = "Bouffard & Boegman")
-axis1.plot(Reb,Skif(Reb), "--", linewidth=linewidth ,label = "Shih et al, 2005")
+axis1.plot(Reb,Skif(Reb), "--", linewidth=linewidth ,label = "Shih et al., 2005")
 
 
 axis1.set_ylim(-0.01,0.21) 
 #axis1.set_xlim(-27,620)
 
-axis1.set_xlabel(r"Reynolds Buoyancy Number $Re_b$")
+axis1.set_xlabel(r"buoyancy Reynolds number $Re_b$")
 axis1.set_ylabel(r"flux coefficient $\Gamma$")
 
 axis1.legend(loc = "lower right")
-#axis1.set_title("Turbulence parametrizations")
+axis1.set_title("Parametrizations of the flux coefficient ")
 
 f1.set_size_inches(width,height)
 f1.subplots_adjust(top=0.923,bottom=0.136,left=0.142,hspace=0.058,wspace=0.185)

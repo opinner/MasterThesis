@@ -49,8 +49,8 @@ bathymetry[bathymetry == -1.000e+34] = np.nan
 #mean_interval_edges = z_from_p([79.6,60.39,77.58])
 
 halocline_depths = [-72.24,-57.52,-71.38]
-mean_interval_edges = [-76.56,-59.34,-75.02]
-
+mean_interval_edges = [-74.84,-57.85,-73.123]
+regions_list = [0,10],[10,40],[40,999]]
 
 
 #loop over the three cruises and their mean halocline depth
@@ -127,7 +127,7 @@ for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],[
 
     #"#ffc8c0","#f78a7e","#e54742"
       
-    for region,color,label_name in zip([[0,10],[10,40],[40,999]],['#fed98e','#fe9929','#cc4c02'],["edge region","intermediate region","interior region"]):
+    for region,color,label_name in zip([regions_list,['#fed98e','#fe9929','#cc4c02'],["edge region","intermediate region","interior region"]):
         region_mask = np.logical_and(below_halocline_distance_to_ground >= region[0],below_halocline_distance_to_ground < region[1])
         #print(np.shape(below_halocline_lat[region_mask]))
         #print(below_halocline_lat[region_mask])

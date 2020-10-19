@@ -461,15 +461,18 @@ def load_clean_and_interpolate_data(datafile_path):
     bin_density_grid = gsw.rho(bin_salinity_grid,bin_consv_temperature_grid,eps_pressure_grid)
     bin_pot_density_grid = 1000+gsw.density.sigma0(bin_salinity_grid,bin_consv_temperature_grid)
     
+    
+    test_shift_value = +0.50
     #interpolation of the oxygen depends on which source it is
     for i in range(number_of_profiles): 
         
         if cruisename == "emb217":
-            oxygen_sat_grid[i] = np.interp(interp_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan)
-            eps_oxygen_sat_grid[i] = np.interp(eps_pressure,pressure[i].flatten(),oxygen_sat[i].flatten(), left = np.nan, right = np.nan) 
+            oxygen_sat_grid[i] = np.interp(interp_pressure,pressure[i].flatten()+test_shift_value,oxygen_sat[i].flatten(), left = np.nan, right = np.nan)
+            eps_oxygen_sat_grid[i] = np.interp(eps_pressure,pressure[i].flatten()+test_shift_value,oxygen_sat[i].flatten(), left = np.nan, right = np.nan) 
             oxygen_wo_nan_pressure = pressure[i].flatten()[~np.isnan(oxygen_sat[i].flatten())]
             oxygen_wo_nan = oxygen_sat[i].flatten()[~np.isnan(oxygen_sat[i].flatten())]  
             bin_oxygen_sat_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0]     
+            
         elif cruisename == "emb177":
         
             #find pycnocline
@@ -486,8 +489,8 @@ def load_clean_and_interpolate_data(datafile_path):
             else:
                 shift_value = 0
             
-            oxygen_grid[i] = np.interp(interp_pressure,emb177_oxygen_pressure[i]+shift_value,emb177_oxygen[i],left=np.nan,right=np.nan)
-            eps_oxygen_grid[i] = np.interp(eps_pressure,emb177_oxygen_pressure[i]+shift_value,emb177_oxygen[i].flatten(), left = np.nan, right = np.nan) 
+            oxygen_grid[i] = np.interp(interp_pressure,emb177_oxygen_pressure[i]+shift_value+test_shift_value,emb177_oxygen[i],left=np.nan,right=np.nan)
+            eps_oxygen_grid[i] = np.interp(eps_pressure,emb177_oxygen_pressure[i]+shift_value+test_shift_value,emb177_oxygen[i].flatten(), left = np.nan, right = np.nan) 
             oxygen_wo_nan_pressure = emb177_oxygen_pressure[i][~np.isnan(emb177_oxygen[i].flatten())]+shift_value
             oxygen_wo_nan = emb177_oxygen[i].flatten()[~np.isnan(emb177_oxygen[i].flatten())] 
             bin_oxygen_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0] 
@@ -495,8 +498,8 @@ def load_clean_and_interpolate_data(datafile_path):
             
             
         elif cruisename == "emb169": 
-            oxygen_grid[i] = np.interp(interp_pressure,emb169_oxygen_pressure[i],emb169_oxygen[i],left=np.nan,right=np.nan)
-            eps_oxygen_grid[i] = np.interp(eps_pressure,emb169_oxygen_pressure[i],emb169_oxygen[i].flatten(), left = np.nan, right = np.nan) 
+            oxygen_grid[i] = np.interp(interp_pressure,emb169_oxygen_pressure[i]+test_shift_value,emb169_oxygen[i],left=np.nan,right=np.nan)
+            eps_oxygen_grid[i] = np.interp(eps_pressure,emb169_oxygen_pressure[i]+test_shift_value,emb169_oxygen[i].flatten(), left = np.nan, right = np.nan) 
             oxygen_wo_nan_pressure = emb169_oxygen_pressure[i][~np.isnan(emb169_oxygen[i].flatten())]
             oxygen_wo_nan = emb169_oxygen[i].flatten()[~np.isnan(emb169_oxygen[i].flatten())] 
             bin_oxygen_grid[i] = scs.binned_statistic(oxygen_wo_nan_pressure, oxygen_wo_nan, statistic = "mean", bins = shifted_eps_pressure)[0]  
