@@ -20,6 +20,17 @@ plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=MINI_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=MEDIUM_SIZE, titleweight = "bold")  # fontsize of the figure title
 
+
+osborn_flux = np.zeros((3,4))
+shih_flux = np.zeros((3,4))
+osborn_import = np.zeros((3,4))
+shih_import = np.zeros((3,4))
+
+saved_osborn_flux = [[[],[],[],[]],  [[],[],[],[]],   [[],[],[],[]]]
+saved_shih_flux = [[[],[],[],[]],  [[],[],[],[]],   [[],[],[],[]]]
+saved_osborn_import = [[[],[],[],[]],  [[],[],[],[]],   [[],[],[],[]]]
+saved_shih_import = [[[],[],[],[]],  [[],[],[],[]],   [[],[],[],[]]]
+
 def flux_look_up_table(flux, transect_distance_from_ground, distance_from_ground_bin_edges, basin_bathymetry, halocline_depth, mean_interval_edge):
     """
     flux :                              1D-array: longitudinal sorted oxygen fluxes around the halocline
@@ -138,11 +149,16 @@ def flux_look_up_table(flux, transect_distance_from_ground, distance_from_ground
     edge_flux *= pixel_area  
     intermediate_flux *= pixel_area
     interior_flux *= pixel_area   
+    
+    edge_flux = 1e-12*365 * edge_flux
+    intermediate_flux = 1e-12*365 * intermediate_flux
+    interior_flux = 1e-12*365 * interior_flux
+    total_flux = 1e-12*365*(edge_flux + intermediate_flux + interior_flux)
                  
-    print("edge flux:",0,"-",edge,":",1e-12*365*edge_flux,"Gmol/y")
-    print("intermediate flux:",edge,"-",intermediate,":",1e-12*365*intermediate_flux,"Gmol/y")
-    print("interior flux:",intermediate,"- __ :",1e-12*365*interior_flux,"Gmol/y")
-    print("total flux:", 1e-12*365*(edge_flux + intermediate_flux + interior_flux),"Gmol/y")
+    print("edge flux:",0,"-",edge,":",edge_flux,"Gmol/y")
+    print("intermediate flux:",edge,"-",intermediate,":",intermediate_flux,"Gmol/y")
+    print("interior flux:",intermediate,"- __ :",interior_flux,"Gmol/y")
+    print("total flux:", total_flux ,"Gmol/y")
       
     print("\n")
     
@@ -152,11 +168,48 @@ def flux_look_up_table(flux, transect_distance_from_ground, distance_from_ground
     unit_conversion = 1e6 * 1e-12*365
     
     
-    simple_edge_flux =  points_in_edge * pixel_area * simple_flux[0] * unit_conversion
-    simple_intermediate_flux = points_in_intermediate * pixel_area * simple_flux[1] * unit_conversion
-    simple_interior_flux = points_in_interior * pixel_area * simple_flux[2] * unit_conversion
+    simple_edge_import =  points_in_edge * pixel_area * simple_flux[0] * unit_conversion
+    simple_intermediate_import = points_in_intermediate * pixel_area * simple_flux[1] * unit_conversion
+    simple_interior_import = points_in_interior * pixel_area * simple_flux[2] * unit_conversion
+    total_import = simple_edge_import + simple_intermediate_import + simple_interior_import
     
-    print(simple_edge_flux,simple_intermediate_flux,simple_interior_flux,"Gmol/y")
+    print(simple_edge_import,simple_intermediate_import,simple_interior_import,"Gmol/y")
+
+
+
+    return [[simple_flux[0],simple_flux[1],simple_flux[2],sum(simple_flux)],[simple_edge_import,simple_intermediate_import,simple_interior_import, total_import]]
+
+def print_table(matrix,unit_name, comparison = "NA"):
+    
+    if comparison == "NA":
+    
+        if unit_name == "Gmoly":
+            unit = "\si{\giga \mol \per y}\\\\"
+        elif unit_name == "mmolm2d":
+            unit = "\si{\milli \mol \per \meter \squared \per \day}\\\\"
+        else:
+            unit = unit_name
+                
+        for region_i,region in enumerate(["edge","intermediate","interior","\\textbf{total}"]):
+            print(region,"&",np.round(matrix[0,region_i],2),"&",np.round(matrix[1,region_i],2),"&",np.round(matrix[2,region_i],2),"&",unit)
+
+        print("\n")
+        
+        
+    else:
+        if unit_name == "Gmoly":
+            unit = "\si{\giga \mol \per y}\\\\"
+        elif unit_name == "mmolm2d":
+            unit = "\si{\milli \mol \per \meter \squared \per \day}\\\\"
+        else:
+            unit = unit_name
+                
+        for region_i,region in enumerate(["edge","intermediate","interior","\\textbf{total}"]):
+            print(region,"&",np.round(matrix[0,region_i],2),    matrix[0,region_i] - comparison[0,region_i]            "&",np.round(matrix[1,region_i],2),"&",np.round(matrix[2,region_i],2),"&",unit)
+
+        print("\n")
+    
+
         
 ###############################################################################################################################
 ###############################################################################################################################
@@ -170,12 +223,17 @@ out,axis = plt.subplots(ncols = 3, sharex = True, sharey = True)
 out2,axis2 = plt.subplots(ncols = 3, sharex = True, sharey = True)
 out3,axis3 = plt.subplots(1)
 
+Shih_region_rates = np.zeros((3,3))
+Osborn_region_rates = np.zeros((3,3))
+
+Shih_basin_rates = np.zeros((3,3))
+Osborn_basin_rates = np.zeros((3,3))
 
 #halocline_depths = thesis.z_from_p([73.23,58.16,72.15]) #floats in units of dbar
 #mean_interval_edges = thesis.z_from_p([79.6,60.39,77.58])
 
-halocline_depths = [-72.24,-57.52,-71.38] #in units of m
-mean_interval_edges = [-76.56,-59.34,-75.29]
+halocline_depths = [-72.24,-57.72,-71.39] #in units of m
+mean_interval_edges = [-74.84,-57.85,-73.123]
 
 print(halocline_depths)
 print(mean_interval_edges)
@@ -343,7 +401,7 @@ for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],[
 
     ##########################################################################################
     #the colorscheme ['#d95f02','#7570b3','#1b9e77'] stems from colorbrewer (colorbrewer2.org) to be friendly to color blindness and colored printing
-    for color,label_name,cruise in zip(['#d95f02','#7570b3','#1b9e77'],["summer cruise emb217","winter cruise emb177","autumn cruise emb169"],["emb217","emb177","emb169"]):
+    for cruise_ID,color,label_name,cruise in zip([2,1,0],['#d95f02','#7570b3','#1b9e77'],["summer cruise emb217","winter cruise emb177","autumn cruise emb169"],["emb217","emb177","emb169"]):
         if cruise_name == cruise:
             break
             
@@ -410,12 +468,31 @@ for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],[
     print("-------------------------------------------------------------------------------")
     print(cruise_name)
     print("For a basin with a halocline at depth",halocline_depth,"m, an halocline thickness of",2*np.round(abs(halocline_depth-mean_interval_edge),2),"with a total area of circa",int(total_pixels_basin*pixel_area),"km^2 consisting of",total_pixels_basin,"data points\n")
-    for name,flux in zip(["raw_Osborn","rolling_mean_Osborn","raw_Shih","rolling_mean_Shih"],[raw_Osborn,rolling_mean_Osborn,raw_Shih,rolling_mean_Shih]):
+    for ID,name,flux in zip([0,1,2,3],["raw_Osborn","rolling_mean_Osborn","raw_Shih","rolling_mean_Shih"],[raw_Osborn,rolling_mean_Osborn,raw_Shih,rolling_mean_Shih]):
         print(name)
         #print("mean flux:", np.nanmean(flux),"mmol/m^2/d")
         #print("max flux:",np.nanmin(flux),"mmol/m^2/d")       
-        flux_look_up_table(flux, interval_ground_distance, distance_from_ground_bin_edges, basin_bath, halocline_depth, mean_interval_edge)
+        results = flux_look_up_table(flux, interval_ground_distance, distance_from_ground_bin_edges, basin_bath, halocline_depth, mean_interval_edge)
         print("\n")
+
+
+        if ID ==1:
+            osborn_flux[cruise_ID,:]  = results[0]
+            osborn_import[cruise_ID,:] = results[1]
+            
+        if ID == 3:
+            shih_flux[cruise_ID,:]  = results[0]
+            shih_import[cruise_ID,:] = results[1]        
+        
+print("Osborn flux")
+print_table(osborn_flux,"mmolm2d")
+print("Shih flux")
+print_table(shih_flux,"mmolm2d")
+
+print("Osborn import")
+print_table(osborn_import,"Gmoly")
+print("Shih import")
+print_table(shih_import,"Gmoly")
 
 
 
