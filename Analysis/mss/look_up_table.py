@@ -26,10 +26,6 @@ shih_flux = np.zeros((3,4))
 osborn_import = np.zeros((3,4))
 shih_import = np.zeros((3,4))
 
-saved_osborn_flux = [[[],[],[],[]],  [[],[],[],[]],   [[],[],[],[]]]
-saved_shih_flux = [[[],[],[],[]],  [[],[],[],[]],   [[],[],[],[]]]
-saved_osborn_import = [[[],[],[],[]],  [[],[],[],[]],   [[],[],[],[]]]
-saved_shih_import = [[[],[],[],[]],  [[],[],[],[]],   [[],[],[],[]]]
 
 def flux_look_up_table(flux, transect_distance_from_ground, distance_from_ground_bin_edges, basin_bathymetry, halocline_depth, mean_interval_edge):
     """
@@ -143,9 +139,13 @@ def flux_look_up_table(flux, transect_distance_from_ground, distance_from_ground
                 
             else:
                 interior_flux += lookup_table_flux[bin_index]      
-                points_in_edge += 1
-                
-    #multiply with the tile size in km² to get rid of the area dependency / to get Gmol/y 
+                #points_in_edge += 1
+    
+    
+    print("sediment consumption", points_in_edge * pixel_area * -10 * 1000000 * 1e-12*365)
+    print(points_in_edge,pixel_area)
+          
+    #multiply with the tile size in km² to get rid of the area dependency (to get Gmol/y)
     edge_flux *= pixel_area  
     intermediate_flux *= pixel_area
     interior_flux *= pixel_area   
@@ -171,18 +171,16 @@ def flux_look_up_table(flux, transect_distance_from_ground, distance_from_ground
     simple_edge_import =  points_in_edge * pixel_area * simple_flux[0] * unit_conversion
     simple_intermediate_import = points_in_intermediate * pixel_area * simple_flux[1] * unit_conversion
     simple_interior_import = points_in_interior * pixel_area * simple_flux[2] * unit_conversion
-    total_import = simple_edge_import + simple_intermediate_import + simple_interior_import
+    mean_import = np.mean([simple_edge_import,simple_intermediate_import,simple_interior_import])
     
     print(simple_edge_import,simple_intermediate_import,simple_interior_import,"Gmol/y")
 
 
 
-    return [[simple_flux[0],simple_flux[1],simple_flux[2],sum(simple_flux)],[simple_edge_import,simple_intermediate_import,simple_interior_import, total_import]]
+    return [[simple_flux[0],simple_flux[1],simple_flux[2],np.mean(simple_flux)],[simple_edge_import,simple_intermediate_import,simple_interior_import, mean_import]]
 
-def print_table(matrix,unit_name, comparison = "NA"):
-    
-    if comparison == "NA":
-    
+def print_table(matrix,unit_name):
+       
         if unit_name == "Gmoly":
             unit = "\si{\giga \mol \per y}\\\\"
         elif unit_name == "mmolm2d":
@@ -190,22 +188,23 @@ def print_table(matrix,unit_name, comparison = "NA"):
         else:
             unit = unit_name
                 
-        for region_i,region in enumerate(["edge","intermediate","interior","\\textbf{total}"]):
+        for region_i,region in enumerate(["edge","intermediate","interior","\\textbf{mean}"]):
             print(region,"&",np.round(matrix[0,region_i],2),"&",np.round(matrix[1,region_i],2),"&",np.round(matrix[2,region_i],2),"&",unit)
 
         print("\n")
         
         
-    else:
+def print_comp_table(matrix,comparison,unit_name):
+       
         if unit_name == "Gmoly":
-            unit = "\si{\giga \mol \per y}\\\\"
+            unit = " & \si{\giga \mol \per y}\\\\"
         elif unit_name == "mmolm2d":
-            unit = "\si{\milli \mol \per \meter \squared \per \day}\\\\"
+            unit = "& \si{\milli \mol \per \meter \squared \per \day}\\\\"
         else:
             unit = unit_name
                 
-        for region_i,region in enumerate(["edge","intermediate","interior","\\textbf{total}"]):
-            print(region,"&",np.round(matrix[0,region_i],2),    matrix[0,region_i] - comparison[0,region_i]            "&",np.round(matrix[1,region_i],2),"&",np.round(matrix[2,region_i],2),"&",unit)
+        for region_i,region in enumerate(["edge","intermediate","interior","\\textbf{mean}"]):
+            print(region,"&",np.round(matrix[0,region_i],2), "&", np.round(100*(abs(matrix[0,region_i])- abs(comparison[0,region_i]))/ abs(matrix[0,region_i]),2), "&",np.round(matrix[1,region_i],2),"&", np.round(100*(abs(matrix[1,region_i]) - abs(comparison[1,region_i]))/ abs(matrix[1,region_i]),2), "&", np.round(matrix[2,region_i],2),"&", np.round(100*(abs(matrix[2,region_i]) - abs(comparison[2,region_i]))/ abs(matrix[2,region_i]),2),unit)
 
         print("\n")
     
@@ -395,8 +394,8 @@ for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],[
 
 
     #longitude,distance,transect_bathymetry,raw_Osborn,rolling_mean_Osborn,raw_Shih,rolling_mean_Shih = np.loadtxt("./data/"+cruise_name+"_bin_flux_results.txt", unpack=True)
+    #longitude,distance,transect_bathymetry,interval_ground_distance,raw_Osborn,rolling_mean_Osborn,raw_Shih,rolling_mean_Shih = np.loadtxt("./data/"+cruise_name+"_iso_flux_results_woBBL.txt", unpack=True)
     longitude,distance,transect_bathymetry,interval_ground_distance,raw_Osborn,rolling_mean_Osborn,raw_Shih,rolling_mean_Shih = np.loadtxt("./data/"+cruise_name+"_iso_flux_results.txt", unpack=True)
-
 
 
     ##########################################################################################
@@ -422,16 +421,20 @@ for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],[
     plot_raw_Shih = raw_Shih[~mask]
     plot_rolling_mean_Shih = rolling_mean_Shih[~mask]
     
+    plot_rolling_mean_Shih,plot_roll_interval_ground_distance = thesis.remove_nans_from_2_arrays(plot_rolling_mean_Shih,plot_interval_ground_distance)
+    
+    
     sorted_distance_from_ground = sorted(plot_interval_ground_distance)
+    sorted_roll_distance_from_ground = sorted(plot_roll_interval_ground_distance)
     assert np.all(np.diff(sorted_distance_from_ground)>= 0)
     sorted_raw_Shih = [x for _,x in sorted(zip(plot_interval_ground_distance,plot_raw_Shih))]
-    sorted_mean_Shih = [x for _,x in sorted(zip(plot_interval_ground_distance,plot_rolling_mean_Shih))]
+    sorted_mean_Shih = [x for _,x in sorted(zip(plot_roll_interval_ground_distance,plot_rolling_mean_Shih))]
     
     axis2[cruise_index].plot(sorted_raw_Shih,sorted_distance_from_ground,"-", label = r"$\langle$Shih flux$\rangle_{\mathrm{z}}$ ")
-    axis2[cruise_index].plot(sorted_mean_Shih,sorted_distance_from_ground,"-", label = r"$\langle$Shih flux$\rangle_{\mathrm{z,lon}}$ ")
+    axis2[cruise_index].plot(sorted_mean_Shih,sorted_roll_distance_from_ground,"-", label = r"$\langle$Shih flux$\rangle_{\mathrm{z,lon}}$ ")
     
     distance_from_ground_bin_edges = np.arange(0,80,2.5)
-    mean_binned_flux, _bin_edges, _bin_number = ss.binned_statistic(plot_interval_ground_distance,plot_rolling_mean_Shih,"mean", distance_from_ground_bin_edges)
+    mean_binned_flux, _bin_edges, _bin_number = ss.binned_statistic(plot_roll_interval_ground_distance,plot_rolling_mean_Shih,"mean", distance_from_ground_bin_edges)
     axis2[cruise_index].plot(mean_binned_flux,_bin_edges[:-1],"-", label = "rolling bins")
     mean_binned_flux, _bin_edges, _bin_number = ss.binned_statistic(plot_interval_ground_distance[~np.isnan(plot_raw_Shih)],plot_raw_Shih[~np.isnan(plot_raw_Shih)],"mean", distance_from_ground_bin_edges)
     axis2[cruise_index].plot(mean_binned_flux,_bin_edges[:-1],"-", label = "raw bins")
@@ -483,6 +486,13 @@ for cruise_index,cruise_name,halocline_depth,mean_interval_edge in zip([0,1,2],[
         if ID == 3:
             shih_flux[cruise_ID,:]  = results[0]
             shih_import[cruise_ID,:] = results[1]        
+
+
+flux_results = np.load("./flux_results.npz")
+comp_osborn_flux = flux_results["osborn_flux"]
+comp_shih_flux = flux_results["shih_flux"]
+comp_osborn_import = flux_results["osborn_import"]
+comp_shih_import = flux_results["shih_import"]
         
 print("Osborn flux")
 print_table(osborn_flux,"mmolm2d")
@@ -493,6 +503,20 @@ print("Osborn import")
 print_table(osborn_import,"Gmoly")
 print("Shih import")
 print_table(shih_import,"Gmoly")
+
+#save results
+#np.savez("./flux_results",osborn_flux = osborn_flux, shih_flux = shih_flux, osborn_import = osborn_import, shih_import = shih_import)
+
+print("Osborn flux")
+print_comp_table(osborn_flux,comp_osborn_flux,"")
+print("Shih flux")
+print_comp_table(shih_flux,comp_shih_flux,"")
+
+print("Osborn import")
+print_comp_table(osborn_import,comp_osborn_import,"Gmoly")
+print("Shih import")
+print_comp_table(shih_import,comp_shih_import,"Gmoly")
+
 
 
 
@@ -508,7 +532,7 @@ out2.subplots_adjust(top=0.904,bottom=0.161,left=0.122,right=0.962,hspace=0.2,ws
 
 
 #out.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/flux_bathymetry_relation", dpi = 600)
-plt.show()
+#plt.show()
 
 
 

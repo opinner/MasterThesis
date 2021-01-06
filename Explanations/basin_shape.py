@@ -18,8 +18,11 @@ YT_J = dset.variables["YT_J"]
 
 lon_0 = 20.1
 lat_0 = 57.1
+lon_0 = 17.5 #20.1
+lat_0 = 58.2 #57.4
 output_picture, axis = plt.subplots(1)
-map_ax = Basemap(ax = axis, width=550000,height=620000,resolution='h',projection='stere',lat_ts=50,lat_0=lat_0,lon_0=lon_0)
+#map_ax = Basemap(ax = axis, width=550000,height=620000,resolution='l',projection='stere',lat_ts=50,lat_0=lat_0,lon_0=lon_0)
+map_ax = Basemap(ax = axis, width=1000000,height=1100000,resolution='h',projection='stere',lat_ts=50,lat_0=lat_0,lon_0=lon_0)
 
 #Plot with contourf
 #---------------------------------------------------
@@ -52,7 +55,7 @@ top = np.argmin(np.abs(np.mean(lat,axis=1)-59.0))
 left = np.argmin(np.abs(np.mean(lon,axis=0)-16.8))
 right = np.argmin(np.abs(np.mean(lon,axis=0)-25))
 bottom = np.argmin(np.abs(np.mean(lat,axis=1)-54.0))
-top = np.argmin(np.abs(np.mean(lat,axis=1)-59.8))
+top = np.argmin(np.abs(np.mean(lat,axis=1)-61)) #59.8
 
 #only inside the rectangle defined by this values
 #left = np.argmin(np.abs(np.mean(lon,axis=0)-18.5))
@@ -172,19 +175,16 @@ print("\nbasin:",pixels_basin,"\tedge",pixels_edge,"\tratio",ratio,"\tarea",pixe
 
 
 
-
-
-
 #plotting
 #-------------------------------
 levels = np.arange(-220,20,5)
 
-cs2 = map_ax.plot(basin_lon, np.ma.masked_where(~basin_mask, basin_lat) , "r.", latlon = True)
+cs2 = map_ax.plot(basin_lon, np.ma.masked_where(~basin_mask, basin_lat) , c = "tab:red", marker = ".", latlon = True)
 #cs3 = map_ax.plot(basin_lon, np.ma.masked_where(~edge_mask, basin_lat) , "kx", latlon = True)
 cs = map_ax.contourf(lon, lat, bathymetry,levels, extend = "min", cmap="Blues_r", latlon = True)           
 
 
-map_ax.plot(basin_lon[edge_mask], basin_lat[edge_mask], "k.", latlon = True)
+#map_ax.plot(basin_lon[edge_mask], basin_lat[edge_mask], "k.", latlon = True)
 """
 for pointx,pointy,neighbours in zip(basin_lon[edge_mask], basin_lat[edge_mask],edge_array[edge_mask]):
     #map_ax.plot(pointx, pointy,"kx", latlon = True)
@@ -192,7 +192,7 @@ for pointx,pointy,neighbours in zip(basin_lon[edge_mask], basin_lat[edge_mask],e
 """    
 
 
-map_ax.plot(transect_lon,transect_lat,c = "tab:green", latlon = True,  linewidth = 3, label = "Transect")
+#map_ax.plot(transect_lon,transect_lat,c = "tab:green", latlon = True,  linewidth = 3, label = "Transect")
 
 # Add Grid Lines
 map_ax.drawparallels(np.arange(0, 70, 1.), labels=[1,0,0,0], fontsize=10)
@@ -204,25 +204,33 @@ map_ax.drawcoastlines()
 map_ax.drawcountries()
 map_ax.fillcontinents(color="lightgrey")
 
-map_ax.drawmapscale(23.5,54.8,lon_0,lat_0,50,barstyle='fancy')
+#map_ax.drawmapscale(23.5,54.8,lon_0,lat_0,50,barstyle='fancy')
+map_ax.drawmapscale(22.4,53.9,lon_0,lat_0,200,barstyle='fancy')
 
 # Add Colorbar
 cbar = map_ax.colorbar(cs, location='right', pad="2%")
 cbar.set_label("depth [m]",size = 14)
 
 # Add Title
-axis.set_title('Eastern Gotland Basin with hypoxic area below '+str(halocline_depth)+" m", size = 16, weight = "bold")
+#axis.set_title('Eastern Gotland Basin with hypoxic area below '+str(halocline_depth)+" m", size = 16, weight = "bold")
+#axis.set_title('Hypoxic area below '+str(halocline_depth)+" m", size = 16, weight = "bold")
 x,y = map_ax(18.45,57.4)
-axis.text(x,y,'Gotland',ha = "center", va = "center",rotation=40, size = 14 )
+#axis.text(x,y,'Gotland',ha = "center", va = "center",rotation=40, size = 14 )
 x,y = map_ax(21.7,57.2)
-axis.text(x,y,'Latvia',ha = "center", va = "center",rotation=0, size = 14 )
+#axis.text(x,y,'Latvia',ha = "center", va = "center",rotation=0, size = 14 )
 
-axis.legend()
+rostock_lat = [54.09916]
+rostock_lon = [12.12468]
+map_ax.plot(rostock_lon,rostock_lat,".",c = "red", latlon = True,  markersize = 12)
+x,y = map_ax(12.12468,53.6)
+axis.text(x,y,'Rostock',ha = "center", va = "center",rotation=0, size = 14, bbox=dict(facecolor='w', edgecolor='k', pad=1.0))
 
-output_picture.set_size_inches(9,10.5)
+#axis.legend()
+
+#output_picture.set_size_inches(9,10.5)
 
 output_picture.tight_layout()
-output_picture.savefig("./basin_shape"+str(index),dpi=300)
+#output_picture.savefig("./basin_shape_MBI_Presentation"+str(index),dpi=300)
 
 
 

@@ -606,8 +606,8 @@ osborn_axarr[2].set_xlabel(r"$\Delta \sigma$ [kg/m³]")
 shih_axarr[1].set_ylabel(r"|$\langle$ Shih Oxygen flux $\rangle$| [mmol/m²/d]")
 shih_axarr[2].set_xlabel(r"$\Delta \sigma$ [kg/m³]")
 
-f_osborn.suptitle("Impact of the bounded vertical averaging interval")
-f_shih.suptitle("Impact of the bounded vertical averaging interval")
+f_osborn.suptitle("Impact of the vertical averaging interval")
+f_shih.suptitle("Impact of the vertical averaging interval")
 
 width = 6.2012
 height = width * 0.7

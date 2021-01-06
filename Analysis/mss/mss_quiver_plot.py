@@ -90,6 +90,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     iso_interval_density_list = []
     iso_interval_pressure_list = []
 
+    density_list = []
     dissipation_list = []
     BB_flux_list = []
     Shih_flux_list = []
@@ -154,8 +155,10 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             eps_density_grid = data["bin_density_grid"]
             eps_pot_density_grid = data["bin_pot_density_grid"]
             
-            eps_density_grid = thesis.sort_2D_array_with_nans(eps_density_grid)
-            eps_pot_density_grid = thesis.sort_2D_array_with_nans(eps_pot_density_grid)
+            #sort density profiles                        
+            #eps_density_grid = thesis.sort_2D_array_with_nans(eps_density_grid)
+            #eps_pot_density_grid = thesis.sort_2D_array_with_nans(eps_pot_density_grid)
+            
             #eps_viscosity_grid = data["eps_viscosity_grid"]
             eps_Reynolds_bouyancy_grid = data["bin_Reynolds_bouyancy_grid"]
             corrected_eps_Reynolds_bouyancy_grid = data["corrected_bin_Reynolds_bouyancy_grid"]
@@ -189,6 +192,14 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             print(transect_name,"Error during loading data")
             raise AssertionError
             
+        
+        bool1 = cruise_name == "emb169" and transect_name == "TS112"
+        bool2 = cruise_name == "emb177" and transect_name == "TS1_3"
+        bool3 = cruise_name == "emb217" and transect_name == "TR1-4"
+        if np.any([bool1,bool2,bool3]): 
+            isopycnals_density = eps_pot_density_grid
+            isopycnals_lon = lon
+            print("done")
         number_of_transects+=1 
             
         print("Number of profiles:",number_of_profiles)
@@ -384,8 +395,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
             
             #to_index = max(from_index,min(sea_floor_index-3,to_index))
             """
-            
-            #TODO replace with binned_statistic            
+                    
             
             ###############################################################################################################################
             
@@ -465,6 +475,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 iso_interval_density_list.append([start_density_interval,stop_density_interval])
                 
                 #pressure coordinates
+                #density_list.append(eps_pot_density_grid[profile])
                 dissipation_list.append(eps_grid[profile,from_index:to_index])
                 Shih_flux_list.append(oxygen_flux_Shih_grid[profile,from_index:to_index])
                 Osborn_flux_list.append(oxygen_flux_Osborn_grid[profile,from_index:to_index])
@@ -486,7 +497,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 iso_Shih_flux_list.insert(list_position,iso_Shih_flux)
                 iso_Osborn_flux_list.insert(list_position,iso_Osborn_flux)
                 iso_interval_density_list.insert(list_position,[start_density_interval,stop_density_interval])
-                          
+                     
+                #density_list.insert(list_position,eps_pot_density_grid[profile])          
                 dissipation_list.insert(list_position,eps_grid[profile,from_index:to_index])
                 #BB_flux_list.insert(list_position,oxygen_flux_BB_grid[profile,from_index:to_index])
                 Shih_flux_list.insert(list_position,oxygen_flux_Shih_grid[profile,from_index:to_index])
@@ -521,6 +533,11 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     assert(np.all(longitude_list == sorted(longitude_list)))
     assert(np.all(total_bathymetry_longitude_list == sorted(total_bathymetry_longitude_list)))        
     
+    
+    #print("-"*40)
+    #print(np.shape(density_list), np.shape(eps_pressure), np.shape(longitude_list))
+    #print("-"*40)
+    #plt.plot(np.nanmean(density_list, axis = 0), -eps_pressure)
     
     #from here now on the lists should not be mutated any more
     iso_interval_density_list = np.asarray(iso_interval_density_list)
@@ -643,6 +660,8 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     quiver_array = np.zeros((len(off_set_list),total_number_of_valid_profiles)) #3 rows of length "total_number_of_valid_profiles"
     quiver_pressure = np.zeros((len(off_set_list),total_number_of_valid_profiles))
     
+    #isopycnal_density_list =  np.zeros(len(off_set_list))
+    
     """
     for offset in off_set_list:
         
@@ -755,7 +774,9 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
         if cruise_name == cruise:
             break
             
-            
+   
+        
+    """            
     def running_mean(x, N):
         length = len(x)
         print("length",length)
@@ -768,74 +789,43 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
                 x[n] = np.nanmean(x[n-(N//2):n+(N//2)]) 
         return x
     
-    old_x = longitude_list
-    old_y = np.zeros(len(longitude_list))
-    ibin = int(np.nanmean(halocline_bin_index_list))
-    for i in range(len(off_set_list)):
-        quiver_array[i,:] = np.nanmean(iso_rolling_mean_Shih_flux[:,ibin+i*10-5:ibin+i*10+5], axis = 1)
-        quiver_pressure[i,:] = np.nanmean(iso_mean_pressure[:,ibin+i*10-5:ibin+i*10+5], axis = 1)
-        quiver_isoline = iso_mean_pressure[:,ibin+i*10]
-        
-        if i == 0: 
-            lw = 1.5
-        else:
-            lw = 0.5 
-        
-        #removes Nans (wechselseitig)
-        x,y = thesis.remove_nans_from_2_arrays(longitude_list,np.nanmean(iso_mean_pressure[:,ibin+i*10-1:ibin+i*10+2], axis = 1))  
-        #removes not displayed data points
-        mask = x < 20.6377
-        y = y[mask]
-        x = x[mask]
-        
-        old_y = np.interp(x,old_x,old_y)
-        old_x = x
-        #smoothes the isopcnal
-        y = running_mean(y, 4) 
-        #prevents crossing isopycnals
-        if i == 0: old_y = np.zeros(len(y))
-        y = np.maximum(y,old_y)
-        old_y = y
-        if figure_index == 0:
-            axarr_169.plot(x,y, lw = lw, c = "k", alpha = 0.6)
-        if figure_index == 1:
-            axarr_177.plot(x,y, lw = lw, c = "k", alpha = 0.6)
-        if figure_index == 2:
-            axarr_217.plot(x,y, lw = lw, c = "k", alpha = 0.6)    
+
+    density_list = np.asarray(density_list)
+    running_mean_density_list = np.zeros(np.shape(density_list))
+    for i in range(len(longitude_list)):
+        running_mean_density_list[:,i] = running_mean(density_list[:,i]
     
-    old_x = longitude_list
-    old_y = np.nanmean(iso_mean_pressure[:,ibin-1:ibin+2], axis = 1)
-    for i in [-1,-2]:
-        #removes Nans (wechselseitig)
-        x,y = thesis.remove_nans_from_2_arrays(longitude_list,np.nanmean(iso_mean_pressure[:,ibin+i*10-1:ibin+i*10+2], axis = 1))  
-        #removes not displayed data points
-        mask = x < 20.6377
-        if figure_index ==1: mask = x < 20.663364
-        y = y[mask]
-        x = x[mask]
+    def get_isopcycnal(density_array,density_value, eps_pressure):
+        isopcnal = []
+        for i in range(len(longitude_list)):
+            isopycnal.append(eps_pressure[np.nanargmin(np.abs(density_array[:,i])]
+    
+        return 
+    
+    """
+    
+    
+    #plot isolines
+    #old_x = longitude_list
+    #old_y = np.zeros(len(longitude_list))
+    ibin = int(np.nanmean(halocline_bin_index_list))
+    print(cruise_name,"halocline_density", density_bin_center[ibin])
+    halocline_density = density_bin_center[ibin]
+
+    if figure_index == 0:
+        axarr_169.contour(isopycnals_lon, eps_pressure, isopycnals_density.T, levels = [halocline_density], colors = "k", linewidths = 3)
+    if figure_index == 1:
+        axarr_177.contour(isopycnals_lon, eps_pressure, isopycnals_density.T, levels = [halocline_density], colors = "k", linewidths = 3)
+    if figure_index == 2:
+        axarr_217.contour(isopycnals_lon, eps_pressure, isopycnals_density.T, levels = [halocline_density], colors = "k", linewidths = 3)
         
-        old_y = np.interp(x,old_x,old_y)
-        old_x = x
-        #smoothes the isopcnal
-        y = running_mean(y, 4) 
-        #prevents crossing isopycnals
-        if i == 0: old_y = np.zeros(len(y))
-        y = np.minimum(y,old_y)
-        old_y = y
-        if figure_index == 0:
-            axarr_169.plot(x,y, lw = lw, c = "k", alpha = 0.6)
-        if figure_index == 1:
-            axarr_177.plot(x,y, lw = lw, c = "k", alpha = 0.6)
-        if figure_index == 2:
-            axarr_217.plot(x,y, lw = lw, c = "k", alpha = 0.6)  
-                        
     #print(cruise_name,"total number of transects =",number_of_transects)        
     #print("total_number_of_valid_profiles",total_number_of_valid_profiles)     
 
 
-    if cruise_name == "emb169":
-        for i in range(len(off_set_list)):
-            iaxarr.plot(longitude_list,quiver_pressure[i,:], alpha = 0.6)
+    #if cruise_name == "emb169":
+    #    for i in range(len(off_set_list)):
+    #        iaxarr.plot(longitude_list,quiver_pressure[i,:], alpha = 0.6)
             
             
     iaxarr.invert_yaxis()
@@ -866,50 +856,105 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     test2 = np.isnan(longitude_list)
     """
         
-    longitude_bin_edges = np.linspace(20.4,20.7,21)
+    longitude_bin_edges = np.linspace(20.5,20.63,30)
     V = np.zeros((len(off_set_list),len(longitude_bin_edges)-1))    
     X = np.zeros((len(off_set_list),len(longitude_bin_edges)-1)) 
     Y = np.zeros((len(off_set_list),len(longitude_bin_edges)-1)) 
     
+    levels = []
+    levels.append(density_bin_center[ibin-20])
+    levels.append(density_bin_center[ibin-10])
+    
     for i in range(len(off_set_list)):
         
+        levels.append(density_bin_center[ibin+i*10])
         
-        print(i,np.nanmin(quiver_pressure[i,:]),np.nanmax(quiver_pressure[i,:]),np.nanmean(quiver_pressure[i,:]))
+        quiver_array[i,:] = np.nanmean(iso_rolling_mean_Shih_flux[:,ibin+i*10-5:ibin+i*10+5], axis = 1)
+        #quiver_pressure[i,:] = running_mean(np.nanmean(iso_mean_pressure[:,ibin+i*10-5:ibin+i*10+5], axis = 1),20)        
+        
         
         flux_row, flux_longitude_list = thesis.remove_nans_from_2_arrays(quiver_array[i],longitude_list)
         V[i,:] = ss.binned_statistic(flux_longitude_list,flux_row, statistic = "mean", bins = longitude_bin_edges)[0]
 
-        pressure_row, pressure_longitude_list = thesis.remove_nans_from_2_arrays(quiver_pressure[i],longitude_list)
-        Y[i,:] = ss.binned_statistic(pressure_longitude_list,pressure_row, statistic = "mean", bins = longitude_bin_edges)[0]
-        #Y[i,:] = np.nanmean(quiver_pressure[i]) *np.ones(len(longitude_bin_edges)-1)
+        if i <= 3:
+            lon_offset = (i-2)*0.0005
+        else:
+            lon_offset = 0
+
+        x_positions = ss.binned_statistic(flux_longitude_list,flux_longitude_list, statistic = "mean", bins = longitude_bin_edges)[0]
+        X[i,:] = lon_offset + x_positions
+
+
+        #for every flux bin calculate the pressure position in the profile closest to the longitude value. 
+               
+        y_positions = []
+        for position in x_positions:
+            if np.isnan(position):
+                y_positions.append([np.nan])
+            else:
+                chosen_profile_index = np.nanargmin(np.abs(isopycnals_lon - position))
+                chosen_pressure_index = np.nanargmin(np.abs(isopycnals_density[chosen_profile_index,:] - density_bin_center[ibin+i*10]))
+                y_position = eps_pressure[chosen_pressure_index]
+                sea_floor_depth = total_bathymetry_list[np.nanargmin(np.abs(total_bathymetry_longitude_list - isopycnals_lon[chosen_profile_index]))]
+                if y_position > sea_floor_depth:
+                    y_position = sea_floor_depth -10
+                
+                y_positions.append([y_position])
         
-        X[i,:] = ss.binned_statistic(flux_longitude_list,flux_longitude_list, statistic = "mean", bins = longitude_bin_edges)[0]
+        Y[i,:] = np.asarray(y_positions).flatten()
+        
+        #pressure_row, pressure_longitude_list = thesis.remove_nans_from_2_arrays(quiver_pressure[i],longitude_list)
+        #ss.binned_statistic(flux_longitude_list,flux_longitude_list, statistic = "mean", bins = longitude_bin_edges)[0],x,y)
+        
+        #Y[i,:] = np.nanmean(quiver_pressure[i]) *np.ones(len(longitude_bin_edges)-1)
+
+        
     
     U = np.zeros(np.shape(V))   
-    
+                       
+    if figure_index == 0:
+        axarr_169.contour(isopycnals_lon, eps_pressure, isopycnals_density.T, levels = sorted(levels), colors = "k", linewidth = 0.5, alpha = 0.8)#, linestyles =  "dotted")
+        #axarr_169.axvline(20.6083)
+        #axarr_169.axvline(20.571)
+        axarr_169.axvspan(20.2,20.571, hatch="\\",edgecolor="tab:blue", alpha = 0.2, zorder = 0)
+        axarr_169.axvspan(20.571,20.6091, hatch="//",edgecolor="tab:blue", alpha = 0.5, fill=False, zorder = 0)
+        axarr_169.axvspan(20.6091,20.7, hatch="\\",edgecolor="tab:blue", alpha = 0.2, zorder = 0)
+        
+    if figure_index == 1:
+        axarr_177.contour(isopycnals_lon, eps_pressure, isopycnals_density.T, levels = sorted(levels), colors = "k", linewidth = 0.5, alpha = 0.8)
+        axarr_177.axvspan(20.2,20.60, hatch="\\",edgecolor="tab:blue", alpha = 0.2, zorder = 0)
+        axarr_177.axvspan(20.60,20.62, hatch="//",edgecolor="tab:blue", alpha = 0.5, fill=False, zorder = 0)
+        axarr_177.axvspan(20.62,20.7, hatch="\\",edgecolor="tab:blue", alpha = 0.2, zorder = 0)
+    if figure_index == 2:
+        axarr_217.contour(isopycnals_lon, eps_pressure, isopycnals_density.T, levels = sorted(levels), colors = "k", linewidth = 0.5, alpha = 0.8)
+        axarr_217.axvspan(20.2,20.571, hatch="\\",edgecolor="tab:blue", alpha = 0.2, zorder = 0)
+        axarr_217.axvspan(20.571,20.6091, hatch="//",edgecolor="tab:blue", alpha = 0.5, fill=False, zorder = 0)
+        axarr_217.axvspan(20.6091,20.7, hatch="\\",edgecolor="tab:blue", alpha = 0.2, zorder = 0)
+            
+            
     for edge in longitude_bin_edges:
         all_axarr[figure_index].axvline(edge)
-
-    
-    all_axarr[figure_index].axvline(edge)
      
     scale = 8   
-    pivot = "tip" 
+    pivot = "mid" 
     if figure_index == 0:
+        V[3,-6] = np.nan
         Q169 = axarr_169.quiver(X,Y,U,V, units = "xy", zorder = 10, scale = scale, pivot = pivot, color = color)
         axarr_169.set_title("Shih oxygen flux during the "+label_name)
-        axarr_169.quiverkey(Q169, 0.95, 0.16, -20, label = "Shih flux \n-20 mmol/(m²d)", coordinates = "axes", labelpos = "W", labelsep= 0.15, angle = 90, color = color)
+        axarr_169.quiverkey(Q169, 0.95, 0.20, -20, label = "Shih flux \n-20 mmol/(m²d)", coordinates = "axes", labelpos = "W", labelsep= 0.15, angle = 90, color = color)
     elif figure_index == 1:
+        V[3,-5] = np.nan
+        #V[3:,-5] = -200
         Q177 = axarr_177.quiver(X,Y,U,V, units = "xy", zorder = 10, scale = 6, pivot = pivot, color = color)
         axarr_177.set_title("Shih oxygen flux during the "+label_name)
-        axarr_177.quiverkey(Q177, 0.95, 0.19, -20, label = "Shih flux \n-20 mmol/(m²d)", coordinates = "axes", labelpos = "W", labelsep= 0.15, angle = 90, color = color)
+        axarr_177.quiverkey(Q177, 0.95, 0.25, -20, label = "Shih flux \n-20 mmol/(m²d)", coordinates = "axes", labelpos = "W", labelsep= 0.15, angle = 90, color = color)
     elif figure_index == 2:
-        V[0,-6] = np.nanmean(V[:,-6])
-        V[1:,-6] = 0
+        V[2,-4] = np.nanmean(V[2:,-4])
+        V[3:,-4] = np.nan
         
         Q217 = axarr_217.quiver(X,Y,U,V, units = "xy", zorder = 10, scale = 4, pivot = pivot, color = color)
         axarr_217.set_title("Shih oxygen flux during the "+label_name)
-        axarr_217.quiverkey(Q217, 0.95, 0.19, -10, label = "Shih flux \n-10 mmol/(m²d)", coordinates = "axes", labelpos = "W", labelsep= 0.15, angle = 90, color = color)
+        axarr_217.quiverkey(Q217, 0.95, 0.25, -10, label = "Shih flux \n-10 mmol/(m²d)", coordinates = "axes", labelpos = "W", labelsep= 0.15, angle = 90, color = color)
         
     all_axarr[figure_index].quiver(X,Y,U,V, units = "xy", zorder = 10, scale = scale, pivot = pivot, headwidth = 2, headlength = 3.5, color = color)
 
@@ -940,14 +985,14 @@ axarr_217.set_xlim(20.47,20.63)
 axarr_217.set_ylim(60,135)
 """
 
-axarr_169.set_xlim(20.56,20.63)
-axarr_169.set_ylim(60,95)
+axarr_169.set_xlim(20.554,20.63)
+axarr_169.set_ylim(41,115)
 
-axarr_177.set_xlim(20.572146,20.6379746)
-axarr_177.set_ylim(43.013409,81.30890)
+axarr_177.set_xlim(20.589,20.6344)
+axarr_177.set_ylim(46.78,79.44)
 
-axarr_217.set_xlim(20.5628,20.6360)
-axarr_217.set_ylim(65.43,94.3507)
+axarr_217.set_xlim(20.55,20.6260)
+axarr_217.set_ylim(63,112)
 
 #all_axarr[0].set_xlim(20.47,20.6360)
 #all_axarr[0].set_ylim(53.310,94.3507)
@@ -965,20 +1010,24 @@ axarr_177.invert_yaxis()
 axarr_217.invert_yaxis()
 all_axarr[0].invert_yaxis()
 
-axarr_169.fill_between(total_bathymetry_longitude_list,total_bathymetry_list, np.ones(len(total_bathymetry_list))*max(total_bathymetry_list), color = "lightgrey", zorder = 1, alpha = 1, label = "bathymetry")
-axarr_177.fill_between(total_bathymetry_longitude_list,total_bathymetry_list, np.ones(len(total_bathymetry_list))*max(total_bathymetry_list), color = "lightgrey", zorder = 1, alpha = 1, label = "bathymetry")
-axarr_217.fill_between(total_bathymetry_longitude_list,total_bathymetry_list, np.ones(len(total_bathymetry_list))*max(total_bathymetry_list), color = "lightgrey", zorder = 1, alpha = 1, label = "bathymetry")
+axarr_169.fill_between(total_bathymetry_longitude_list,total_bathymetry_list, np.ones(len(total_bathymetry_list))*max(total_bathymetry_list), color = "lightgrey", zorder = 5, alpha = 1, label = "bathymetry")
+axarr_177.fill_between(total_bathymetry_longitude_list,total_bathymetry_list, np.ones(len(total_bathymetry_list))*max(total_bathymetry_list), color = "lightgrey", zorder = 5, alpha = 1, label = "bathymetry")
+axarr_217.fill_between(total_bathymetry_longitude_list,total_bathymetry_list, np.ones(len(total_bathymetry_list))*max(total_bathymetry_list), color = "lightgrey", zorder = 5, alpha = 1, label = "bathymetry")
 
-all_axarr[0].fill_between(total_bathymetry_longitude_list,total_bathymetry_list, np.ones(len(total_bathymetry_list))*max(total_bathymetry_list),color = "lightgrey", zorder = 1, alpha = 1, label = "bathymetry")
-all_axarr[1].fill_between(total_bathymetry_longitude_list,total_bathymetry_list, np.ones(len(total_bathymetry_list))*max(total_bathymetry_list),color = "lightgrey", zorder = 1, alpha = 1, label = "bathymetry")
-all_axarr[2].fill_between(total_bathymetry_longitude_list,total_bathymetry_list, np.ones(len(total_bathymetry_list))*max(total_bathymetry_list),color = "lightgrey", zorder = 1, alpha = 1, label = "bathymetry")
+all_axarr[0].fill_between(total_bathymetry_longitude_list,total_bathymetry_list, np.ones(len(total_bathymetry_list))*max(total_bathymetry_list),color = "lightgrey", zorder = 5, alpha = 1, label = "bathymetry")
+all_axarr[1].fill_between(total_bathymetry_longitude_list,total_bathymetry_list, np.ones(len(total_bathymetry_list))*max(total_bathymetry_list),color = "lightgrey", zorder = 5, alpha = 1, label = "bathymetry")
+all_axarr[2].fill_between(total_bathymetry_longitude_list,total_bathymetry_list, np.ones(len(total_bathymetry_list))*max(total_bathymetry_list),color = "lightgrey", zorder = 5, alpha = 1, label = "bathymetry")
+
+f_169.set_size_inches(width,height)
+f_177.set_size_inches(width,height)
+f_217.set_size_inches(width,height)
 
 f_169.tight_layout()
-f_169.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/emb169_quiverplot", dpi = 400)
+f_169.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/emb169_quiverplot_regions", dpi = 400)
 f_177.tight_layout()
-f_177.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/emb177_quiverplot", dpi = 400)
+f_177.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/emb177_quiverplot_regions", dpi = 400)
 f_217.tight_layout()
-f_217.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/emb217_quiverplot", dpi = 400)
+f_217.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/emb217_quiverplot_regions", dpi = 400)
    
 plt.show()
     

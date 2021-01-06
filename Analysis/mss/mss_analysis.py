@@ -141,7 +141,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
           
           
         ##########################################################################################################################################################  
-        shift_name = "+50"
+        shift_name = "-50"
         np.savez(\
         "/home/ole/windows/shifted_mss_data/"+shift_name+"/"+cruisename+"/"+transect_name ,\
         number_of_profiles = number_of_profiles, lat = lat,lon = lon,distance = distance, bathymetrie = bathymetrie,list_of_bathymetrie_indices = list_of_bathymetrie_indices, \

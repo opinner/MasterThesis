@@ -34,8 +34,11 @@ warnings.filterwarnings('ignore')
 #LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb177"] #"/home/ole/windows/processed_mss/emb217"]#,"/home/ole/windows/processed_mss/emb169",
 LIST_OF_MSS_FOLDERS = ["/home/ole/windows/processed_mss/emb169","/home/ole/windows/processed_mss/emb177","/home/ole/windows/processed_mss/emb217"]
 
+#shift = "-50"
+#LIST_OF_MSS_FOLDERS = ["/home/ole/windows/shifted_mss_data/"+shift+"/emb169","/home/ole/windows/shifted_mss_data/"+shift+"/emb177","/home/ole/windows/shifted_mss_data/"+shift+"/emb217"]
+
 rolling_window_size = 9 # for longitudinal averaging
-density_box_width = 0.5 #in kg/m³ (for vertical averaging)
+density_box_width = 0.5 #0.5 #in kg/m³ (for vertical averaging)
 
 height_above_ground = 20 #Size of the averaging interval above ground for the BBL, has no meaning if (flux_through_halocline == True)
 maximum_reasonable_flux = float('Inf') #200 #Fluxes with absolute values above this cut off value will be discarded
@@ -820,7 +823,7 @@ for FOLDERNAME in LIST_OF_MSS_FOLDERS:
     #flux_axarr[0].plot(longitude_list,mean_Osborn_flux, "+", lw = 2.5, zorder = 3, c = color, alpha = 0.4)#, label = label_name)  
     #flux_axarr[0].plot(longitude_list,mean_Osborn_flux, "-", lw = 2.5, zorder = 3, c = color, alpha = 0.4)#, label = label_name)                
     flux_axarr[0].plot(longitude_list,iso_vertical_mean_Shih_flux, zorder = 3, c = color)#, label = label_name)#"tab:blue")
-    flux_axarr[0].plot(longitude_list,iso_vertical_mean_Osborn_flux, ls = ":", zorder = 3, c = color)#, label = label_name)
+    #flux_axarr[0].plot(longitude_list,iso_vertical_mean_Osborn_flux, ls = ":", zorder = 3, c = color)#, label = label_name)
     
 
     #flux_axarr[1].fill_between(longitude_list,interval_pressure_list[:,0],interval_pressure_list[:,1],color = color, alpha = 0.5, label = label_name)
@@ -854,8 +857,8 @@ width = 6.2012
 height = width * 0.8 #* 4/3 #1.618
 
 #beamer figure sizes
-#width = 1.7*4.252 #6.2012
-#height = 1.5*3.7341 #* 4/3 #1.618
+width = 1.7*4.252 #6.2012
+height = 1.5*3.7341 #* 4/3 #1.618
 
 flux_axarr[1].set_ylim((np.nanmin(total_bathymetry_list)-5,np.nanmax(total_bathymetry_list)))
 flux_axarr[1].invert_yaxis()
@@ -891,7 +894,8 @@ emb217_label = mpatches.Patch(color='#d95f02', label='summer cruise emb217')
 Osborn_label = mlines.Line2D([], [], ls = ":", lw = 2.5, c = "k", label = "Osborn oxygen flux")
 Shih_label = mlines.Line2D([], [], ls = "-", lw = 2.5, c = "k", label = "Shih oxygen flux")
 
-flux_axarr[0].legend(handles=[emb169_label,emb177_label,emb217_label,Osborn_label,Shih_label],loc = "lower left")
+#flux_axarr[0].legend(handles=[emb169_label,emb177_label,emb217_label,Osborn_label,Shih_label],loc = "lower left")
+flux_axarr[0].legend(handles=[emb169_label,emb177_label,emb217_label],loc = "lower left")
  
 bathymetry_label =  mpatches.Patch(color='lightgrey', label='bathymetry')
 flux_axarr[1].legend(loc = "lower right")
@@ -916,7 +920,7 @@ f_flux.subplots_adjust(top=0.945,bottom=0.105,left=0.115,right=0.975,hspace=0.05
 props = dict(boxstyle='square', facecolor = "white")
 #flux_axarr[1].text(0.62, 0.05, textstr, transform=flux_axarr[1].transAxes, fontsize= MINI_SIZE ,verticalalignment='bottom', bbox=props, multialignment = "right")
 
-f_flux.suptitle("Vertical oxygen flux between two water masses") #along the transect: rolling isopycnal mean over "+str(rolling_window_size)+" points", weight = "bold") # (binned data)")
+f_flux.suptitle("Vertical oxygen flux between the two water masses") #along the transect: rolling isopycnal mean over "+str(rolling_window_size)+" points", weight = "bold") # (binned data)")
 f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/iso_flux_transect", dpi = 600) 
 #f_flux.savefig("/home/ole/Thesis/Analysis/mss/pictures/statistics/beamer_iso_flux_transect", dpi = 600)           
 
